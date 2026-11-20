@@ -61,7 +61,8 @@ class RunCommand extends Command
         $this->line('');
 
         $command = sprintf(
-            '%s -S %s:%s -t %s %s',
+            // Larger upload limits so bulk-import ZIPs of product images fit (PHP default is 2M / 8M).
+            '%s -d upload_max_filesize=64M -d post_max_size=80M -S %s:%s -t %s %s',
             escapeshellarg(PHP_BINARY),
             escapeshellarg($host),
             escapeshellarg($port),

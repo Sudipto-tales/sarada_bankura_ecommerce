@@ -28,6 +28,7 @@ Thumbs.db
 /storage/logs/*
 /storage/cache/*
 /storage/uploads/*
+/storage/imports/*
 !/storage/**/.gitkeep
 
 # Build and temporary files
@@ -36,6 +37,12 @@ Thumbs.db
 *.bak
 *.swp
 *.zip
+
+# Tailwind standalone CLI binary (42MB — re-download via bin/build-css.sh)
+/tools/tailwind/tailwindcss
+/node_modules/
+/public/assets/uploads/products/*
+!/public/assets/uploads/products/.gitkeep
 
 # Ignore generated test reports
 /phpunit.xml
