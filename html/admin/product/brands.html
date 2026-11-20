@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ma Sarada — Brands</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <style>
+    :root{--ink:#292821;--muted:#918875;--line:#e9deca;--gold:#f7c642;--gold-dark:#b47b12;--paper:#fbf8f0}
+    *{box-sizing:border-box}
+    body{margin:0;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:radial-gradient(ellipse at 65% 20%,#fffaf0 0%,#f4eddd 50%,#eee5d4 100%);min-height:100vh}
+    .glass{background:rgba(255,255,255,.72);border:1px solid rgba(255,255,255,.94);box-shadow:0 8px 24px rgba(94,73,34,.045),inset 0 1px 0 rgba(255,255,255,.9);backdrop-filter:blur(18px)}
+    .sidebar{background:linear-gradient(150deg,rgba(255,255,255,.52),rgba(225,211,185,.62));border:1px solid rgba(255,255,255,.92);box-shadow:0 10px 30px rgba(84,66,34,.06)}
+    .nav-item{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:10px;color:#5c584e;font-size:13px;font-weight:550;cursor:pointer;transition:.18s}
+    .nav-item:hover{background:rgba(255,255,255,.55);color:#302c22}
+    .nav-item.active{background:linear-gradient(100deg,#fff0bd,#ffefb6);border:1px solid #f1d78b;color:#67490c;box-shadow:0 3px 9px #9d77251c}
+    .nav-sub{margin:3px 0 8px 24px;padding-left:7px;border-left:1px solid #d9c9aa}
+    .nav-sub .nav-item{padding:8px 9px;font-weight:450}
+    .panel{border:1px solid rgba(255,255,255,.95);background:rgba(255,255,255,.78);border-radius:16px;box-shadow:0 5px 20px rgba(93,72,35,.035)}
+    .stat{position:relative;overflow:hidden;min-height:124px;padding:15px 16px;border-radius:15px;border:1px solid #fff;background:linear-gradient(135deg,rgba(255,255,255,.88),rgba(250,245,233,.8))}
+    .stat:after{content:"";position:absolute;width:92px;height:92px;border-radius:50%;right:-15px;bottom:-30px;background:rgba(229,194,117,.11)}
+    .soft-icon{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;background:#e5f2e9;color:#4b9473}
+    .soft-icon.gold{background:#fff0c9;color:#bd8a22}
+    .soft-icon.orange{background:#ffede4;color:#e87548}
+    .eyebrow{font-size:10px;letter-spacing:.08em;font-weight:750;color:#b27b17;text-transform:uppercase}
+    .muted{color:#988d79}
+    .pill{display:inline-flex;align-items:center;gap:6px;border-radius:8px;padding:5px 9px;font-size:11px;font-weight:650}
+    .pill.green{background:#e4f4e9;color:#21805a}.pill.amber{background:#fff2d3;color:#9c6b0c}.pill.gray{background:#f1eee7;color:#716b60}
+    .control{height:39px;border:1px solid #eadfc9;border-radius:11px;background:rgba(255,255,255,.72);padding:0 12px;color:#625c50;font-size:12px;outline:none}
+    .control:focus{border-color:#e7bd55;box-shadow:0 0 0 3px #f8e7b5}
+    .btn{height:40px;border-radius:11px;padding:0 15px;font-size:12px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;gap:8px;transition:.18s}
+    .btn-light{background:#fff;border:1px solid #e8decc}.btn-light:hover{background:#faf5e9}
+    .btn-gold{background:linear-gradient(110deg,#ffd968,#f5b91f);border:1px solid #efb21c;color:#49370d;box-shadow:0 3px 9px #c38c2024}.btn-gold:hover{filter:brightness(1.03);transform:translateY(-1px)}
+    .brand-chip{border:1px solid #ecdfc9;background:linear-gradient(120deg,#fffaf2,#f8f0e2);border-radius:12px;padding:12px;display:flex;align-items:center;gap:12px;min-width:0}
+    .brand-mark{width:38px;height:38px;border-radius:11px;border:1px solid #ead7a8;background:#fff3ce;color:#8c6416;display:grid;place-items:center;font-size:11px;font-weight:800;flex:none}
+    .table-wrap{overflow:auto}
+    table{width:100%;border-collapse:separate;border-spacing:0;font-size:12px;white-space:nowrap}
+    th{text-align:left;color:#8b806d;font-size:11px;font-weight:650;padding:12px 12px;border-bottom:1px solid #eee6d8}
+    td{padding:12px;border-bottom:1px solid #f0eadd;color:#514d43}
+    tbody tr:hover{background:#fbf7ee}
+    .row-featured{background:#edf7ef}
+    .row-featured:hover{background:#e8f4ea}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(38,32,20,.32);backdrop-filter:blur(5px);display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+    .modal-backdrop.open{display:flex}
+    .modal{width:min(470px,100%);border-radius:20px;background:#fffdf8;border:1px solid white;box-shadow:0 24px 80px #3c2d1730;padding:23px}
+    .toast{position:fixed;right:22px;bottom:22px;background:#292821;color:#fff;padding:12px 16px;border-radius:12px;font-size:13px;box-shadow:0 10px 30px #0002;opacity:0;transform:translateY(10px);pointer-events:none;transition:.25s;z-index:80}
+    .toast.show{opacity:1;transform:translateY(0)}
+    @media(max-width:1100px){.sidebar{width:210px!important}.top-stats{display:none!important}.main-content{padding:18px!important}}
+    @media(max-width:760px){.sidebar{display:none}.mobile-menu{display:flex!important}.topbar{margin-left:0!important}.main-content{margin-left:0!important}.top-right .date-label{display:none}.performance-grid{grid-template-columns:1fr!important}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.toolbar{flex-wrap:wrap}.toolbar .searchbox{width:100%!important}.topbar{padding:10px!important}}
+  </style>
+</head>
+<body>
+<div class="min-h-screen flex gap-3 p-3">
+  <!-- Sidebar -->
+  <aside id="sidebar" class="sidebar w-[248px] shrink-0 rounded-[27px] h-[calc(100vh-24px)] sticky top-3 p-4 flex flex-col overflow-y-auto">
+    <div class="flex flex-col items-center pt-1 pb-5">
+      <div class="w-11 h-11 rounded-xl bg-gradient-to-br from-[#ffe78e] to-[#e5a900] border border-white/80 shadow-md grid place-items-center rotate-[-7deg] text-[#5c4309]"><i data-lucide="shopping-bag" class="w-5 h-5"></i></div>
+      <div class="text-[21px] font-extrabold tracking-tight mt-2">Ma Sarada</div>
+      <div class="text-[13px] text-[#716957]">Commerce, in harmony.</div>
+    </div>
+    <div class="text-[12px] font-bold text-[#514c41] px-2 mb-2">Operate</div>
+    <nav class="space-y-1">
+      <div class="nav-item"><i data-lucide="house" class="w-4 h-4"></i>Overview</div>
+      <div class="nav-item text-[#76520d]"><i data-lucide="shopping-bag" class="w-4 h-4"></i>Products <i data-lucide="chevron-up" class="w-3 h-3 ml-auto"></i></div>
+      <div class="nav-sub">
+        <div class="nav-item">Products</div><div class="nav-item">Variants &amp; options</div><div class="nav-item">Categories</div><div class="nav-item">Attributes</div>
+        <div class="nav-item active">Brands</div><div class="nav-item">Collections</div><div class="nav-item">Tags</div><div class="nav-item">Reviews &amp; ratings</div>
+      </div>
+      <div class="nav-item"><i data-lucide="clipboard-list" class="w-4 h-4"></i>Orders <i data-lucide="chevron-down" class="w-3 h-3 ml-auto"></i></div>
+      <div class="nav-item"><i data-lucide="warehouse" class="w-4 h-4"></i>Inventory <i data-lucide="chevron-down" class="w-3 h-3 ml-auto"></i></div>
+      <div class="nav-item"><i data-lucide="users" class="w-4 h-4"></i>Customers <i data-lucide="chevron-down" class="w-3 h-3 ml-auto"></i></div>
+    </nav>
+    <div class="text-[12px] font-bold text-[#514c41] px-2 mt-4 mb-2">Commerce</div>
+    <nav class="space-y-1">
+      <div class="nav-item"><i data-lucide="tag" class="w-4 h-4"></i>Checkout &amp; pricing <i data-lucide="chevron-down" class="w-3 h-3 ml-auto"></i></div>
+      <div class="nav-item"><i data-lucide="store" class="w-4 h-4"></i>Marketplace <i data-lucide="chevron-down" class="w-3 h-3 ml-auto"></i></div>
+      <div class="nav-item"><i data-lucide="megaphone" class="w-4 h-4"></i>Marketing <i data-lucide="chevron-down" class="w-3 h-3 ml-auto"></i></div>
+      <div class="nav-item"><i data-lucide="chart-no-axes-combined" class="w-4 h-4"></i>Analytics</div>
+    </nav>
+    <div class="mt-auto pt-5">
+      <div class="rounded-xl bg-white/55 border border-white/80 p-3 flex items-center gap-2">
+        <div class="w-8 h-8 rounded-lg bg-[#fff0c9] text-[#a87817] grid place-items-center"><i data-lucide="sparkles" class="w-4 h-4"></i></div>
+        <div><div class="text-[11px] font-bold">Ma Sarada Pro</div><div class="text-[10px] muted">Explore your workspace</div></div>
+        <i data-lucide="arrow-up-right" class="w-3 h-3 ml-auto"></i>
+      </div>
+    </div>
+  </aside>
+
+  <main class="min-w-0 flex-1">
+    <!-- Topbar -->
+    <header class="topbar flex items-center gap-3 mb-5">
+      <button class="mobile-menu hidden glass rounded-xl w-10 h-10 items-center justify-center" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+      <div class="glass rounded-[24px] h-[60px] flex items-center gap-2 p-2 flex-1 min-w-0">
+        <div class="flex items-center gap-2 bg-white/55 rounded-xl px-3 h-10 flex-1 min-w-[170px]">
+          <i data-lucide="search" class="w-4 h-4 text-[#6d695f]"></i><input id="globalSearch" class="bg-transparent outline-none text-[12px] w-full placeholder:text-[#8e8778]" placeholder="Search orders, products, customers..." />
+          <span class="text-[10px] bg-[#f1ece2] rounded-md px-2 py-1 text-[#827969]">⌘ K</span>
+        </div>
+        <div class="top-stats flex gap-1.5">
+          <div class="rounded-xl bg-white/65 px-3 py-1.5 flex items-center gap-2"><span class="soft-icon"><i data-lucide="shopping-cart" class="w-4 h-4"></i></span><div class="leading-tight"><div class="text-[11px] muted">Orders</div><b class="text-[14px]">1,248</b></div></div>
+          <div class="rounded-xl bg-white/65 px-3 py-1.5 flex items-center gap-2"><span class="soft-icon gold"><i data-lucide="package" class="w-4 h-4"></i></span><div class="leading-tight"><div class="text-[11px] muted">Low stock</div><b class="text-[14px]">8</b></div></div>
+          <div class="rounded-xl bg-white/65 px-3 py-1.5 flex items-center gap-2"><span class="soft-icon orange"><i data-lucide="truck" class="w-4 h-4"></i></span><div class="leading-tight"><div class="text-[11px] muted">Delayed</div><b class="text-[14px]">3</b></div></div>
+        </div>
+      </div>
+      <div class="top-right glass rounded-[24px] h-[60px] p-2 flex items-center gap-2 shrink-0">
+        <button class="btn btn-light !h-10 !px-3" onclick="toast('Date range selector opened')"><i data-lucide="calendar-days" class="w-4 h-4"></i><span class="date-label">Last 30 days</span><i data-lucide="chevron-down" class="w-3 h-3"></i></button>
+        <button class="w-10 h-10 rounded-xl bg-white/75 border border-white grid place-items-center text-lg" title="Language">🇬🇧</button>
+        <button class="relative w-10 h-10 rounded-xl bg-white/75 border border-white grid place-items-center" onclick="toast('You are all caught up')"><i data-lucide="bell" class="w-4 h-4"></i><span class="absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-red-500"></span></button>
+        <button class="flex items-center gap-2 rounded-xl bg-white/65 pl-1.5 pr-2 h-10" onclick="toast('Account menu opened')"><span class="w-8 h-8 rounded-full bg-gradient-to-br from-[#ffdf74] to-[#f5b916] border-2 border-white grid place-items-center font-bold">A</span><span class="text-left leading-tight hidden sm:block"><b class="text-[12px]">Alex Chen</b><small class="block text-[10px] muted">Store Owner</small></span><i data-lucide="chevron-down" class="w-3 h-3"></i></button>
+      </div>
+    </header>
+
+    <section class="main-content px-1">
+      <div class="flex items-center justify-between mb-1">
+        <div class="text-[12px] text-[#8b806e]">Workspace <span class="mx-1">›</span> Brands</div>
+        <div class="flex gap-2">
+          <button class="btn btn-light" onclick="exportCSV()"><i data-lucide="download" class="w-4 h-4"></i>Export</button>
+          <button class="btn btn-gold" onclick="openModal()"><i data-lucide="plus" class="w-4 h-4"></i>Add brand</button>
+        </div>
+      </div>
+      <h1 class="text-[27px] font-extrabold tracking-tight mb-4">Brands.</h1>
+      <div class="flex gap-2 mb-4 flex-wrap">
+        <button class="btn !h-10 bg-[#fff0c4] border border-[#efd27f] text-[#76520d] !px-4" onclick="toast('Brands view selected')">Brands</button>
+        <button class="btn btn-light !h-10" onclick="toast('Collections view selected')">Collections <i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+        <button class="btn btn-light !h-10" onclick="toast('Tags view selected')">Tags <i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+        <button class="btn btn-light !h-10" onclick="toast('Reviews & ratings view selected')">Reviews &amp; ratings <i data-lucide="arrow-right" class="w-4 h-4"></i></button>
+      </div>
+
+      <!-- KPI cards -->
+      <div class="stats-grid grid grid-cols-4 gap-2.5 mb-3">
+        <div class="stat"><div class="flex justify-between items-start"><span class="soft-icon"><i data-lucide="tag" class="w-4 h-4"></i></span><span class="text-[11px] muted mt-2">3 brand profiles</span></div><div class="text-[23px] font-bold mt-2 leading-none">3</div><div class="text-[13px] mt-2">Active brands</div></div>
+        <div class="stat"><div class="flex justify-between items-start"><span class="soft-icon"><i data-lucide="package" class="w-4 h-4"></i></span><span class="text-[11px] muted mt-2">Catalog coverage</span></div><div class="text-[23px] font-bold mt-2 leading-none">12</div><div class="text-[13px] mt-2">Branded products</div></div>
+        <div class="stat"><div class="flex justify-between items-start"><span class="soft-icon"><i data-lucide="chart-no-axes-combined" class="w-4 h-4"></i></span><span class="text-[11px] muted mt-2">Gross product revenue</span></div><div class="text-[23px] font-bold mt-2 leading-none">$180,515</div><div class="text-[13px] mt-2">Catalog revenue</div></div>
+        <div class="stat"><div class="flex justify-between items-start"><span class="soft-icon gold"><i data-lucide="star" class="w-4 h-4"></i></span><span class="text-[11px] muted mt-2">Storefront placement</span></div><div class="text-[23px] font-bold mt-2 leading-none">2</div><div class="text-[13px] mt-2">Featured brands</div></div>
+      </div>
+
+      <!-- Performance -->
+      <section class="panel p-4 mb-3">
+        <div class="flex items-start justify-between gap-3 mb-3">
+          <div><div class="eyebrow mb-1">Brand performance</div><h2 class="font-bold text-[16px]">Merchandise with commercial context</h2><p class="text-[11px] muted mt-1">See which labels are carrying revenue, assortment depth and storefront visibility before adjusting placement.</p></div>
+          <span class="text-[10px] muted mt-1 shrink-0">3 labels tracked</span>
+        </div>
+        <div class="performance-grid grid grid-cols-3 gap-2.5">
+          <div class="brand-chip"><div class="brand-mark">NO</div><div class="min-w-0 flex-1"><b class="block text-[13px]">Northline</b><span class="text-[11px] muted">4 products · 1,446 units sold</span></div><b class="text-[13px]">$102,427</b></div>
+          <div class="brand-chip"><div class="brand-mark">VE</div><div class="min-w-0 flex-1"><b class="block text-[13px]">Ma Sarada Studio</b><span class="text-[11px] muted">4 products · 2,080 units sold</span></div><b class="text-[13px]">$51,216</b></div>
+          <div class="brand-chip"><div class="brand-mark">FO</div><div class="min-w-0 flex-1"><b class="block text-[13px]">Forma</b><span class="text-[11px] muted">4 products · 1,220 units sold</span></div><b class="text-[13px]">$26,872</b></div>
+        </div>
+      </section>
+
+      <!-- Filters -->
+      <section class="panel p-3 mb-3 toolbar flex items-center gap-2">
+        <select id="tierFilter" class="control w-[136px]"><option value="">All brand tiers</option><option>Strategic</option><option>Growth</option><option>Emerging</option></select>
+        <select id="statusFilter" class="control w-[136px]"><option value="">All statuses</option><option>Active</option><option>Draft</option><option>Archived</option></select>
+        <label class="flex items-center gap-2 text-[12px] muted mx-auto cursor-pointer"><input id="archivedToggle" type="checkbox" class="accent-[#dca91e] w-4 h-4">Archived brands</label>
+        <div class="searchbox relative w-[280px]"><i data-lucide="search" class="w-4 h-4 absolute left-3 top-3 text-[#918875]"></i><input id="brandSearch" class="control w-full pl-9" placeholder="Search brands, country or contact..." /></div>
+      </section>
+
+      <!-- Brand table -->
+      <section class="panel overflow-hidden">
+        <div class="p-4 pb-3 flex items-start justify-between">
+          <div><div class="eyebrow mb-1">Brand portfolio</div><h2 class="font-bold text-[16px]">Catalog labels</h2><p class="text-[11px] muted mt-1">Manage brand visibility with product depth and performance in the same view.</p></div>
+          <span id="matchCount" class="text-[10px] muted mt-2">3 matching brands</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th class="pl-6"><input type="checkbox" id="selectAll" class="accent-[#dca91e]"></th><th>Brand</th><th>Products</th><th>Revenue</th><th>Avg rating</th><th>Inventory</th><th>Placement</th><th>Status</th><th></th></tr></thead>
+            <tbody id="brandRows">
+              <tr class="row-featured" data-name="Ma Sarada Studio" data-tier="Strategic" data-status="Active"><td class="pl-6"><input type="checkbox" class="row-check accent-[#dca91e]"></td><td><div class="flex items-center gap-2"><div class="brand-mark">VE</div><div><b>Ma Sarada Studio</b><div class="text-[11px] muted">United States · Strategic</div></div></div></td><td><b>4</b><div class="text-[11px] muted">active catalog items</div></td><td><b>$51,216</b><div class="text-[11px] muted">gross revenue</div></td><td><span class="text-[#d89b13] tracking-[-2px] text-[16px]">★★★★★</span><div class="text-[11px] muted">4.8</div></td><td><b>189</b><div class="text-[11px] muted">units available</div></td><td><span class="pill green">● Featured</span></td><td><span class="pill green">● Active</span></td><td><button class="w-9 h-9 rounded-lg border border-[#eadfc9] bg-white/70" onclick="rowMenu('Ma Sarada Studio')">⋮</button></td></tr>
+              <tr data-name="Northline" data-tier="Growth" data-status="Active"><td class="pl-6"><input type="checkbox" class="row-check accent-[#dca91e]"></td><td><div class="flex items-center gap-2"><div class="brand-mark">NO</div><div><b>Northline</b><div class="text-[11px] muted">Canada · Growth</div></div></div></td><td><b>4</b><div class="text-[11px] muted">active catalog items</div></td><td><b>$102,427</b><div class="text-[11px] muted">gross revenue</div></td><td><span class="text-[#d89b13] tracking-[-2px] text-[16px]">★★★★★</span><div class="text-[11px] muted">4.9</div></td><td><b>246</b><div class="text-[11px] muted">units available</div></td><td><span class="pill green">● Featured</span></td><td><span class="pill green">● Active</span></td><td><button class="w-9 h-9 rounded-lg border border-[#eadfc9] bg-white/70" onclick="rowMenu('Northline')">⋮</button></td></tr>
+              <tr data-name="Forma" data-tier="Emerging" data-status="Active"><td class="pl-6"><input type="checkbox" class="row-check accent-[#dca91e]"></td><td><div class="flex items-center gap-2"><div class="brand-mark">FO</div><div><b>Forma</b><div class="text-[11px] muted">United Kingdom · Emerging</div></div></div></td><td><b>4</b><div class="text-[11px] muted">active catalog items</div></td><td><b>$26,872</b><div class="text-[11px] muted">gross revenue</div></td><td><span class="text-[#d89b13] tracking-[-2px] text-[16px]">★★★★☆</span><div class="text-[11px] muted">4.2</div></td><td><b>112</b><div class="text-[11px] muted">units available</div></td><td><span class="pill gray">Standard</span></td><td><span class="pill green">● Active</span></td><td><button class="w-9 h-9 rounded-lg border border-[#eadfc9] bg-white/70" onclick="rowMenu('Forma')">⋮</button></td></tr>
+            </tbody>
+          </table>
+          <div id="emptyState" class="hidden text-center py-10 text-sm muted">No brands match these filters.</div>
+        </div>
+        <div class="border-t border-[#eee6d8] p-3 flex justify-between items-center text-[11px] muted"><span>Showing <b class="text-[#514d43]">1–3</b> of <b class="text-[#514d43]">3</b> brands</span><div class="flex gap-1"><button class="btn btn-light !h-8 !px-3" onclick="toast('Previous page')">Previous</button><button class="btn !h-8 !px-3 bg-[#fff0c4] border border-[#efd27f]">1</button><button class="btn btn-light !h-8 !px-3" onclick="toast('Next page')">Next</button></div></div>
+      </section>
+    </section>
+  </main>
+</div>
+
+<!-- Add brand modal -->
+<div id="brandModal" class="modal-backdrop" onclick="if(event.target===this)closeModal()">
+  <div class="modal">
+    <div class="flex justify-between items-start mb-5"><div><div class="eyebrow mb-1">Brand portfolio</div><h2 class="text-xl font-bold">Add a brand</h2><p class="text-xs muted mt-1">Create a new label for your product catalog.</p></div><button onclick="closeModal()" class="w-8 h-8 rounded-lg bg-[#f5f0e6] grid place-items-center"><i data-lucide="x" class="w-4 h-4"></i></button></div>
+    <form id="brandForm" class="space-y-3">
+      <label class="block text-xs font-semibold">Brand name<input id="newBrandName" required class="control w-full mt-1" placeholder="e.g. Atelier Goods"></label>
+      <div class="grid grid-cols-2 gap-3"><label class="block text-xs font-semibold">Country<input id="newBrandCountry" class="control w-full mt-1" placeholder="Country"></label><label class="block text-xs font-semibold">Brand tier<select id="newBrandTier" class="control w-full mt-1"><option>Emerging</option><option>Growth</option><option>Strategic</option></select></label></div>
+      <label class="block text-xs font-semibold">Contact email<input id="newBrandEmail" type="email" class="control w-full mt-1" placeholder="brand@example.com"></label>
+      <div class="flex justify-end gap-2 pt-3"><button type="button" class="btn btn-light" onclick="closeModal()">Cancel</button><button class="btn btn-gold" type="submit"><i data-lucide="plus" class="w-4 h-4"></i>Create brand</button></div>
+    </form>
+  </div>
+</div>
+<div id="toast" class="toast"></div>
+<script>
+  lucide.createIcons();
+  const modal=document.getElementById('brandModal');
+  function openModal(){modal.classList.add('open');setTimeout(()=>document.getElementById('newBrandName').focus(),80)}
+  function closeModal(){modal.classList.remove('open')}
+  let toastTimer;
+  function toast(message){const el=document.getElementById('toast');el.textContent=message;el.classList.add('show');clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove('show'),2500)}
+  function rowMenu(name){toast('Actions for '+name+' · Edit / Archive')}
+  function toggleSidebar(){const s=document.getElementById('sidebar');s.style.display=s.style.display==='none'?'flex':'none'}
+  document.getElementById('brandForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const name=document.getElementById('newBrandName').value.trim();
+    const country=document.getElementById('newBrandCountry').value.trim()||'—';
+    const tier=document.getElementById('newBrandTier').value;
+    if(!name)return;
+    const initials=name.split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();
+    const tr=document.createElement('tr');tr.dataset.name=name;tr.dataset.tier=tier;tr.dataset.status='Draft';
+    tr.innerHTML=`<td class="pl-6"><input type="checkbox" class="row-check accent-[#dca91e]"></td><td><div class="flex items-center gap-2"><div class="brand-mark">${initials}</div><div><b>${escapeHtml(name)}</b><div class="text-[11px] muted">${escapeHtml(country)} · ${tier}</div></div></div></td><td><b>0</b><div class="text-[11px] muted">active catalog items</div></td><td><b>$0</b><div class="text-[11px] muted">gross revenue</div></td><td><span class="text-[#d89b13]">—</span><div class="text-[11px] muted">No ratings</div></td><td><b>0</b><div class="text-[11px] muted">units available</div></td><td><span class="pill gray">Standard</span></td><td><span class="pill amber">● Draft</span></td><td><button class="w-9 h-9 rounded-lg border border-[#eadfc9] bg-white/70" onclick="rowMenu('${escapeJs(name)}')">⋮</button></td>`;
+    document.getElementById('brandRows').appendChild(tr);document.getElementById('brandForm').reset();closeModal();applyFilters();toast('Brand created successfully');
+  });
+  function escapeHtml(s){return s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+  function escapeJs(s){return s.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}
+  function applyFilters(){
+    const q=document.getElementById('brandSearch').value.toLowerCase();
+    const tier=document.getElementById('tierFilter').value;
+    const status=document.getElementById('statusFilter').value;
+    const archived=document.getElementById('archivedToggle').checked;
+    let visible=0;
+    document.querySelectorAll('#brandRows tr').forEach(tr=>{
+      const match=(!q||tr.innerText.toLowerCase().includes(q))&&(!tier||tr.dataset.tier===tier)&&(!status||tr.dataset.status===status)&&(archived?tr.dataset.status==='Archived':tr.dataset.status!=='Archived');
+      tr.style.display=match?'':'none';if(match)visible++;
+    });
+    document.getElementById('matchCount').textContent=visible+' matching brands';
+    document.getElementById('emptyState').classList.toggle('hidden',visible!==0);
+  }
+  ['brandSearch','tierFilter','statusFilter','archivedToggle'].forEach(id=>document.getElementById(id).addEventListener('input',applyFilters));
+  document.getElementById('selectAll').addEventListener('change',e=>document.querySelectorAll('.row-check').forEach(c=>c.checked=e.target.checked));
+  function exportCSV(){
+    const rows=[['Brand','Country / Tier','Products','Revenue','Rating','Inventory','Placement','Status']];
+    document.querySelectorAll('#brandRows tr').forEach(tr=>{if(tr.style.display==='none')return;const cells=[...tr.querySelectorAll('td')];if(cells.length<8)return;rows.push([cells[1].innerText.replace(/\n/g,' / '),cells[2].innerText.replace(/\n/g,' / '),cells[3].innerText.replace(/\n/g,' / '),cells[4].innerText.replace(/\n/g,' / '),cells[5].innerText.replace(/\n/g,' / '),cells[6].innerText,cells[7].innerText]);});
+    const csv=rows.map(r=>r.map(v=>'"'+String(v).replace(/"/g,'""')+'"').join(',')).join('\n');
+    const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='veylix-brands.csv';a.click();URL.revokeObjectURL(a.href);toast('Brand report exported');
+  }
+  document.getElementById('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){document.getElementById('brandSearch').value=e.target.value;applyFilters()}});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();document.getElementById('globalSearch').focus()}});
+</script>
+</body>
+</html>

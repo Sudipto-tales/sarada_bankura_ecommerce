@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ma Sarada · Categories</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#292923;--muted:#8e8575;--line:#e9dfcc;--gold:#f7bd35;--gold2:#ffdf83;--green:#2c8a62}
+*{box-sizing:border-box}body{font-family:'DM Sans',sans-serif;color:var(--ink);background:radial-gradient(ellipse at 78% 5%,#faf5e9 0,#f0e8d8 48%,#e9dfcd 100%);min-height:100vh}
+.glass{background:rgba(255,253,247,.78);border:1px solid rgba(255,255,255,.95);box-shadow:0 7px 22px rgba(100,76,36,.045),inset 0 1px 0 #fff}
+.sidebar{background:linear-gradient(145deg,rgba(255,255,255,.48),rgba(245,236,219,.78));border:1px solid rgba(255,255,255,.92);box-shadow:0 8px 25px rgba(92,72,39,.06)}
+.navlink{display:flex;align-items:center;gap:11px;padding:10px 12px;border-radius:11px;color:#514d44;font-size:14px;font-weight:500;cursor:pointer}
+.navlink:hover{background:rgba(255,255,255,.48)}.navlink.active{background:linear-gradient(100deg,#ffe9a6,#fff0bf);border:1px solid #fff7df;color:#60491b;box-shadow:0 2px 7px #b78b2630;position:relative}
+.navlink.active:before{content:'';position:absolute;left:-7px;top:9px;bottom:9px;width:3px;border-radius:4px;background:#e9ae1e}
+.panel{background:rgba(255,255,255,.78);border:1px solid #fff;box-shadow:0 5px 18px rgba(92,72,39,.035);border-radius:17px}
+.stat{background:linear-gradient(120deg,rgba(255,255,255,.88),rgba(250,245,233,.8));border:1px solid #fff;border-radius:16px;padding:15px;min-height:88px}
+.category-row{display:grid;grid-template-columns:minmax(250px,2.2fr) .8fr .9fr .8fr .9fr 76px;align-items:center;gap:12px;padding:13px 12px;border-radius:13px;margin-top:9px;min-height:72px;transition:.18s}
+.category-row:hover{filter:brightness(.985);transform:translateY(-1px)}
+.tint-green{background:#eaf5e9}.tint-blue{background:#edf3f5}.tint-pink{background:#f5eff4}.tint-orange{background:#fbf0e4}.tint-yellow{background:#f7f3e2}
+.iconbox{width:38px;height:38px;border-radius:11px;background:#f8f0df;border:1px solid #ebddbf;display:grid;place-items:center;color:#9a701c;flex-shrink:0}
+.btn{border:1px solid #e8ddc8;background:#fffdf8;border-radius:11px;padding:10px 15px;font-size:13px;font-weight:700;display:inline-flex;align-items:center;gap:8px;transition:.15s}
+.btn:hover{transform:translateY(-1px);box-shadow:0 4px 10px #80652b18}.btn-gold{background:linear-gradient(110deg,#ffda70,#f7b928);border-color:#efb52d;color:#382a0b}
+.pill{font-size:11px;font-weight:700;padding:5px 9px;border-radius:20px;background:#e4f4e9;color:#267a55}
+.subrow{display:flex;align-items:center;gap:12px;padding:10px 16px 10px 64px;border-bottom:1px solid #f0e8da;background:rgba(255,255,255,.48);font-size:13px}
+input,select{outline:none}input:focus,select:focus{border-color:#dfb64d!important;box-shadow:0 0 0 3px #f5d98a35}
+.modal-backdrop{position:fixed;inset:0;background:#2c281f66;display:none;align-items:center;justify-content:center;padding:20px;z-index:50}
+.modal{width:min(540px,100%);background:#fffdf8;border:1px solid white;border-radius:20px;box-shadow:0 25px 80px #30250d38;padding:24px}
+@media(max-width:1150px){.sidebar{width:205px!important}.main{margin-left:220px!important}.topstats{display:none}}
+@media(max-width:850px){.sidebar{display:none}.main{margin-left:0!important;padding:14px!important}.category-row{grid-template-columns:minmax(190px,2fr) .7fr .8fr 70px}.hide-md{display:none}.topbar{flex-wrap:wrap}}
+@media(max-width:560px){.category-row{grid-template-columns:1fr 58px}.category-row .hide-sm{display:none}.category-row .actions{grid-column:2}.stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
+</style>
+</head>
+<body>
+<aside class="sidebar fixed left-4 top-4 bottom-4 w-[230px] rounded-[27px] p-4 overflow-y-auto z-20">
+ <div class="text-center pt-1 pb-5"><div class="mx-auto mb-2 w-11 h-11 rounded-xl rotate-[-6deg] bg-gradient-to-br from-yellow-200 to-yellow-500 border border-white shadow-md grid place-items-center text-xl">▣</div><div class="text-[23px] font-extrabold tracking-tight">Ma Sarada</div><div class="text-sm text-[#776e60] mt-0.5">Commerce, in harmony.</div></div>
+ <div class="text-xs font-bold text-[#5b554b] px-2 mb-2">Operate</div>
+ <nav class="space-y-1">
+  <div class="navlink">⌂ <span>Overview</span></div>
+  <div class="navlink active">▣ <span class="flex-1">Products</span><span>⌃</span></div>
+  <div class="ml-2 pl-2 border-l border-[#d9c9a9] space-y-1">
+   <div class="navlink text-[13px]">Products</div><div class="navlink text-[13px]">Variants &amp; options</div><div class="navlink active text-[13px]">Categories</div><div class="navlink text-[13px]">Attributes</div><div class="navlink text-[13px]">Brands</div><div class="navlink text-[13px]">Collections</div><div class="navlink text-[13px]">Tags</div><div class="navlink text-[13px]">Reviews &amp; ratings</div>
+  </div>
+  <div class="navlink mt-2">▤ <span class="flex-1">Orders</span><span>⌄</span></div><div class="navlink">▱ <span class="flex-1">Inventory</span><span>⌄</span></div><div class="navlink">♧ <span class="flex-1">Customers</span><span>⌄</span></div>
+  <div class="text-xs font-bold text-[#5b554b] px-2 pt-4 pb-1">Commerce</div>
+  <div class="navlink">◇ <span class="flex-1">Checkout &amp; pricing</span><span>⌄</span></div><div class="navlink">▧ <span class="flex-1">Marketplace</span><span>⌄</span></div><div class="navlink">▣ <span class="flex-1">Online store</span><span>⌄</span></div><div class="navlink">▤ <span class="flex-1">Payments</span><span>⌄</span></div>
+  <div class="text-xs font-bold text-[#5b554b] px-2 pt-4 pb-1">Grow &amp; connect</div><div class="navlink">▥ <span class="flex-1">Reports</span><span>⌄</span></div><div class="navlink">☏ <span class="flex-1">Communication</span><span>⌄</span></div>
+ </nav>
+</aside>
+<main class="main ml-[250px] p-4 pr-6">
+ <header class="topbar flex items-center gap-3 mb-6">
+  <div class="glass rounded-full h-[60px] flex items-center px-4 gap-3 flex-1 min-w-[280px] max-w-[880px]">
+   <div class="flex items-center gap-2 bg-white/65 border border-[#eee4d2] rounded-full px-4 py-3 flex-1 min-w-0"><span class="text-xl text-[#777264]">⌕</span><input class="bg-transparent w-full text-sm" placeholder="Search orders, products, customers..."><span class="text-xs text-[#8c8477] bg-[#f2eee5] px-2 py-1 rounded">⌘ K</span></div>
+   <div class="topstats flex items-center gap-2"><div class="bg-white/65 border border-[#eee4d2] rounded-full px-3 py-2 text-xs"><span class="text-emerald-600">🛒</span> Orders <b class="ml-1 text-sm">1,248</b></div><div class="bg-white/65 border border-[#eee4d2] rounded-full px-3 py-2 text-xs"><span>📦</span> Low stock <b class="ml-1 text-sm">8</b></div><div class="bg-white/65 border border-[#eee4d2] rounded-full px-3 py-2 text-xs"><span>🚚</span> Delayed <b class="ml-1 text-sm">3</b></div></div>
+  </div>
+  <div class="glass rounded-full h-[60px] ml-auto px-3 flex items-center gap-2"><button class="btn !rounded-full !py-2 !px-3">▦ <span>Last 30 days</span>⌄</button><button class="btn !rounded-full !p-2">🇬🇧</button><button class="btn !rounded-full !p-2">♧</button><div class="flex items-center gap-2 pl-1"><div class="w-9 h-9 rounded-full bg-[#ffc83d] border-2 border-white grid place-items-center font-bold">A</div><div class="text-xs"><b>Alex Chen</b><div class="text-[#8b8170]">Store Owner</div></div><span class="text-xs">⌄</span></div></div>
+ </header>
+ <section class="flex items-end justify-between gap-4 mb-5">
+  <div><div class="text-[13px] text-[#8b806e] mb-2">Workspace <span class="mx-2">›</span> Categories</div><h1 class="text-[28px] leading-none font-extrabold tracking-tight">Categories<span class="text-[#e7ad20]">.</span></h1></div>
+  <div class="flex gap-2"><button class="btn" id="exportBtn">⇩ <span>Export</span></button><button class="btn btn-gold" id="addBtn">＋ <span>Add category</span></button></div>
+ </section>
+ <section class="stat-grid grid grid-cols-4 gap-3 mb-3">
+  <div class="stat flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-[#f7e8bb] text-[#94701e] grid place-items-center">◇</div><div><div class="text-xs text-[#958875]">Total categories</div><div class="text-[22px] font-extrabold">19</div><div class="text-xs text-[#8e8575]">Catalog taxonomy</div></div></div>
+  <div class="stat flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-[#e7f1e9] text-[#528568] grid place-items-center">▦</div><div><div class="text-xs text-[#958875]">Top-level</div><div class="text-[22px] font-extrabold">5</div><div class="text-xs text-[#8e8575]">Primary browsing groups</div></div></div>
+  <div class="stat flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-[#e8eff3] text-[#658195] grid place-items-center">☰</div><div><div class="text-xs text-[#958875]">Sub-categories</div><div class="text-[22px] font-extrabold">14</div><div class="text-xs text-[#8e8575]">Nested discovery paths</div></div></div>
+  <div class="stat flex items-center gap-3"><div class="w-9 h-9 rounded-xl bg-[#fff0c9] text-[#aa7914] grid place-items-center">☆</div><div><div class="text-xs text-[#958875]">Featured</div><div class="text-[22px] font-extrabold">10</div><div class="text-xs text-[#8e8575]">17 visible now</div></div></div>
+ </section>
+ <section class="panel overflow-hidden">
+  <div class="px-4 pt-4 pb-3 border-b border-[#eee4d3] flex items-start justify-between gap-4"><div><div class="text-[11px] tracking-wider font-extrabold text-[#a87816]">TAXONOMY</div><h2 class="font-bold text-[17px] mt-0.5">All categories</h2><p class="text-[13px] text-[#958875] mt-1">Top-level groups give shoppers a clear starting point. Select one to manage its sub-categories.</p></div><div class="text-xs text-[#9a8e7b] pt-6 whitespace-nowrap">5 top-level · 14 sub-categories</div></div>
+  <div class="p-3">
+   <div class="grid grid-cols-[minmax(250px,2.2fr)_.8fr_.9fr_.8fr_.9fr_76px] gap-3 bg-[#f2f0e8] rounded-lg px-3 py-3 text-[12px] font-bold text-[#777064] uppercase max-md:hidden"><div>Category</div><div>Products</div><div>Revenue</div><div>Trend</div><div>Share</div><div></div></div>
+   <div id="categoryList"></div>
+   <div class="flex items-center justify-between border-t border-[#eee4d3] mt-3 pt-3 px-1 text-xs text-[#8e8575]"><span id="resultCount">Showing 5 top-level categories</span><div class="flex gap-2"><button class="btn !py-1.5 !px-3" disabled>‹</button><button class="btn !py-1.5 !px-3">1</button><button class="btn !py-1.5 !px-3" disabled>›</button></div></div>
+  </div>
+ </section>
+</main>
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal">
+ <div class="flex justify-between items-start mb-5"><div><div class="text-[11px] font-extrabold tracking-wider text-[#a87816]">CATALOG SETUP</div><h3 class="text-xl font-extrabold mt-1">Add category</h3><p class="text-sm text-[#8e8575] mt-1">Create a category shoppers can browse.</p></div><button id="closeModal" class="text-2xl text-[#8e8575]">×</button></div>
+ <form id="categoryForm" class="space-y-4">
+  <label class="block text-sm font-semibold">Category name <span class="text-red-500">*</span><input required id="categoryName" class="mt-1.5 w-full border border-[#e8ddc8] rounded-xl px-3 py-3 bg-white text-sm" placeholder="e.g. Clothing"></label>
+  <label class="block text-sm font-semibold">Parent category <select id="parentCategory" class="mt-1.5 w-full border border-[#e8ddc8] rounded-xl px-3 py-3 bg-white text-sm"><option value="">None — top-level category</option><option>Clothing</option><option>Bags</option><option>Home</option><option>Electronics</option><option>Stationery</option></select></label>
+  <label class="block text-sm font-semibold">Description <textarea id="categoryDescription" rows="3" class="mt-1.5 w-full border border-[#e8ddc8] rounded-xl px-3 py-3 bg-white text-sm resize-none" placeholder="Briefly describe this category..."></textarea></label>
+  <div class="grid grid-cols-2 gap-3"><label class="text-sm font-semibold">Visibility<select class="mt-1.5 w-full border border-[#e8ddc8] rounded-xl px-3 py-3 bg-white text-sm"><option>Visible</option><option>Hidden</option></select></label><label class="text-sm font-semibold">Featured<select class="mt-1.5 w-full border border-[#e8ddc8] rounded-xl px-3 py-3 bg-white text-sm"><option>No</option><option>Yes</option></select></label></div>
+  <div class="flex justify-end gap-2 pt-2"><button type="button" id="cancelModal" class="btn">Cancel</button><button class="btn btn-gold" type="submit">＋ Create category</button></div>
+ </form>
+</div></div>
+<script>
+const categories=[
+{name:'Clothing',icon:'♧',subs:['Tees','Shirts & Overshirts'],products:2,revenue:'$40.5K',trend:'+5.8%',share:22.5,tint:'tint-green'},
+{name:'Bags',icon:'♙',subs:['Backpacks','Totes','Travel bags'],products:3,revenue:'$87.6K',trend:'+5.6%',share:48.5,tint:'tint-blue'},
+{name:'Home',icon:'⌂',subs:['Kitchen','Decor','Living room','Bedding'],products:5,revenue:'$34.4K',trend:'+0.1%',share:19.1,tint:'tint-pink'},
+{name:'Electronics',icon:'▣',subs:['Audio','Accessories','Chargers'],products:1,revenue:'$14.7K',trend:'−5.1%',share:8.1,tint:'tint-orange'},
+{name:'Stationery',icon:'▤',subs:['Notebooks','Writing'],products:1,revenue:'$3.2K',trend:'+9.8%',share:1.8,tint:'tint-yellow'}
+];
+const list=document.getElementById('categoryList');
+function render(){list.innerHTML='';categories.forEach((c,i)=>{const wrap=document.createElement('div');wrap.innerHTML=`
+<div class="category-row ${c.tint}">
+ <div class="flex items-center gap-3 min-w-0"><div class="iconbox text-lg">${c.icon}</div><div class="min-w-0"><div class="font-bold text-[14px]">${c.name}</div><div class="text-xs text-[#9a8e7b] mt-1">${c.subs.length} sub-categories · <span class="pill">• Visible</span></div></div></div>
+ <div class="text-sm text-[#746d60] hide-sm">${c.products}</div><div class="text-sm font-bold text-[#5f594e] hide-sm">${c.revenue}</div><div class="hide-md"><span class="pill ${c.trend.startsWith('−')?'!bg-[#fbe7e2] !text-[#c84c39]':''}">${c.trend.startsWith('−')?'↓':'↑'} ${c.trend.replace(/[+−]/,'')}</span></div><div class="flex items-center gap-2 hide-md"><div class="h-1.5 w-16 bg-[#e8e2d7] rounded-full overflow-hidden"><div class="h-full bg-[#d5a322] rounded-full" style="width:${c.share}%"></div></div><span class="text-xs text-[#938977]">${c.share}%</span></div>
+ <div class="actions flex items-center justify-end gap-2"><button class="text-xl text-[#8b806e] hover:text-[#9d7419]" title="Show subcategories" onclick="toggleSubs(${i})">→</button><button class="btn !p-2 !rounded-xl" title="More actions" onclick="toggleSubs(${i})">⋮</button></div>
+</div><div id="subs-${i}" class="hidden rounded-b-xl border border-[#eee4d3] overflow-hidden mx-1">${c.subs.map(s=>`<div class="subrow"><span class="text-[#b09b72]">↳</span><span class="font-semibold">${s}</span><span class="text-[#9a8e7b] text-xs ml-auto">0 products</span><button class="text-[#9a8e7b]">⋮</button></div>`).join('')}<div class="subrow"><button class="text-[#9b701a] font-bold" onclick="quickSub(${i})">＋ Add sub-category</button></div></div>`;
+list.appendChild(wrap)})}
+function toggleSubs(i){document.getElementById('subs-'+i).classList.toggle('hidden')}
+function quickSub(i){const name=prompt('Sub-category name');if(name&&name.trim()){categories[i].subs.push(name.trim());render();document.getElementById('subs-'+i).classList.remove('hidden')}}
+render();
+const backdrop=document.getElementById('modalBackdrop');function openModal(){backdrop.style.display='flex';document.getElementById('categoryName').focus()}function closeModal(){backdrop.style.display='none'}
+document.getElementById('addBtn').onclick=openModal;document.getElementById('closeModal').onclick=closeModal;document.getElementById('cancelModal').onclick=closeModal;backdrop.addEventListener('click',e=>{if(e.target===backdrop)closeModal()});
+document.getElementById('categoryForm').addEventListener('submit',e=>{e.preventDefault();const name=document.getElementById('categoryName').value.trim();if(!name)return;const parent=document.getElementById('parentCategory').value;if(parent){const p=categories.find(c=>c.name===parent);if(p){p.subs.push(name);render();document.getElementById('subs-'+categories.indexOf(p)).classList.remove('hidden')}}else{categories.push({name,icon:'◇',subs:[],products:0,revenue:'$0',trend:'0.0%',share:0,tint:['tint-green','tint-blue','tint-pink','tint-orange','tint-yellow'][categories.length%5]});render()}closeModal();e.target.reset()});
+document.getElementById('exportBtn').onclick=()=>{const rows=[['Category','Sub-categories','Products','Revenue','Trend','Share'],...categories.map(c=>[c.name,c.subs.join('; '),c.products,c.revenue,c.trend,c.share+'%'])];const csv=rows.map(r=>r.map(v=>'"'+String(v).replaceAll('"','""')+'"').join(',')).join('\\n');const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='veylix-categories.csv';a.click();URL.revokeObjectURL(a.href)};
+</script>
+</body></html>

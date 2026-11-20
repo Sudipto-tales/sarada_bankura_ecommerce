@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Ma Sarada — Commerce Dashboard</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+ tailwind.config={theme:{extend:{colors:{sand:'#eee6d6',cream:'#f7f2e8',ink:'#292923',gold:'#efb323',muted:'#77766d',line:'#e7dece',mint:'#dff2e5'},boxShadow:{soft:'0 8px 28px rgba(77,62,34,.07)'}}}}
+</script>
+<style>
+ :root{--bg:#eee6d6;--panel:#f8f4eb;--line:#e6ddcd;--ink:#292923;--muted:#77766d;--gold:#efb323}
+ *{box-sizing:border-box} body{background:var(--bg);color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+ .glass{background:linear-gradient(145deg,rgba(255,255,255,.72),rgba(250,245,234,.72));border:1px solid rgba(255,255,255,.9);box-shadow:0 8px 28px rgba(77,62,34,.055),inset 0 1px 0 rgba(255,255,255,.8)}
+ .panel{background:rgba(250,247,239,.82);border:1px solid rgba(255,255,255,.95);box-shadow:0 5px 20px rgba(77,62,34,.045)}
+ .nav-link{display:flex;align-items:center;gap:12px;padding:10px 12px;border-radius:13px;color:#55544c;font-size:13px;font-weight:550;transition:.2s;cursor:pointer}
+ .nav-link:hover{background:rgba(255,255,255,.55)}.nav-link.active{background:#fff0bd;color:#5d4714;box-shadow:inset 0 0 0 1px #f8df9a;position:relative}.nav-link.active:before{content:'';position:absolute;left:-1px;top:9px;bottom:9px;width:3px;border-radius:8px;background:#e9aa13}
+ .nav-link svg{width:17px;height:17px;stroke-width:1.8}.section-label{font-size:11px;font-weight:750;letter-spacing:.08em;text-transform:uppercase;color:#898477;padding:15px 12px 6px}
+ .metric-icon{width:36px;height:36px;border-radius:12px;display:grid;place-items:center;background:#ffe8a1;color:#91670a}.metric-icon svg{width:18px;height:18px}
+ .pill{border:1px solid #e9e0d1;background:rgba(255,255,255,.65);border-radius:999px;padding:7px 11px;font-size:11px;font-weight:650;white-space:nowrap}
+ .progress{height:6px;border-radius:99px;background:#e8e5dc;overflow:hidden}.progress>span{height:100%;display:block;border-radius:99px;background:#43bf83}
+ .warehouse-grid{background-image:linear-gradient(rgba(180,151,91,.08) 1px,transparent 1px),linear-gradient(90deg,rgba(180,151,91,.08) 1px,transparent 1px);background-size:24px 24px}
+ .table-row:hover{background:#fbf6e9}.status{font-size:10px;font-weight:700;padding:5px 9px;border-radius:999px;white-space:nowrap}
+ @media(max-width:1100px){.sidebar{width:220px!important}.main-grid{grid-template-columns:1fr 1fr!important}.hero-panel{grid-column:span 2}.right-stack{grid-column:span 2;display:grid;grid-template-columns:1fr 1fr;gap:14px}.right-stack .channels{grid-column:span 2}}
+ @media(max-width:760px){.sidebar{position:fixed!important;z-index:50;left:-280px;top:0;bottom:0;width:260px!important;transition:left .25s}.sidebar.open{left:0}.main-grid{grid-template-columns:1fr!important}.hero-panel,.right-stack,.right-stack .channels{grid-column:auto}.right-stack{display:flex;flex-direction:column}.top-search{display:none}.bottom-grid{grid-template-columns:1fr!important}.mobile-menu{display:grid!important}.desktop-date{display:none}.header-actions .hide-mobile{display:none}.content{padding:14px!important}.stats-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.hero-art{min-height:260px!important}}
+</style>
+</head>
+<body class="min-h-screen">
+<div class="flex min-h-screen gap-3 p-3">
+ <!-- Sidebar -->
+ <aside id="sidebar" class="sidebar glass rounded-[26px] w-[246px] shrink-0 p-4 flex flex-col min-h-[calc(100vh-24px)]">
+  <div class="flex items-center gap-3 px-2 pt-1 pb-5">
+   <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-yellow-300 to-amber-500 shadow-md grid place-items-center text-amber-950"><i data-lucide="shopping-bag" class="w-5 h-5"></i></div>
+   <div><div class="font-extrabold text-[19px] tracking-tight">Ma Sarada</div><div class="text-[10px] text-stone-500">COMMERCE, IN HARMONY</div></div>
+   <button class="ml-auto md:hidden" onclick="toggleSidebar()"><i data-lucide="x"></i></button>
+  </div>
+  <div class="section-label">Workspace</div>
+  <nav class="space-y-1">
+   <a class="nav-link active" data-nav="Overview"><i data-lucide="layout-dashboard"></i>Overview</a>
+   <a class="nav-link" data-nav="Products"><i data-lucide="package"></i>Products <i data-lucide="chevron-down" class="ml-auto !w-3 !h-3"></i></a>
+   <a class="nav-link" data-nav="Orders"><i data-lucide="clipboard-list"></i>Orders <i data-lucide="chevron-down" class="ml-auto !w-3 !h-3"></i></a>
+   <a class="nav-link" data-nav="Inventory"><i data-lucide="warehouse"></i>Inventory <i data-lucide="chevron-down" class="ml-auto !w-3 !h-3"></i></a>
+   <a class="nav-link" data-nav="Customers"><i data-lucide="users"></i>Customers</a>
+  </nav>
+  <div class="section-label">Commerce</div>
+  <nav class="space-y-1">
+   <a class="nav-link" data-nav="Checkout & pricing"><i data-lucide="tag"></i>Checkout & pricing <i data-lucide="chevron-down" class="ml-auto !w-3 !h-3"></i></a>
+   <a class="nav-link" data-nav="Marketplace"><i data-lucide="store"></i>Marketplace</a>
+   <a class="nav-link" data-nav="Online store"><i data-lucide="monitor"></i>Online store</a>
+   <a class="nav-link" data-nav="Payments"><i data-lucide="wallet"></i>Payments</a>
+  </nav>
+  <div class="section-label">Grow & connect</div>
+  <nav class="space-y-1">
+   <a class="nav-link" data-nav="Reports"><i data-lucide="chart-no-axes-column-increasing"></i>Reports</a>
+   <a class="nav-link" data-nav="Communication"><i data-lucide="messages-square"></i>Communication</a>
+   <a class="nav-link" data-nav="Ma Sarada AI"><i data-lucide="sparkles"></i>Ma Sarada AI <span class="ml-auto text-[9px] bg-amber-100 text-amber-800 px-2 py-1 rounded-full">BETA</span></a>
+   <a class="nav-link" data-nav="Media & files"><i data-lucide="images"></i>Media & files</a>
+  </nav>
+  <div class="mt-auto pt-4">
+   <div class="rounded-2xl bg-[#f5ead0] border border-white p-3">
+    <div class="flex items-center gap-2 text-xs font-bold"><i data-lucide="headset" class="w-4 h-4"></i>Need a hand?</div>
+    <p class="text-[10px] text-stone-600 mt-1 leading-relaxed">Our support team is here to help you grow.</p>
+    <button class="mt-2 text-[10px] font-bold bg-white/80 rounded-lg px-3 py-2">Visit help center ↗</button>
+   </div>
+   <div class="flex items-center gap-2 mt-4 px-1"><div class="w-8 h-8 rounded-full bg-stone-300 grid place-items-center text-xs font-bold">AC</div><div class="min-w-0"><div class="text-xs font-bold">Alex Chen</div><div class="text-[10px] text-stone-500">Store Owner</div></div><i data-lucide="more-horizontal" class="ml-auto w-4 h-4 text-stone-500"></i></div>
+  </div>
+ </aside>
+ <main class="content min-w-0 flex-1 p-0 flex flex-col gap-3">
+  <!-- Top bar -->
+  <header class="glass rounded-[24px] min-h-[62px] px-3 py-2 flex items-center gap-3">
+   <button class="mobile-menu hidden w-9 h-9 rounded-xl bg-white/70 place-items-center" onclick="toggleSidebar()"><i data-lucide="menu"></i></button>
+   <div class="top-search flex items-center gap-2 bg-white/65 border border-white rounded-full px-4 h-10 flex-1 max-w-[510px]"><i data-lucide="search" class="w-4 h-4 text-stone-500"></i><input id="globalSearch" class="bg-transparent outline-none text-xs w-full placeholder:text-stone-500" placeholder="Search orders, products, customers..."/><span class="text-[10px] text-stone-500 bg-stone-100 rounded px-2 py-1">⌘ K</span></div>
+   <div class="flex items-center gap-2">
+    <div class="pill flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-emerald-100 text-emerald-700 grid place-items-center"><i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i></span><span class="text-stone-500">Orders</span><b class="text-ink">1,248</b></div>
+    <div class="pill flex items-center gap-2 hide-mobile"><span class="w-6 h-6 rounded-full bg-amber-100 text-amber-700 grid place-items-center"><i data-lucide="package" class="w-3.5 h-3.5"></i></span><span class="text-stone-500">Low stock</span><b>8</b></div>
+    <div class="pill flex items-center gap-2 hide-mobile"><span class="w-6 h-6 rounded-full bg-orange-100 text-orange-700 grid place-items-center"><i data-lucide="truck" class="w-3.5 h-3.5"></i></span><span class="text-stone-500">Delayed</span><b>3</b></div>
+   </div>
+   <div class="ml-auto header-actions flex items-center gap-2">
+    <button class="desktop-date pill flex items-center gap-2" id="dateButton"><i data-lucide="calendar-days" class="w-4 h-4"></i><span id="dateLabel">Last 30 days</span><i data-lucide="chevron-down" class="w-3 h-3"></i></button>
+    <button class="hide-mobile pill text-base">🇬🇧</button>
+    <button class="relative w-10 h-10 rounded-full bg-white/70 border border-white grid place-items-center" onclick="showToast('You are all caught up!')"><i data-lucide="bell" class="w-4 h-4"></i><span class="absolute top-2 right-2 w-2 h-2 rounded-full bg-red-500 border border-white"></span></button>
+    <button class="flex items-center gap-2 rounded-full bg-white/70 border border-white pl-2 pr-3 py-1.5" onclick="showToast('Profile menu opened')"><span class="w-7 h-7 rounded-full bg-gradient-to-br from-amber-300 to-yellow-500 grid place-items-center font-black text-sm">A</span><span class="text-left hide-mobile"><b class="block text-[11px]">Alex Chen</b><small class="block text-[9px] text-stone-500">Store Owner</small></span><i data-lucide="chevron-down" class="w-3 h-3"></i></button>
+   </div>
+  </header>
+  <!-- Main dashboard grid -->
+  <section class="main-grid grid grid-cols-[minmax(260px,1.05fr)_minmax(390px,1.85fr)_minmax(420px,1.9fr)] gap-3">
+   <!-- left metrics -->
+   <div class="flex flex-col gap-3 min-w-0">
+    <article class="panel rounded-[22px] p-4">
+     <div class="flex items-center justify-between"><div class="flex items-center gap-2"><span class="metric-icon"><i data-lucide="shopping-cart"></i></span><span class="text-sm font-bold">Total Sales <span class="font-normal text-xs text-stone-500">(GMV)</span></span></div><button class="text-stone-400" onclick="showToast('Sales report opened')"><i data-lucide="chart-no-axes-combined" class="w-4 h-4"></i></button></div>
+     <div class="flex items-end justify-between mt-3"><div><div class="text-[38px] leading-none font-extrabold tracking-tight">$68,420</div><div class="text-xs mt-3"><span class="text-emerald-600 font-bold">↑ 12%</span><span class="text-stone-500 ml-1">vs previous period</span></div></div><div class="flex items-end gap-[3px] h-12 pb-1"> <span class="w-1.5 h-5 bg-amber-300 rounded-t"></span><span class="w-1.5 h-7 bg-amber-300 rounded-t"></span><span class="w-1.5 h-6 bg-amber-400 rounded-t"></span><span class="w-1.5 h-9 bg-amber-400 rounded-t"></span><span class="w-1.5 h-8 bg-amber-400 rounded-t"></span><span class="w-1.5 h-11 bg-amber-500 rounded-t"></span><span class="w-1.5 h-10 bg-amber-500 rounded-t"></span><span class="w-1.5 h-12 bg-amber-500 rounded-t"></span><span class="w-1.5 h-9 bg-amber-400 rounded-t"></span></div></div>
+     <div class="grid grid-cols-3 mt-4 pt-3 border-t border-[#e9e0d1] divide-x divide-[#e9e0d1]"><div><b class="text-base">1,248</b><p class="text-[10px] text-stone-500 mt-1">Orders</p></div><div class="pl-3"><b class="text-base">3.2%</b><p class="text-[10px] text-stone-500 mt-1">Conversion</p></div><div class="pl-3"><b class="text-base">$54.8</b><p class="text-[10px] text-stone-500 mt-1">Avg. order value</p></div></div>
+    </article>
+    <article class="panel rounded-[22px] p-4 flex-1 min-h-[280px]">
+     <div class="flex justify-between items-center"><h3 class="font-bold text-sm">Revenue Trend</h3><button class="text-stone-400" onclick="showToast('Revenue report opened')"><i data-lucide="arrow-up-right" class="w-4 h-4"></i></button></div>
+     <div class="flex gap-4 text-[10px] text-stone-500 mt-4"><span><i class="inline-block w-2 h-2 bg-amber-500 rounded-full mr-1"></i>This period</span><span><i class="inline-block w-2 h-2 bg-stone-300 rounded-full mr-1"></i>Last period</span></div>
+     <div class="h-[205px] mt-2"><canvas id="revenueChart"></canvas></div>
+    </article>
+   </div>
+   <!-- center -->
+   <div class="flex flex-col gap-3 min-w-0">
+    <div class="panel rounded-[20px] p-3 flex items-center min-h-[88px]">
+     <div class="flex-1 flex items-center gap-3 px-2"><div class="text-2xl text-amber-500">☀</div><div><b class="text-xs">Good afternoon, Alex</b><p class="text-[11px] text-stone-500 mt-1">Your store, in motion.</p></div></div>
+     <div class="h-14 w-px bg-[#e7dece]"></div>
+     <div class="flex-1 flex items-center gap-3 px-3"><div class="metric-icon !w-8 !h-8"><i data-lucide="store"></i></div><div><b class="text-xs">Store health · 94%</b><p class="text-[11px] text-stone-500 mt-1">Needs attention: carriers</p></div></div>
+    </div>
+    <div class="hero-panel hero-art relative flex-1 min-h-[420px] rounded-[22px] overflow-hidden warehouse-grid flex items-center justify-center">
+     <div class="absolute inset-0 bg-gradient-to-b from-[#f8f2e5]/20 via-transparent to-[#f1e4c8]/60"></div>
+     <div class="absolute top-5 left-5 z-10"><span class="pill bg-white/70">LIVE OPERATIONS</span><h2 class="text-xl font-extrabold mt-2">Your commerce, <span class="text-amber-600">in motion.</span></h2><p class="text-[11px] text-stone-500 mt-1">A real-time view of your fulfilment floor.</p></div>
+     <svg viewBox="0 0 660 450" class="relative z-10 w-full max-w-[650px] px-2 drop-shadow-xl" role="img" aria-label="Illustration of warehouse shelves, parcels and conveyor">
+      <defs><linearGradient id="floor" x1="0" x2="1" y1="0" y2="1"><stop stop-color="#fffdf7"/><stop offset="1" stop-color="#dfcfad"/></linearGradient><linearGradient id="box" x1="0" x2="1"><stop stop-color="#f8cf76"/><stop offset="1" stop-color="#bd812c"/></linearGradient><linearGradient id="shelf" x1="0" x2="0.8"><stop stop-color="#fff"/><stop offset="1" stop-color="#d6d0c4"/></linearGradient><filter id="shadow"><feGaussianBlur stdDeviation="5"/></filter></defs>
+      <ellipse cx="330" cy="390" rx="250" ry="28" fill="#8e713e" opacity=".18" filter="url(#shadow)"/>
+      <path d="M60 300 L330 160 L610 300 L340 430 Z" fill="url(#floor)" stroke="#d4c3a0" stroke-width="3"/><path d="M60 300 L340 430 L340 445 L60 315Z" fill="#d6c8ae"/><path d="M340 430 L610 300 L610 316 L340 445Z" fill="#c7b591"/>
+      <!-- left shelving --> <g stroke="#b9a98b" stroke-width="5" fill="none"><path d="M95 270V120L245 195V345M95 170L245 245M95 220L245 295M95 270L245 345"/><path d="M245 195V345"/></g><g fill="url(#shelf)" stroke="#d2c6b1" stroke-width="2"><path d="M85 120L235 195L246 190L96 115Z"/><path d="M85 170L235 245L246 240L96 165Z"/><path d="M85 220L235 295L246 290L96 215Z"/><path d="M85 270L235 345L246 340L96 265Z"/></g>
+      <!-- right shelving --> <g stroke="#b9a98b" stroke-width="5" fill="none"><path d="M420 195L565 120V270L420 345Z"/><path d="M420 245L565 170M420 295L565 220M420 345L565 270"/></g><g fill="url(#shelf)" stroke="#d2c6b1" stroke-width="2"><path d="M412 195L557 120L568 125L423 200Z"/><path d="M412 245L557 170L568 175L423 250Z"/><path d="M412 295L557 220L568 225L423 300Z"/></g>
+      <!-- parcels --> <g stroke="#ad7429" stroke-width="1.3"><g fill="url(#box)"><path d="M112 132l28-14 28 14-28 15z"/><path d="M112 132v24l28 14v-23z"/><path d="M140 147v23l28-14v-24z"/><path d="M165 161l24-12 24 12-24 13z"/><path d="M165 161v20l24 13v-20z"/><path d="M189 174v20l24-13v-19z"/><path d="M108 185l26-13 27 14-27 14z"/><path d="M108 186v21l26 13v-20z"/><path d="M134 200v20l27-13v-20z"/><path d="M168 214l25-13 25 13-25 14z"/><path d="M168 214v20l25 13v-19z"/><path d="M193 228v19l25-13v-20z"/><path d="M442 199l25-13 25 13-25 14z"/><path d="M442 199v20l25 13v-19z"/><path d="M467 213v19l25-13v-20z"/><path d="M490 174l24-12 25 13-25 13z"/><path d="M490 175v19l24 13v-20z"/><path d="M514 188v19l25-13v-19z"/><path d="M443 250l25-13 25 13-25 14z"/><path d="M443 250v20l25 13v-19z"/><path d="M468 264v19l25-13v-20z"/></g></g>
+      <!-- middle packing table --> <path d="M250 290L365 232L455 278L340 338Z" fill="#fffaf0" stroke="#cdbb98" stroke-width="3"/><path d="M250 290v42l90 49v-43z" fill="#e7dcc6" stroke="#cdbb98" stroke-width="2"/><path d="M340 338v43l115-62v-41z" fill="#d4c4a5" stroke="#cdbb98" stroke-width="2"/><path d="M295 280l28-15 27 14-28 16z" fill="url(#box)"/><path d="M295 280v24l27 14v-23z" fill="#d99d43"/><path d="M322 295v23l28-15v-24z" fill="#bd812c"/><path d="M358 265l20-11 20 11-20 11z" fill="url(#box)"/><path d="M358 265v18l20 11v-18z" fill="#d99d43"/><path d="M378 276v18l20-11v-18z" fill="#bd812c"/>
+      <!-- conveyor --> <path d="M390 365l130-70 75 40-130 72z" fill="#55514a" stroke="#c8b58e" stroke-width="5"/><path d="M398 363l126-68M418 374l126-68M438 385l126-68" stroke="#b5a991" stroke-width="4"/><path d="M414 355l25-13 25 13-25 14z" fill="url(#box)"/><path d="M414 355v19l25 13v-20z" fill="#d99d43"/><path d="M439 369v18l25-13v-19z" fill="#bd812c"/>
+      <!-- plant and hanging bag --> <g><path d="M510 105v52" stroke="#c5ad7d" stroke-width="3"/><path d="M488 120q22-25 44 0l-5 34h-34z" fill="#f4bd32" stroke="#b78012" stroke-width="3"/><path d="M500 120v-8q10-15 20 0v8" fill="none" stroke="#9b6c0c" stroke-width="3"/><path d="M300 210q-20-28-35-10q14 1 25 21q-22-16-30 0q22-1 35 15q-2-24 18-34q-18-8-13 8" fill="#719b54"/><path d="M298 228v20" stroke="#8e6331" stroke-width="4"/></g>
+      <!-- small hand truck --> <path d="M140 325l-4-52q0-9 9-9h14" stroke="#514b40" stroke-width="5" fill="none"/><circle cx="146" cy="331" r="8" fill="#55514a"/><circle cx="174" cy="345" r="8" fill="#55514a"/><path d="M150 284l45 24-9 18-44-23z" fill="url(#box)" stroke="#ae792e" stroke-width="2"/>
+     </svg>
+     <div class="absolute bottom-4 left-4 right-4 z-20 flex justify-between"><span class="pill bg-white/80">● Warehouse activity normal</span><span class="pill bg-white/80">Updated just now</span></div>
+    </div>
+    <div class="stats-grid grid grid-cols-4 gap-2">
+     <div class="panel rounded-2xl p-3 flex items-center gap-2"><span class="metric-icon !w-8 !h-8"><i data-lucide="package"></i></span><div><p class="text-[10px] text-stone-500">Products</p><b class="text-sm">1,698</b><span class="text-[9px] text-emerald-600 font-bold ml-1">↑6%</span></div></div>
+     <div class="panel rounded-2xl p-3 flex items-center gap-2"><span class="metric-icon !w-8 !h-8 bg-stone-200 text-stone-600"><i data-lucide="users"></i></span><div><p class="text-[10px] text-stone-500">Customers</p><b class="text-sm">982</b><span class="text-[9px] text-emerald-600 font-bold ml-1">↑15%</span></div></div>
+     <div class="panel rounded-2xl p-3 flex items-center gap-2"><span class="metric-icon !w-8 !h-8 bg-stone-200 text-stone-600"><i data-lucide="repeat"></i></span><div><p class="text-[10px] text-stone-500">Returning</p><b class="text-sm">28%</b><span class="text-[9px] text-emerald-600 font-bold ml-1">↑4%</span></div></div>
+     <div class="panel rounded-2xl p-3 flex items-center gap-2"><span class="metric-icon !w-8 !h-8"><i data-lucide="truck"></i></span><div><p class="text-[10px] text-stone-500">Delivery</p><b class="text-sm">2.8 d</b><span class="text-[9px] text-emerald-600 font-bold ml-1">↓18%</span></div></div>
+    </div>
+   </div>
+   <!-- right -->
+   <div class="right-stack flex flex-col gap-3 min-w-0">
+    <div class="grid grid-cols-2 gap-3">
+     <article class="panel rounded-[22px] p-4"><div class="flex justify-between items-center"><h3 class="font-bold text-xs">Order Fulfillment</h3><button class="text-[10px] text-stone-500" onclick="showToast('Fulfillment details opened')">View all →</button></div>
+      <div class="space-y-2 mt-3">
+       <div class="rounded-xl bg-[#e8f3e8] p-2"><div class="flex items-center gap-2"><span class="metric-icon !w-7 !h-7 bg-amber-100"><i data-lucide="clipboard-list"></i></span><span class="text-[11px] flex-1">Orders received</span><b class="text-[11px]">1,248</b></div><div class="progress mt-2"><span style="width:100%;background:#efb323"></span></div></div>
+       <div class="rounded-xl bg-[#eaf1ed] p-2"><div class="flex items-center gap-2"><span class="metric-icon !w-7 !h-7 bg-emerald-100 text-emerald-700"><i data-lucide="timer"></i></span><span class="text-[11px] flex-1">Processing</span><b class="text-[11px]">892</b></div><div class="progress mt-2"><span style="width:72%"></span></div></div>
+       <div class="rounded-xl bg-[#f1edf3] p-2"><div class="flex items-center gap-2"><span class="metric-icon !w-7 !h-7 bg-emerald-100 text-emerald-700"><i data-lucide="package-check"></i></span><span class="text-[11px] flex-1">Packed</span><b class="text-[11px]">721</b></div><div class="progress mt-2"><span style="width:58%"></span></div></div>
+       <div class="rounded-xl bg-[#f7f0e3] p-2"><div class="flex items-center gap-2"><span class="metric-icon !w-7 !h-7 bg-emerald-100 text-emerald-700"><i data-lucide="truck"></i></span><span class="text-[11px] flex-1">Shipped</span><b class="text-[11px]">654</b></div><div class="progress mt-2"><span style="width:52%"></span></div></div>
+       <div class="rounded-xl bg-[#edf3e9] p-2"><div class="flex items-center gap-2"><span class="metric-icon !w-7 !h-7 bg-emerald-100 text-emerald-700"><i data-lucide="check-circle"></i></span><span class="text-[11px] flex-1">Delivered</span><b class="text-[11px]">602</b></div><div class="progress mt-2"><span style="width:48%"></span></div></div>
+      </div>
+     </article>
+     <article class="panel rounded-[22px] p-4"><div class="flex justify-between items-center"><h3 class="font-bold text-xs">Live Shipments</h3><button class="text-[10px] text-stone-500" onclick="showToast('Shipment list opened')">View all →</button></div>
+      <div class="space-y-2 mt-3">
+       <div class="rounded-xl bg-[#e8f3e8] p-2.5"><div class="flex justify-between text-[11px] font-bold"><span><i data-lucide="package" class="w-3.5 h-3.5 inline mr-1"></i>#VX83291</span><span class="text-stone-500 font-normal">2h ago</span></div><span class="status inline-block mt-2 bg-emerald-100 text-emerald-700">Out for delivery</span></div>
+       <div class="rounded-xl bg-[#eaf0f2] p-2.5"><div class="flex justify-between text-[11px] font-bold"><span><i data-lucide="package" class="w-3.5 h-3.5 inline mr-1"></i>#VX83290</span><span class="text-stone-500 font-normal">Apr 28</span></div><span class="status inline-block mt-2 bg-sky-100 text-sky-700">In transit</span></div>
+       <div class="rounded-xl bg-[#f1edf3] p-2.5"><div class="flex justify-between text-[11px] font-bold"><span><i data-lucide="package" class="w-3.5 h-3.5 inline mr-1"></i>#VX83288</span><span class="text-stone-500 font-normal">Apr 27</span></div><span class="status inline-block mt-2 bg-sky-100 text-sky-700">Label created</span></div>
+       <div class="rounded-xl bg-[#f8eee4] p-2.5"><div class="flex justify-between text-[11px] font-bold"><span><i data-lucide="package" class="w-3.5 h-3.5 inline mr-1"></i>#VX83287</span><span class="text-stone-500 font-normal">Apr 26</span></div><span class="status inline-block mt-2 bg-red-100 text-red-700">Delayed</span></div>
+      </div>
+     </article>
+    </div>
+    <article class="channels panel rounded-[22px] p-4 flex-1"><div class="flex justify-between items-center"><h3 class="font-bold text-sm">Sales Channels</h3><button class="text-[10px] text-stone-500" onclick="showToast('Channel analytics opened')">View all →</button></div>
+     <div class="space-y-2 mt-3">
+      <div class="rounded-xl bg-[#e8f3e8] px-3 py-2.5 flex items-center gap-3"><span class="metric-icon !w-7 !h-7 bg-emerald-100 text-emerald-700"><i data-lucide="globe"></i></span><span class="text-[11px] flex-1">Website</span><b class="text-[11px]">42%</b><div class="w-24 progress"><span style="width:42%"></span></div><span class="text-[11px] text-stone-500 w-14 text-right">$28,736</span></div>
+      <div class="rounded-xl bg-[#edf1ef] px-3 py-2.5 flex items-center gap-3"><span class="metric-icon !w-7 !h-7 bg-orange-100 text-orange-700"><i data-lucide="smartphone"></i></span><span class="text-[11px] flex-1">Mobile App</span><b class="text-[11px]">28%</b><div class="w-24 progress"><span style="width:28%"></span></div><span class="text-[11px] text-stone-500 w-14 text-right">$19,158</span></div>
+      <div class="rounded-xl bg-[#f1edf3] px-3 py-2.5 flex items-center gap-3"><span class="metric-icon !w-7 !h-7"><i data-lucide="store"></i></span><span class="text-[11px] flex-1">Marketplace</span><b class="text-[11px]">20%</b><div class="w-24 progress"><span style="width:20%"></span></div><span class="text-[11px] text-stone-500 w-14 text-right">$13,684</span></div>
+      <div class="rounded-xl bg-[#f8eee4] px-3 py-2.5 flex items-center gap-3"><span class="metric-icon !w-7 !h-7 bg-sky-100 text-sky-700"><i data-lucide="messages-square"></i></span><span class="text-[11px] flex-1">Social Commerce</span><b class="text-[11px]">10%</b><div class="w-24 progress"><span style="width:10%"></span></div><span class="text-[11px] text-stone-500 w-14 text-right">$6,842</span></div>
+     </div>
+    </article>
+   </div>
+  </section>
+  <!-- Tables -->
+  <section class="bottom-grid grid grid-cols-[1.15fr_1.25fr_1fr] gap-3">
+   <article class="panel rounded-[22px] p-4 min-w-0"><div class="flex justify-between items-center"><h3 class="font-bold text-sm">Recent Sales</h3><button class="text-[10px] text-stone-500" onclick="showToast('All sales opened')">View all →</button></div><div class="overflow-x-auto mt-3"><table class="w-full text-left text-[10px] min-w-[430px]"><thead class="text-stone-500 border-b border-[#e9e0d1]"><tr><th class="py-2">Order ID</th><th>Customer</th><th>Items</th><th>Amount</th><th>Status</th></tr></thead><tbody id="salesRows" class="divide-y divide-[#eee6d8]"></tbody></table></div></article>
+   <article class="panel rounded-[22px] p-4 min-w-0"><div class="flex justify-between items-center"><h3 class="font-bold text-sm">Recent Deliveries</h3><button class="text-[10px] text-stone-500" onclick="showToast('All deliveries opened')">View all →</button></div><div class="overflow-x-auto mt-3"><table class="w-full text-left text-[10px] min-w-[430px]"><thead class="text-stone-500 border-b border-[#e9e0d1]"><tr><th class="py-2">Tracking #</th><th>Customer</th><th>Destination</th><th>Status</th><th>ETA</th></tr></thead><tbody id="deliveryRows" class="divide-y divide-[#eee6d8]"></tbody></table></div></article>
+   <article class="panel rounded-[22px] p-4 min-w-0"><div class="flex justify-between items-center"><h3 class="font-bold text-sm">Top Buying Regions</h3><button class="text-[10px] text-stone-500" onclick="showToast('Regional report opened')">View all →</button></div><div class="mt-3 flex items-center justify-center h-[100px] rounded-xl bg-gradient-to-br from-[#f8f2e5] to-[#efe5d0]"><div class="text-center"><i data-lucide="globe-2" class="w-12 h-12 text-amber-500 mx-auto"></i><p class="text-[9px] text-stone-500 mt-1">Regional sales overview</p></div></div><div class="space-y-2 mt-3 text-[10px]"><div class="flex items-center"><span class="w-2 h-2 rounded-full bg-amber-400 mr-2"></span><span class="flex-1">United States</span><b>38%</b></div><div class="flex items-center"><span class="w-2 h-2 rounded-full bg-emerald-400 mr-2"></span><span class="flex-1">United Kingdom</span><b>24%</b></div><div class="flex items-center"><span class="w-2 h-2 rounded-full bg-sky-400 mr-2"></span><span class="flex-1">Germany</span><b>18%</b></div></div></article>
+  </section>
+  <footer class="text-[10px] text-stone-500 px-2 pb-2 flex justify-between"><span>© 2026 Ma Sarada Commerce</span><span>Dashboard overview · Demo data</span></footer>
+ </main>
+</div>
+<div id="toast" class="fixed bottom-5 right-5 translate-y-20 opacity-0 transition-all duration-300 bg-[#292923] text-white text-xs px-4 py-3 rounded-xl shadow-xl z-[100]"></div>
+<script>
+ lucide.createIcons();
+ const sales=[['#VX83294','Olivia Martin','3 items','$245.00','Paid','green'],['#VX83293','Noah Williams','1 item','$89.50','Processing','blue'],['#VX83292','Emma Davis','2 items','$164.00','Paid','green'],['#VX83291','Liam Wilson','4 items','$320.00','Pending','amber']];
+ const deliveries=[['TRK-82391','Olivia Martin','New York, US','In transit','Today'],['TRK-82390','Noah Williams','London, UK','Delivered','Apr 28'],['TRK-82388','Emma Davis','Berlin, DE','Processing','Apr 29']];
+ document.getElementById('salesRows').innerHTML=sales.map(r=>`<tr class="table-row"><td class="py-3 font-bold">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td class="font-bold">${r[3]}</td><td><span class="status ${r[5]==='green'?'bg-emerald-100 text-emerald-700':r[5]==='blue'?'bg-sky-100 text-sky-700':'bg-amber-100 text-amber-700'}">${r[4]}</span></td></tr>`).join('');
+ document.getElementById('deliveryRows').innerHTML=deliveries.map(r=>`<tr class="table-row"><td class="py-3 font-bold">${r[0]}</td><td>${r[1]}</td><td>${r[2]}</td><td><span class="status ${r[3]==='Delivered'?'bg-emerald-100 text-emerald-700':'bg-sky-100 text-sky-700'}">${r[3]}</span></td><td>${r[4]}</td></tr>`).join('');
+ const ctx=document.getElementById('revenueChart');
+ new Chart(ctx,{type:'line',data:{labels:['Apr 1','Apr 5','Apr 9','Apr 13','Apr 17','Apr 21','Apr 25','Apr 29'],datasets:[{label:'This period',data:[2.4,3.1,4.8,4.1,5.6,5.2,8.8,7.2,7.8,6.3],borderColor:'#efa900',backgroundColor:'rgba(239,169,0,.12)',fill:true,tension:.42,borderWidth:2,pointRadius:0},{label:'Last period',data:[3.5,3.8,3.4,4.4,5.9,5.1,4.2,5.3,6.8,5.5],borderColor:'#c9c4b7',backgroundColor:'transparent',tension:.4,borderWidth:1.7,pointRadius:0}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{backgroundColor:'#292923',padding:10,displayColors:false}},scales:{x:{grid:{display:false},ticks:{color:'#898477',font:{size:10},maxRotation:0}},y:{min:0,max:10,grid:{color:'rgba(150,130,90,.12)'},ticks:{stepSize:3,color:'#898477',font:{size:10},callback:v=>'$'+v+'K'}}}}});
+ function showToast(message){const t=document.getElementById('toast');t.textContent=message;t.classList.remove('translate-y-20','opacity-0');setTimeout(()=>t.classList.add('translate-y-20','opacity-0'),2200)}
+ function toggleSidebar(){document.getElementById('sidebar').classList.toggle('open')}
+ document.querySelectorAll('[data-nav]').forEach(el=>el.addEventListener('click',()=>{document.querySelectorAll('[data-nav]').forEach(n=>n.classList.remove('active'));el.classList.add('active');if(window.innerWidth<760)toggleSidebar();if(el.dataset.nav!=='Overview')showToast(el.dataset.nav+' section selected')}));
+ const dates=['Today','Last 7 days','Last 30 days','Last 90 days','This year'];let dateIndex=2;document.getElementById('dateButton').addEventListener('click',()=>{dateIndex=(dateIndex+1)%dates.length;document.getElementById('dateLabel').textContent=dates[dateIndex];showToast('Date range: '+dates[dateIndex])});
+ document.getElementById('globalSearch').addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.value.trim())showToast('Searching for “'+e.target.value.trim()+'”')});
+ document.addEventListener('keydown',e=>{if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){e.preventDefault();document.getElementById('globalSearch').focus()}});
+</script>
+</body>
+</html>
