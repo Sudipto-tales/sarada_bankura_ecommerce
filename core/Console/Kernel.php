@@ -71,7 +71,7 @@ class Kernel
             return 0;
         }
 
-        foreach ($this->commands as $class) {
+        foreach ($this->allCommands() as $class) {
             if ($class::name() === $name) {
                 return (new $class($this->app))->handle($args);
             }
@@ -81,6 +81,21 @@ class Kernel
         $this->listCommands();
 
         return 1;
+    }
+
+    /**
+     * Framework commands plus the application's own, listed in config/app.php under 'commands'.
+     *
+     * @return list<class-string<Command>>
+     */
+    protected function allCommands(): array
+    {
+        $app = array_values(array_filter(
+            (array) $this->app->config('app.commands', []),
+            static fn($c) => is_string($c) && is_subclass_of($c, Command::class)
+        ));
+
+        return array_merge($this->commands, $app);
     }
 
     protected function listCommands(): void
@@ -98,7 +113,7 @@ BANNER);
         fwrite(STDOUT, "\033[33m  Usage:\033[0m  php vayu <command> [options]" . PHP_EOL . PHP_EOL);
         fwrite(STDOUT, "\033[33m  Available commands:\033[0m" . PHP_EOL);
 
-        foreach ($this->commands as $class) {
+        foreach ($this->allCommands() as $class) {
             fwrite(STDOUT, sprintf(
                 "    \033[32m%-16s\033[0m %s" . PHP_EOL,
                 $class::name(),

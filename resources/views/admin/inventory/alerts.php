@@ -30,6 +30,20 @@ include __DIR__ . '/../partials/header.php';
 <?php if (!empty($error)): ?><div class="notice bad"><?= e($error) ?></div><?php endif; ?>
 <?php if (empty($enabled)): ?><div class="notice">Alerts are switched off. Existing alerts stay as they are and no new ones are raised until you switch them back on below.</div><?php endif; ?>
 
+<?php $lc = $lastCheck ?? null; if ($lc): $agoTxt = static function (?int $s): string {
+    if ($s === null) return 'never';
+    return match (true) { $s < 90 => 'just now', $s < 3600 => floor($s / 60) . ' min ago', $s < 86400 => floor($s / 3600) . ' h ago', default => floor($s / 86400) . ' days ago' };
+}; ?>
+<div class="checkbar<?= $lc['cronStale'] ? ' warn' : '' ?>">
+  <span class="cb-ic"><i data-lucide="<?= $lc['cronStale'] ? 'clock' : 'circle-check' ?>"></i></span>
+  <div class="min-w-0">
+    <b>Last check: <?= $agoTxt($lc['ago']) ?><?= $lc['at'] ? ' · ' . e($lc['source'] === 'manual' ? 'run by hand' : 'scheduled') : '' ?></b>
+    <small><?php if ($lc['cronStale']): ?>The scheduled check <?= $lc['cronAt'] ? 'last ran ' . e(date('d M, H:i', strtotime($lc['cronAt']))) : 'has not run yet' ?>. Alerts still fire instantly when stock changes; set up the cron job so old notifications are cleared and missed alerts are caught. <a class="linkbtn" href="#cron">How →</a>
+    <?php else: ?>Scheduled check is running<?= isset($lc['summary']['checked']) ? ' · ' . (int) $lc['summary']['checked'] . ' products checked last time' : '' ?>.<?php endif; ?></small>
+  </div>
+</div>
+<?php endif; ?>
+
 <div class="statstrip">
   <a class="stat glass" href="?tab=active"><span class="metric-icon" style="background:#fff0bf;color:#9b6c0a"><i data-lucide="bell-ring"></i></span><div><small>Active alerts</small><b><?= $stats['active'] ?></b><em>Need restocking</em></div></a>
   <div class="stat glass"><span class="metric-icon" style="background:#f8d7d1;color:#b4452f"><i data-lucide="package-x"></i></span><div><small>Out of stock</small><b><?= $stats['out'] ?></b><em>Nothing on hand</em></div></div>
@@ -83,6 +97,17 @@ include __DIR__ . '/../partials/header.php';
   </div>
   <div class="modal-f"><button class="btn gold" type="submit"><i data-lucide="check" style="width:16px"></i>Save settings</button></div>
 </form>
+
+<div class="card" id="cron" style="margin-top:18px">
+  <div class="card-h" style="align-items:flex-start"><div><div class="eyebrow">Scheduled check</div><h3>Set up the cron job (once, on the server)</h3><p class="text-xs muted mt-1">Runs every 15 minutes: re-checks every product's alert state and clears read notifications older than the setting above. Two runs can never overlap.</p></div></div>
+  <div class="cron-box"><code id="cronLine">*/15 * * * * cd <?= e(app()->basePath()) ?> &amp;&amp; php vayu inventory:check --quiet &gt;&gt; storage/logs/cron.log 2&gt;&amp;1</code>
+    <button type="button" class="btn sm" style="padding:7px 11px;font-size:12px" onclick="navigator.clipboard&&navigator.clipboard.writeText(document.getElementById('cronLine').innerText).then(()=>{this.lastChild.textContent='Copied'})"><i data-lucide="copy" style="width:14px"></i><span>Copy</span></button></div>
+  <ul class="cron-steps">
+    <li><b>cPanel:</b> Cron Jobs → Common settings “Once per 15 minutes” → paste the command part (after the five <code>*</code> fields). Use the full PHP path if needed, e.g. <code>/usr/local/bin/php</code>.</li>
+    <li><b>VPS / Linux:</b> run <code>crontab -e</code> and paste the whole line.</li>
+    <li><b>Test it by hand:</b> <code>php vayu inventory:check --dry-run</code> shows what would change without saving.</li>
+  </ul>
+</div>
 <?php
 $scripts = <<<'JS'
 <script>

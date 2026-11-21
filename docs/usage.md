@@ -128,6 +128,20 @@ php vayu websocket
 Broadcast from anywhere: `broadcast('room.1', 'chat.message', ['text' => 'hi'])`.
 See [realtime.md](realtime.md).
 
+## Console commands
+
+Framework commands live in `core/Console/Kernel.php`. Application commands extend
+`Vayu\Console\Command` and are registered in `config/app.php`:
+
+```php
+'commands' => [
+    App\Console\Commands\InventoryCheckCommand::class,
+],
+```
+
+They then appear in `php vayu list` like any built-in command. See
+[inventory.md](inventory.md) for the scheduled inventory check.
+
 ## Environment keys
 
 See `.env.example`. Common: `APP_NAME`, `APP_ENV`, `APP_DEBUG`, `APP_URL`,

@@ -402,6 +402,7 @@ class InventoryController
             ],
             'enabled' => InventorySettings::enabled(),
             'settings' => InventorySettings::all(),
+            'lastCheck' => $this->lastCheck(),
             'success' => session()->get('success'),
             'error' => session()->get('error'),
         ]);
@@ -410,9 +411,17 @@ class InventoryController
     /** "Run check now": re-evaluate every tracked product (same as the scheduled check). */
     public function check(Request $request): Response
     {
-        $r = AlertService::evaluateAll();
-        session()->flash('success', 'Checked ' . $r['checked'] . ' product' . ($r['checked'] === 1 ? '' : 's') . ': '
-            . $r['opened'] . ' new alert' . ($r['opened'] === 1 ? '' : 's') . ', ' . $r['resolved'] . ' resolved.');
+        $r = \App\Services\Inventory\InventoryCheck::make()->run(false, 'manual');
+        \App\Services\Inventory\InventoryCheck::log(\App\Services\Inventory\InventoryCheck::logLine($r, 'manual'));
+        if ($r['status'] === 'locked') {
+            session()->flash('error', 'A check is already running — try again in a moment.');
+        } elseif ($r['status'] === 'failed') {
+            session()->flash('error', 'The check failed: ' . ($r['error'] ?? 'unknown error'));
+        } else {
+            session()->flash('success', ($r['enabled'] ? 'Checked ' . $r['checked'] . ' product' . ($r['checked'] === 1 ? '' : 's') . ': '
+                . $r['opened'] . ' new alert' . ($r['opened'] === 1 ? '' : 's') . ', ' . $r['resolved'] . ' resolved.' : 'Alerts are switched off, so no alerts were checked.')
+                . ($r['pruned'] ? ' Removed ' . $r['pruned'] . ' old read notification' . ($r['pruned'] === 1 ? '' : 's') . '.' : ''));
+        }
 
         return redirect(route('admin.inventory.alerts'));
     }
@@ -441,6 +450,30 @@ class InventoryController
         }
 
         return redirect(route('admin.inventory.alerts') . '#settings');
+    }
+
+    /** @return array{at:?string, source:string, summary:array<string,mixed>, ago:?int, cronAt:?string, cronStale:bool} */
+    private function lastCheck(): array
+    {
+        $at = InventorySettings::get('last_check_at') ?: null;
+        $cronAt = null;
+        // Has cron ever run? Look for a cron line in the log (the button also records last_check_at).
+        $log = app()->storagePath('logs/inventory.log');
+        if (is_file($log)) {
+            $tail = (string) @file_get_contents($log, false, null, max(0, filesize($log) - 20000));
+            if (preg_match_all('/^(\d{4}-\d\d-\d\d \d\d:\d\d:\d\d) \[cron\] (ok|failed)/m', $tail, $m)) {
+                $cronAt = end($m[1]);
+            }
+        }
+
+        return [
+            'at' => $at,
+            'source' => InventorySettings::get('last_check_source') ?: 'cron',
+            'summary' => json_decode(InventorySettings::get('last_check_summary') ?: '[]', true) ?: [],
+            'ago' => $at ? time() - (int) strtotime($at) : null,
+            'cronAt' => $cronAt,
+            'cronStale' => !$cronAt || time() - (int) strtotime($cronAt) > 3600,
+        ];
     }
 
     /** @param array{from?:string,to?:string,product?:int,type?:string,source?:string} $f */
