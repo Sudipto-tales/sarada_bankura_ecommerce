@@ -11,6 +11,8 @@ use App\Controllers\Admin\BrandController;
 use App\Controllers\Admin\CatalogController;
 use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\ImportController;
+use App\Controllers\Admin\InventoryController;
+use App\Controllers\Admin\NotificationController;
 use App\Controllers\Admin\ProductController;
 use App\Controllers\Admin\ReviewController;
 use App\Controllers\Admin\TagController;
@@ -71,6 +73,30 @@ $router->group(['prefix' => 'admin'], function ($router): void {
     $router->get('/products/import/template/{format}', [ImportController::class, 'template'])->name('admin.products.import.template');
     $router->post('/products/import/{token}/commit', [ImportController::class, 'commit'])->name('admin.products.import.commit');
     $router->get('/products/import/{token}/report', [ImportController::class, 'report'])->name('admin.products.import.report');
+
+    // Notifications — topbar bell panel + full page.
+    $router->get('/notifications', [NotificationController::class, 'index'])->name('admin.notifications');
+    $router->get('/notifications/feed', [NotificationController::class, 'feed'])->name('admin.notifications.feed');
+    $router->post('/notifications/read-all', [NotificationController::class, 'readAll'])->name('admin.notifications.readAll');
+    $router->post('/notifications/bulk', [NotificationController::class, 'bulk'])->name('admin.notifications.bulk');
+    $router->get('/notifications/{id}/open', [NotificationController::class, 'open'])->name('admin.notifications.open');
+    $router->post('/notifications/{id}/read', [NotificationController::class, 'read'])->name('admin.notifications.read');
+    $router->post('/notifications/{id}/delete', [NotificationController::class, 'destroy'])->name('admin.notifications.delete');
+
+    // Inventory — stock register (tracked per product).
+    $router->get('/inventory', [InventoryController::class, 'overview'])->name('admin.inventory');
+    $router->get('/inventory/movements', [InventoryController::class, 'movements'])->name('admin.inventory.movements');
+    $router->get('/inventory/alerts', [InventoryController::class, 'alerts'])->name('admin.inventory.alerts');
+    $router->post('/inventory/alerts/check', [InventoryController::class, 'check'])->name('admin.inventory.check');
+    $router->post('/inventory/settings', [InventoryController::class, 'saveSettings'])->name('admin.inventory.settings');
+    $router->get('/inventory/stock', [InventoryController::class, 'stock'])->name('admin.inventory.stock');
+    $router->post('/inventory/track', [InventoryController::class, 'track'])->name('admin.inventory.track');
+    $router->post('/inventory/opening', [InventoryController::class, 'opening'])->name('admin.inventory.opening');
+    $router->get('/inventory/stock/{id}/history', [InventoryController::class, 'history'])->name('admin.inventory.history');
+    $router->post('/inventory/stock/{id}/receive', [InventoryController::class, 'receive'])->name('admin.inventory.receive');
+    $router->post('/inventory/stock/{id}/adjust', [InventoryController::class, 'adjust'])->name('admin.inventory.adjust');
+    $router->post('/inventory/stock/{id}/threshold', [InventoryController::class, 'threshold'])->name('admin.inventory.threshold');
+    $router->post('/inventory/stock/{id}/stop', [InventoryController::class, 'stop'])->name('admin.inventory.stop');
 
     $router->get('/products', [ProductController::class, 'index'])->name('admin.products.index');
     $router->get('/products/create', [ProductController::class, 'create'])->name('admin.products.create');

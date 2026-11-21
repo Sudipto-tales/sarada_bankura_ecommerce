@@ -4,6 +4,7 @@ $title = $title ?? 'Admin';
 $nav = static fn(string ...$keys): string => in_array($active, $keys, true) ? ' active' : '';
 $productKeys = ['products', 'products.create', 'products.import', 'variants', 'categories', 'attributes', 'units', 'brands', 'tags', 'reviews'];
 $productsOpen = in_array($active, $productKeys, true);
+$inventoryOpen = str_starts_with($active, 'inventory');
 
 // Topbar quick counts (cheap COUNT queries; never break the page if the DB is unavailable).
 $hdr = ['products' => 0, 'draft' => 0, 'coming_soon' => 0];
@@ -16,11 +17,17 @@ try {
     }
 } catch (\Throwable $e) {
 }
+$nfUnread = 0;
+try {
+    $nfUnread = \App\Services\NotificationService::unreadCount();
+} catch (\Throwable $e) {
+}
 ?><!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="csrf-token" content="<?= e(csrf_token()) ?>">
 <title><?= htmlspecialchars($title) ?> · Maa Sarada</title>
 <link rel="icon" type="image/png" href="<?= base_url('assets/image/favicon.png') ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -55,6 +62,15 @@ try {
         <a class="subitem<?= $nav('brands') ?>" href="<?= route('admin.brands') ?>">Brands</a>
         <a class="subitem<?= $nav('tags') ?>" href="<?= route('admin.tags') ?>">Tags</a>
         <a class="subitem<?= $nav('reviews') ?>" href="<?= route('admin.reviews') ?>">Reviews &amp; ratings</a>
+      </div>
+    </details>
+    <details class="navgroup"<?= $inventoryOpen ? ' open' : '' ?>>
+      <summary class="navitem<?= $inventoryOpen ? ' current' : '' ?>" title="Inventory"><i data-lucide="archive"></i><span>Inventory</span><i data-lucide="chevron-down" class="chev"></i></summary>
+      <div class="subnav">
+        <a class="subitem<?= $nav('inventory.overview') ?>" href="<?= route('admin.inventory') ?>">Stock overview</a>
+        <a class="subitem<?= $nav('inventory.stock') ?>" href="<?= route('admin.inventory.stock') ?>">Stock management</a>
+        <a class="subitem<?= $nav('inventory.movements') ?>" href="<?= route('admin.inventory.movements') ?>">Stock movements</a>
+        <a class="subitem<?= $nav('inventory.alerts') ?>" href="<?= route('admin.inventory.alerts') ?>">Stock alerts</a>
       </div>
     </details>
     <a class="navitem" href="#" title="Enquiries"><i data-lucide="clipboard-list"></i><span>Enquiries</span><i data-lucide="chevron-down" class="chev"></i></a>
@@ -97,11 +113,28 @@ try {
   <div class="tb-group glass tb-right">
     <div class="tb-pill tb-date"><i data-lucide="calendar"></i><b id="tbDate">Last 30 days</b><i data-lucide="chevron-down" class="chev"></i></div>
     <div class="tb-icon" title="India · INR"><span class="flag-in"></span></div>
-    <button class="tb-icon" type="button" title="Notifications"><i data-lucide="bell"></i><span class="dot"></span></button>
+    <button class="tb-icon" type="button" id="nfBell" title="Notifications" aria-haspopup="dialog" aria-expanded="false" aria-controls="nfPanel"
+            aria-label="Notifications<?= $nfUnread ? ', ' . $nfUnread . ' unread' : '' ?>" data-feed="<?= e(route('admin.notifications.feed')) ?>">
+      <i data-lucide="bell"></i><span class="nf-badge<?= $nfUnread ? '' : ' hidden' ?>" id="nfBadge"><?= $nfUnread > 9 ? '9+' : $nfUnread ?></span>
+    </button>
     <div class="tb-user">
       <span class="avatar">A</span>
       <span class="who"><b>Admin</b><small>Store Owner</small></span>
       <i data-lucide="chevron-down" class="chev"></i>
     </div>
+  </div>
+  <div class="nf-panel" id="nfPanel" role="dialog" aria-label="Notifications" hidden>
+    <div class="nf-head">
+      <h3>Notifications</h3>
+      <button type="button" class="linkbtn" id="nfReadAll" data-url="<?= e(route('admin.notifications.readAll')) ?>"><i data-lucide="check-check"></i>Mark all read</button>
+    </div>
+    <div class="nf-tabs" role="tablist">
+      <button type="button" role="tab" class="on" data-tab="all" aria-selected="true">All</button>
+      <button type="button" role="tab" data-tab="unread" aria-selected="false">Unread <span data-count="unread"></span></button>
+      <button type="button" role="tab" data-tab="stock" aria-selected="false">Stock <span data-count="stock"></span></button>
+      <button type="button" role="tab" data-tab="system" aria-selected="false">System <span data-count="system"></span></button>
+    </div>
+    <div class="nf-list" id="nfList" aria-live="polite"></div>
+    <a class="nf-foot" href="<?= route('admin.notifications') ?>">View all notifications <i data-lucide="arrow-right"></i></a>
   </div>
 </header>

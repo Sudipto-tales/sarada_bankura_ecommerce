@@ -52,6 +52,75 @@ document.addEventListener('keydown',function(e){
   if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){var s=document.getElementById('globalSearch');if(s){e.preventDefault();s.focus();}}
   if(e.key==='Escape')document.body.classList.remove('sb-open');
 });
+// ---- Notification bell panel: feed every 60s (paused while the tab is hidden), tabs, mark read, dismiss.
+(function(){
+  var bell=document.getElementById('nfBell'),panel=document.getElementById('nfPanel');if(!bell||!panel)return;
+  var list=document.getElementById('nfList'),badge=document.getElementById('nfBadge'),tab='all',timer=null,lastUnread=null;
+  var token=(document.querySelector('meta[name=csrf-token]')||{}).content||'';
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+  var empty={all:['You’re all caught up','New stock alerts and updates will show up here.'],unread:['No unread notifications','You’ve seen everything.'],stock:['No stock alerts','Low and out-of-stock alerts appear here.'],system:['No system updates','Bulk uploads and checks report here.']};
+  function post(url){return fetch(url,{method:'POST',headers:{'X-CSRF-TOKEN':token,'Accept':'application/json'},credentials:'same-origin'}).then(function(r){return r.json()})}
+  function setBadge(n){
+    lastUnread=n;badge.textContent=n>9?'9+':String(n);badge.classList.toggle('hidden',!n);
+    bell.setAttribute('aria-label','Notifications'+(n?', '+n+' unread':''));
+  }
+  function setCounts(c){panel.querySelectorAll('[data-count]').forEach(function(s){var v=c[s.dataset.count]||0;s.textContent=v?String(v):''})}
+  function render(items){
+    if(!items.length){var m=empty[tab];list.innerHTML='<div class="nf-empty"><div class="nf-bell"><i data-lucide="bell-ring"></i></div><b>'+m[0]+'</b><small>'+m[1]+'</small></div>';lucide.createIcons();return}
+    var html='',group='';
+    items.forEach(function(n){
+      if(n.group!==group){group=n.group;html+='<div class="nf-group">'+esc(group)+'</div>'}
+      html+='<a class="nf-item'+(n.is_read?'':' unread')+'" href="'+esc(n.open)+'" data-id="'+n.id+'" data-read="'+esc(n.read)+'" data-delete="'+esc(n.delete)+'">'
+        +'<span class="nf-ic '+esc(n.level)+'"><i data-lucide="'+esc(n.icon)+'"></i></span>'
+        +'<span class="nf-txt"><b>'+esc(n.title)+'</b>'+(n.body?'<small>'+esc(n.body)+'</small>':'')
+        +(n.action?'<span class="nf-act" data-go="'+esc(n.action.open)+'"><i data-lucide="package-plus"></i>'+esc(n.action.label)+'</span>':'')+'</span>'
+        +'<span class="nf-side"><span class="nf-ago" title="'+esc(n.when)+'">'+esc(n.ago)+'</span>'+(n.is_read?'':'<span class="nf-dot" aria-label="Unread"></span>')
+        +'<button type="button" class="nf-x" title="Dismiss" aria-label="Dismiss notification"><i data-lucide="x"></i></button></span></a>';
+    });
+    list.innerHTML=html;lucide.createIcons();
+  }
+  function load(countOnly){
+    var u=bell.dataset.feed+'?tab='+tab+(countOnly?'&count_only=1':'');
+    if(!countOnly&&!list.children.length)list.innerHTML='<div class="nf-skel"></div><div class="nf-skel"></div><div class="nf-skel"></div>';
+    return fetch(u,{headers:{Accept:'application/json'},credentials:'same-origin'}).then(function(r){return r.json()}).then(function(j){
+      var changed=lastUnread!==null&&j.unread!==lastUnread;
+      setBadge(j.unread);setCounts(j.counts);
+      if(j.items)render(j.items);else if(changed&&!panel.hidden)load(false);
+    }).catch(function(){if(!countOnly)list.innerHTML='<div class="nf-empty"><b>Couldn’t load notifications</b><small>Check your connection and try again.</small></div>'});
+  }
+  function open(){panel.hidden=false;bell.setAttribute('aria-expanded','true');load(false)}
+  function close(focusBell){panel.hidden=true;bell.setAttribute('aria-expanded','false');if(focusBell)bell.focus()}
+  bell.addEventListener('click',function(e){e.stopPropagation();panel.hidden?open():close(false)});
+  document.addEventListener('click',function(e){if(!panel.hidden&&!panel.contains(e.target)&&e.target!==bell)close(false)});
+  document.addEventListener('keydown',function(e){if(e.key==='Escape'&&!panel.hidden){e.preventDefault();close(true)}});
+  panel.addEventListener('keydown',function(e){
+    if(e.key==='ArrowDown'||e.key==='ArrowUp'){
+      var items=[].slice.call(list.querySelectorAll('.nf-item'));if(!items.length)return;
+      var i=items.indexOf(document.activeElement);e.preventDefault();
+      i=e.key==='ArrowDown'?Math.min(items.length-1,i+1):Math.max(0,i-1);items[i].focus();
+    }
+  });
+  bell.addEventListener('keydown',function(e){if(e.key==='ArrowDown'&&!panel.hidden){e.preventDefault();var f=list.querySelector('.nf-item');if(f)f.focus()}});
+  panel.querySelectorAll('[data-tab]').forEach(function(b){b.addEventListener('click',function(){
+    tab=b.dataset.tab;panel.querySelectorAll('[data-tab]').forEach(function(x){var on=x===b;x.classList.toggle('on',on);x.setAttribute('aria-selected',on?'true':'false')});
+    list.innerHTML='';load(false);
+  })});
+  document.getElementById('nfReadAll').addEventListener('click',function(){post(this.dataset.url).then(function(){load(false)})});
+  list.addEventListener('click',function(e){
+    var item=e.target.closest('.nf-item');if(!item)return;
+    if(e.target.closest('.nf-x')){
+      e.preventDefault();e.stopPropagation();item.style.opacity='.4';
+      post(item.dataset.delete).then(function(){return load(false)}).then(function(){var f=list.querySelector('.nf-item');(f||panel.querySelector('.nf-foot')).focus()});return;
+    }
+    var go=e.target.closest('[data-go]');
+    if(go){e.preventDefault();location.href=go.dataset.go}
+    // otherwise the link itself opens /notifications/{id}/open, which marks it read and redirects
+  });
+  function schedule(){clearInterval(timer);timer=setInterval(function(){if(!document.hidden)load(panel.hidden)},60000)}
+  document.addEventListener('visibilitychange',function(){if(!document.hidden){load(panel.hidden);schedule()}});
+  schedule();
+  window.msNotes={refresh:function(){return load(panel.hidden)}};
+})();
 </script>
 <?= $scripts ?? '' ?>
 </body>

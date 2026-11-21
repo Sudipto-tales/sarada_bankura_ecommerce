@@ -82,6 +82,10 @@ class ConnectionManager
             $pdo->exec('PRAGMA foreign_keys = ON');
         }
 
+        // Wait (instead of failing with "database is locked") when another request or the
+        // cron check holds the write lock for a moment.
+        $pdo->exec('PRAGMA busy_timeout = ' . (int) ($config['busy_timeout'] ?? 5000));
+
         return $pdo;
     }
 

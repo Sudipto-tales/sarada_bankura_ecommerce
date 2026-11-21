@@ -18,4 +18,9 @@ return [
 
     // Logging channel: 'daily' or 'single'
     'log' => env('LOG_CHANNEL', 'daily'),
+
+    // Application console commands, added to `php vayu` alongside the framework's.
+    'commands' => [
+        App\Console\Commands\InventoryCheckCommand::class,
+    ],
 ];

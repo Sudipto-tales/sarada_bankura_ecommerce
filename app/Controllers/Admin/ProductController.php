@@ -66,7 +66,9 @@ class ProductController
         $name = DB::table('products')->where('id', $pid)->value('name');
         if ($name !== null) {
             $this->deleteVariants($pid);
-            foreach (['product_pricing', 'product_attribute_values', 'product_category_map', 'product_tags', 'product_media', 'product_reviews'] as $t) {
+            // Close its stock alerts (clears their unread notifications), then drop inventory rows with the product.
+            \App\Services\Inventory\AlertService::resolveAllFor($pid);
+            foreach (['product_pricing', 'product_attribute_values', 'product_category_map', 'product_tags', 'product_media', 'product_reviews', 'inventory_stock', 'inventory_alerts', 'inventory_movements'] as $t) {
                 DB::table($t)->where('product_id', $pid)->delete();
             }
             DB::table('products')->where('id', $pid)->delete();

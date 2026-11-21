@@ -40,6 +40,7 @@ include __DIR__ . '/../partials/header.php';
     <div class="sumbox y"><b><?= (int) $result['updated'] ?></b><span>products updated</span></div>
     <div class="sumbox b"><b><?= (int) $result['variants'] ?></b><span>variants saved</span></div>
     <div class="sumbox"><b><?= (int) $result['media'] ?></b><span>images / videos saved</span></div>
+    <?php if (!empty($result['stock_started']) || !empty($result['stock_changed'])): ?><div class="sumbox g"><b><?= (int) ($result['stock_started'] ?? 0) + (int) ($result['stock_changed'] ?? 0) ?></b><span>stock levels set</span></div><?php endif; ?>
     <div class="sumbox r"><b><?= (int) $result['skipped'] ?></b><span>rows skipped</span></div>
   </div>
   <?php if (array_filter($result['auto'] ?? [])): ?>
@@ -76,6 +77,16 @@ include __DIR__ . '/../partials/header.php';
   <div class="notice" style="margin-top:14px;background:#f3f8ff;border-color:#c9daf2;color:#2f5f9e;font-size:12px">
     <b><i data-lucide="sparkles" style="width:13px;vertical-align:-2px"></i> These will be created automatically:</b>
     <div class="autolist"><?php foreach ($plan['creates'] as $kind => $list): foreach ($list as $label): ?><span class="chip" style="background:#fff;border-color:#c9daf2"><span class="muted"><?= e($kind) ?>:</span> <?= e($label) ?></span><?php endforeach; endforeach; ?></div>
+  </div>
+  <?php endif; ?>
+  <?php if (!empty($s['stock_start']) || !empty($s['stock_change']) || !empty($s['stock_same'])): ?>
+  <div class="notice" style="margin-top:14px;background:#f1f8ee;border-color:#cfe6c7;color:#2f6b3c;font-size:12px">
+    <b><i data-lucide="boxes" style="width:13px;display:inline-block;vertical-align:-2px"></i> Stock:</b>
+    <?= implode(' · ', array_filter([
+        $s['stock_start'] ? $s['stock_start'] . ' product' . ($s['stock_start'] === 1 ? '' : 's') . ' will start being tracked' : '',
+        $s['stock_change'] ? $s['stock_change'] . ' stock count' . ($s['stock_change'] === 1 ? '' : 's') . ' will be corrected (see “Stock” in the rows below)' : '',
+        $s['stock_same'] ? $s['stock_same'] . ' unchanged' : '',
+    ])) ?>. Every change is recorded in stock movements.
   </div>
   <?php endif; ?>
   <?php foreach ($plan['notices'] as $n): ?><div class="notice" style="margin-top:10px"><?= e($n) ?></div><?php endforeach; ?>
@@ -115,6 +126,20 @@ include __DIR__ . '/../partials/header.php';
               if (!empty($d['media'])) $bits[] = count(array_filter($d['media'], static fn($m) => empty($m['clear']))) . ' media';
           }
           if ($r['variants']) $bits[] = count($r['variants']) . ' variant' . (count($r['variants']) === 1 ? '' : 's');
+          $st = $d['stock'] ?? null;
+          $q = static fn($v) => \App\Services\Inventory\InventoryService::qty((float) $v);
+          $stockLine = null;
+          if ($st) {
+              $th = $st['threshold'] === 'default' ? ' · threshold → default' : ($st['threshold'] !== null ? ' · threshold ' . $q($st['threshold']) : '');
+              if ($st['action'] === 'start') {
+                  $stockLine = ['g', 'New stock · ' . $q($st['qty']) . ' ' . $st['unit'] . $th];
+              } elseif ($st['action'] === 'change') {
+                  $diff = (float) $st['qty'] - (float) $st['before'];
+                  $stockLine = ['y', 'Stock ' . $q($st['before']) . ' → ' . $q($st['qty']) . ' ' . $st['unit'] . ' (' . ($diff > 0 ? '+' : '−') . $q(abs($diff)) . ')' . $th];
+              } else {
+                  $stockLine = ['n', 'Stock unchanged · ' . $q($st['before']) . ' ' . $st['unit'] . $th];
+              }
+          }
       ?>
         <tr data-act="<?= e($r['action']) ?>">
           <td class="muted"><?= e((string) $r['line']) ?></td>
@@ -122,6 +147,7 @@ include __DIR__ . '/../partials/header.php';
           <td><span class="act <?= e($r['action']) ?>"><?= $actLabel[$r['action']] ?? $r['action'] ?></span></td>
           <td>
             <?php if ($bits): ?><span class="text-xs muted"><?= e(implode(' · ', $bits)) ?></span><?php endif; ?>
+            <?php if ($stockLine && !in_array($r['action'], ['error', 'skip'], true)): ?><div><span class="stockdiff <?= $stockLine[0] ?>"><i data-lucide="boxes"></i><?= e($stockLine[1]) ?></span></div><?php endif; ?>
             <?php if ($r['errors']): ?><ul class="msgs e"><?php foreach ($r['errors'] as $m): ?><li><?= e($m) ?></li><?php endforeach; ?></ul><?php endif; ?>
             <?php if ($r['warnings']): ?><ul class="msgs w"><?php foreach ($r['warnings'] as $m): ?><li><?= e($m) ?></li><?php endforeach; ?></ul><?php endif; ?>
           </td>
