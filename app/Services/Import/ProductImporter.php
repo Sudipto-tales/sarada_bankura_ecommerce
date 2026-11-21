@@ -3,6 +3,8 @@
 namespace App\Services\Import;
 
 use App\Controllers\Admin\CatalogController;
+use App\Services\Inventory\InventoryException;
+use App\Services\Inventory\InventoryService as Inv;
 use Vayu\Database\DB;
 
 /**
@@ -71,6 +73,9 @@ final class ProductImporter
             $c('show_price', 'Flags', 'yes / no. Blank = yes.', 'yes'),
             $c('is_featured', 'Flags', 'yes / no. Blank = no.', 'yes'),
             $c('is_bestseller', 'Flags', 'yes / no. Blank = no.', 'no'),
+            $c('stock_qty', 'Inventory', 'Optional. Physical stock you have now. Blank = stock not touched. On a product already tracked, a different number is saved as a stock correction.', '500'),
+            $c('stock_unit', 'Inventory', 'Optional. Unit you count stock in (see Lookups). Blank = the selling unit. Cannot change once tracked.', 'sq ft'),
+            $c('low_stock_threshold', 'Inventory', 'Optional. Warn when stock falls to this level. Blank = default; "-" = back to default.', '100'),
             $c('external_product_id', 'Other', 'ID from another system (ERP / Tally).', ''),
             $c('meta_title', 'SEO', 'Search result title.', ''),
             $c('meta_description', 'SEO', 'Search result description, up to 500 characters.', ''),
@@ -222,7 +227,7 @@ final class ProductImporter
             ];
         }
 
-        $summary = ['create' => 0, 'update' => 0, 'variants' => 0, 'skip' => 0, 'error' => 0, 'variant_rows' => 0];
+        $summary = ['create' => 0, 'update' => 0, 'variants' => 0, 'skip' => 0, 'error' => 0, 'variant_rows' => 0, 'stock_start' => 0, 'stock_change' => 0, 'stock_same' => 0];
         foreach ($rows as &$r) {
             if ($r['errors']) {
                 $r['action'] = 'error';
@@ -230,6 +235,9 @@ final class ProductImporter
             $summary[$r['action']]++;
             if ($r['action'] !== 'error' && $r['action'] !== 'skip') {
                 $summary['variant_rows'] += count($r['variants']);
+                if (!empty($r['data']['stock'])) {
+                    $summary['stock_' . $r['data']['stock']['action']]++;
+                }
             }
         }
         unset($r);
@@ -416,6 +424,8 @@ final class ProductImporter
             }
         }
 
+        $stock = $this->analyseStock($cell, $pid, $pricing, $errors, $warnings);
+
         // Categories.
         $cats = null;
         $primaryTok = $cell('primary_category');
@@ -533,9 +543,102 @@ final class ProductImporter
             'errors' => $errors,
             'warnings' => $warnings,
             'creates' => $rowCreates,
-            'data' => ['product' => $p, 'pricing' => $pricing, 'categories' => $cats, 'tags' => $tags, 'attrs' => $attrs, 'media' => $media],
+            'data' => ['product' => $p, 'pricing' => $pricing, 'categories' => $cats, 'tags' => $tags, 'attrs' => $attrs, 'media' => $media, 'stock' => $stock],
             'variants' => [],
         ];
+    }
+
+    /**
+     * Optional stock columns (stock_qty, stock_unit, low_stock_threshold). Stock is per product.
+     *
+     *   not tracked + stock_qty   → start tracking (opening movement, source import)
+     *   tracked + different qty   → "import" adjustment (shown as before → after in the preview)
+     *   blank stock_qty           → stock untouched; "-" is refused (use Stop tracking instead)
+     *   low_stock_threshold "-"   → back to the default threshold
+     *
+     * @param \Closure(string):?string $cell
+     * @param array<string,mixed> $pricing parsed pricing of this row (for the default stock unit)
+     * @return array{action:string, qty:?float, unit:?string, before:?float, threshold:float|string|null}|null
+     */
+    private function analyseStock(\Closure $cell, ?int $pid, array $pricing, array &$errors, array &$warnings): ?array
+    {
+        $qtyRaw = $cell('stock_qty');
+        $unitRaw = $cell('stock_unit');
+        $thRaw = $cell('low_stock_threshold');
+        if ($qtyRaw === null && $unitRaw === null && $thRaw === null) {
+            return null;
+        }
+        $tracked = $pid ? DB::table('inventory_stock')->where('product_id', $pid)->first() : null;
+        $n = count($errors);
+
+        $parse = static function (string $v, string $label) use (&$errors): ?float {
+            $s = str_replace([',', ' '], '', $v);
+            if (!is_numeric($s) || (float) $s < 0) {
+                $errors[] = $label . ' "' . $v . '" must be a number of 0 or more.';
+
+                return null;
+            }
+            if (abs((float) $s - round((float) $s, 3)) > 1e-9) {
+                $errors[] = $label . ' "' . $v . '" can have at most 3 decimal places.';
+
+                return null;
+            }
+
+            return round((float) $s, 3);
+        };
+
+        $qty = null;
+        if ($qtyRaw === self::CLEAR) {
+            $errors[] = 'stock_qty cannot be cleared with "-". To stop tracking a product, use Stop tracking on the Stock management page.';
+        } elseif ($qtyRaw !== null) {
+            $qty = $parse($qtyRaw, 'stock_qty');
+        }
+
+        $unit = null;
+        if ($unitRaw === self::CLEAR) {
+            $errors[] = 'stock_unit cannot be cleared.';
+        } elseif ($unitRaw !== null) {
+            $unit = $this->unit($unitRaw);
+            if ($unit === null) {
+                $errors[] = 'stock_unit "' . $unitRaw . '" is not a known unit (' . implode(', ', $this->lk['unitList']) . ').';
+            } elseif ($tracked && strcasecmp($unit, (string) $tracked['unit']) !== 0) {
+                $errors[] = 'stock_unit "' . $unit . '" differs from the tracked stock unit "' . $tracked['unit'] . '". The stock unit cannot be changed by upload.';
+            }
+        }
+
+        $threshold = null;
+        if ($thRaw === self::CLEAR) {
+            $threshold = 'default';
+        } elseif ($thRaw !== null) {
+            $threshold = $parse($thRaw, 'low_stock_threshold');
+        }
+
+        if (count($errors) > $n) {
+            return null;
+        }
+
+        if (!$tracked) {
+            if ($qty === null) {
+                $warnings[] = 'stock_unit / low_stock_threshold ignored: add stock_qty to start tracking this product\'s stock.';
+
+                return null;
+            }
+            if ($unit === null) {
+                $unit = array_key_exists('unit', $pricing) ? $pricing['unit'] : ($pid ? DB::table('product_pricing')->where('product_id', $pid)->value('unit') : null);
+                if (!$unit) {
+                    $errors[] = 'stock_unit is required to start tracking stock (the product has no selling unit to use).';
+
+                    return null;
+                }
+            }
+
+            return ['action' => 'start', 'qty' => $qty, 'unit' => (string) $unit, 'before' => null, 'threshold' => $threshold === 'default' ? null : $threshold];
+        }
+
+        $before = round((float) $tracked['quantity'], 3);
+        $action = $qty === null || $qty == $before ? 'same' : 'change';
+
+        return ['action' => $action, 'qty' => $qty, 'unit' => (string) $tracked['unit'], 'before' => $before, 'threshold' => $threshold];
     }
 
     /** @param array<string,mixed> $raw */
@@ -646,7 +749,7 @@ final class ProductImporter
                 $zip = null;
             }
         }
-        $result = ['created' => 0, 'updated' => 0, 'variants' => 0, 'skipped' => 0, 'media' => 0, 'auto' => [], 'warnings' => [], 'products' => []];
+        $result = ['created' => 0, 'updated' => 0, 'variants' => 0, 'skipped' => 0, 'media' => 0, 'stock_started' => 0, 'stock_changed' => 0, 'auto' => [], 'warnings' => [], 'products' => []];
         $newFiles = [];
         $cache = [];
 
@@ -667,6 +770,9 @@ final class ProductImporter
                         if ($row['data']['media'] !== null) {
                             $this->writeMedia($pid, $row['data']['media'], $zip, $row['sku'], $newFiles, $result);
                         }
+                        if (!empty($row['data']['stock'])) {
+                            $this->writeStock($pid, $row['data']['stock'], $row['sku'], $result);
+                        }
                     }
                     if ($pid && $row['variants']) {
                         $this->writeVariants($pid, $row['variants'], $cache, $result);
@@ -686,6 +792,36 @@ final class ProductImporter
         }
 
         return $result;
+    }
+
+    /**
+     * Apply a row's stock through InventoryService (same transaction as the rest of the import).
+     * Re-checked against the live stock row, because stock may have moved since the preview.
+     *
+     * @param array{action:string, qty:?float, unit:?string, before:?float, threshold:float|string|null} $s
+     */
+    private function writeStock(int $pid, array $s, string $sku, array &$result): void
+    {
+        $meta = ['source' => 'import', 'notes' => 'Bulk upload'];
+        try {
+            if (!Inv::isTracked($pid)) {
+                if ($s['qty'] === null) {
+                    return;
+                }
+                Inv::startTracking($pid, (string) $s['unit'], (float) $s['qty'], is_numeric($s['threshold']) ? (float) $s['threshold'] : null, $meta);
+                $result['stock_started']++;
+
+                return;
+            }
+            if ($s['threshold'] !== null) {
+                Inv::setThreshold($pid, $s['threshold'] === 'default' ? null : (float) $s['threshold']);
+            }
+            if ($s['qty'] !== null && Inv::setFromImport($pid, (float) $s['qty'], null, null, $meta)['action'] === 'changed') {
+                $result['stock_changed']++;
+            }
+        } catch (InventoryException $e) {
+            throw new \RuntimeException('Stock for ' . $sku . ': ' . $e->getMessage(), 0, $e);
+        }
     }
 
     private function writeProduct(array $row, int $pid, array &$cache, array &$result): int

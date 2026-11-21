@@ -125,9 +125,46 @@ class ImportController
             return $this->back('Import failed and nothing was saved: ' . $e->getMessage());
         }
         file_put_contents($dir . '/result.json', json_encode($result + ['finished' => date('Y-m-d H:i:s')]));
+        $this->notifyFinished($result, $token);
         @unlink($dir . '/images.zip');
 
         return redirect(route('admin.products.import') . '?token=' . $token);
+    }
+
+    /** "Bulk upload completed" in the bell panel (setting: inventory notify_import). Never breaks the import. */
+    private function notifyFinished(array $result, string $token): void
+    {
+        try {
+            if (!\App\Services\Inventory\InventorySettings::bool('notify_import')) {
+                return;
+            }
+            $plural = static fn(int $n, string $w) => $n . ' ' . $w . ($n === 1 ? '' : 's');
+            $parts = [];
+            if ($result['created']) {
+                $parts[] = $plural((int) $result['created'], 'product') . ' created';
+            }
+            if ($result['updated']) {
+                $parts[] = $result['updated'] . ' updated';
+            }
+            $stock = (int) ($result['stock_started'] ?? 0) + (int) ($result['stock_changed'] ?? 0);
+            if ($stock) {
+                $parts[] = $plural($stock, 'stock level') . ' set';
+            }
+            if ($result['skipped']) {
+                $parts[] = $result['skipped'] . ' skipped';
+            }
+            \App\Services\NotificationService::notify(
+                'import.completed',
+                'Bulk upload completed',
+                $parts ? implode(' · ', $parts) : 'No rows were imported.',
+                'admin/products/import?token=' . rawurlencode($token),
+                $result['skipped'] ? 'warning' : 'info',
+                ['created' => $result['created'], 'updated' => $result['updated'], 'stock' => $stock, 'skipped' => $result['skipped']],
+                null,
+                'file-spreadsheet',
+            );
+        } catch (\Throwable) {
+        }
     }
 
     /** CSV of every row's problems — fix in Excel and re-upload. */
@@ -204,7 +241,7 @@ class ImportController
 
         $pVal = [];
         $vVal = [];
-        $map = ['status' => ['status', true], 'brand' => ['brands', false], 'primary_category' => ['categories', false], 'unit' => ['units', true], 'pack_unit' => ['units', true], 'product_type' => ['product_types', true],
+        $map = ['status' => ['status', true], 'brand' => ['brands', false], 'primary_category' => ['categories', false], 'unit' => ['units', true], 'pack_unit' => ['units', true], 'stock_unit' => ['units', true], 'product_type' => ['product_types', true],
             'is_enquiry_only' => ['yes_no', true], 'show_price' => ['yes_no', true], 'is_featured' => ['yes_no', true], 'is_bestseller' => ['yes_no', true]];
         foreach ($pKeys as $i => $k) {
             if (isset($map[$k]) && $lists[$map[$k][0]]) {
@@ -307,7 +344,7 @@ class ImportController
         $p = [
             ['sku' => 'SAMPLE-STA-001', 'name' => 'Statuario White Marble', 'status' => 'active', 'brand' => 'Imported Collection', 'primary_category' => 'Flooring > Living Room', 'categories' => 'Imported',
                 'tags' => 'premium | white', 'short_description' => 'Italian white marble with soft grey veining.', 'price' => '450', 'compare_at_price' => '520', 'currency' => 'INR', 'unit' => 'sq ft',
-                'pack_qty' => '', 'show_price' => 'yes', 'is_featured' => 'yes', 'cover_image' => 'statuario-cover.jpg', 'gallery_1' => 'https://example.com/statuario-2.jpg'],
+                'pack_qty' => '', 'show_price' => 'yes', 'is_featured' => 'yes', 'stock_qty' => '500', 'stock_unit' => 'sq ft', 'low_stock_threshold' => '100', 'cover_image' => 'statuario-cover.jpg', 'gallery_1' => 'https://example.com/statuario-2.jpg'],
             ['sku' => 'SAMPLE-RJG-002', 'name' => 'Rajasthan Green Marble', 'status' => 'draft', 'brand' => 'New Quarry Partner', 'primary_category' => 'Wall Cladding > Feature Walls', 'categories' => '',
                 'tags' => 'vastu-friendly', 'short_description' => 'Deep green Indian marble.', 'price' => '', 'unit' => 'sq ft', 'is_enquiry_only' => 'yes', 'show_price' => 'no', 'cover_image' => 'rajasthan-green.webp'],
         ];
