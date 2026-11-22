@@ -39,5 +39,23 @@ Every 15 minutes:
 - **cPanel:** *Cron Jobs* → "Once per 15 minutes" → command `cd /home/USER/path && /usr/local/bin/php vayu inventory:check --quiet`.
 - **VPS:** `crontab -e` and paste the line above.
 
+### Install with the helper script (idempotent)
+
+`bin/install-cron.sh` installs the crontab line for you, detecting the project path
+and the full `php` path automatically. It is **idempotent** — it only edits the
+crontab the first time; later runs find the job already present and skip it, so it is
+safe to call on every deploy (e.g. from a `git pull` deploy hook):
+
+```
+bin/install-cron.sh            # install if not already present
+bin/install-cron.sh --show     # print the current crontab
+bin/install-cron.sh --remove   # remove the job this project installed
+```
+
+The crontab is an OS-level thing, separate from your code — committing the script does
+**not** install anything. It still has to be *run* on the server (by hand over SSH, or
+from your deploy script). On shared cPanel hosts `crontab` over SSH may be disabled in
+favour of the *Cron Jobs* web UI; run `crontab -l` once to confirm it works.
+
 The Stock alerts page shows when the check last ran and warns if the scheduled run has not
 been seen for over an hour. "Run check now" on that page runs the same check by hand.
