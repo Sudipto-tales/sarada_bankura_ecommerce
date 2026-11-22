@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Maa Sarada Marble & Stone — Bankura</title>
+<meta name="description" content="Italian and Indian marble, granite and onyx for floors, walls and countertops. Showroom in Bankura, West Bengal. Delivery included, UPI payments, GST invoice.">
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+<style>.slide{opacity:0;transition:opacity .8s ease}.slide.on{opacity:1}</style>
+</head>
+<body class="font-sans text-[15px]">
+<a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-ink text-cream px-3 py-2 rounded">Skip to content</a>
+<main id="main">
+
+<!-- ============ HERO ============ -->
+<section class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 pt-5">
+  <div class="relative rounded-[28px] overflow-hidden bg-ink min-h-[560px] lg:min-h-[620px] 2xl:min-h-[720px] isolate" data-map="hero slides: products.is_featured + category image">
+    <div id="slides" class="absolute inset-0 -z-10"></div>
+    <div class="absolute inset-0 -z-10 bg-gradient-to-r from-ink/85 via-ink/55 to-ink/10"></div>
+    <div class="grid lg:grid-cols-12 gap-8 h-full p-6 sm:p-10 lg:p-14">
+      <div class="lg:col-span-7 text-cream flex flex-col justify-center py-6">
+        <span class="inline-flex w-fit items-center gap-2 text-[11.5px] uppercase tracking-[.2em] text-cream/80 border border-cream/25 rounded-full px-3 py-1.5"><span class="w-1.5 h-1.5 rounded-full bg-copper"></span><span id="slideKicker">Bankura showroom</span></span>
+        <h1 id="slideTitle" class="font-display font-light text-[44px] sm:text-[58px] lg:text-[68px] leading-[1.02] tracking-tight mt-5">Stone for the<br>rooms you live in.</h1>
+        <p id="slideCopy" class="mt-5 max-w-lg text-cream/80 text-[16.5px] leading-relaxed">Italian and Indian marble, granite and onyx for floors, walls and kitchens. See every slab in our showroom before it reaches your home.</p>
+        <div class="mt-8 flex flex-wrap items-center gap-3">
+          <a id="slideCta" href="#collection" class="inline-flex items-center gap-2 h-12 px-6 rounded-full bg-copper hover:bg-copper-600 text-white font-semibold">Explore the collection <i data-lucide="arrow-up-right"></i></a>
+          <a href="visualizer.html" class="inline-flex items-center gap-2 h-12 px-5 rounded-full border border-cream/30 hover:bg-cream/10 text-cream font-medium"><i data-lucide="scan-eye"></i> Visualise your room</a>
+        </div>
+        <div class="mt-10 flex items-center gap-3 text-cream/70 text-[12px]">
+          <button id="prev" class="w-9 h-9 grid place-items-center rounded-full border border-cream/25 hover:bg-cream/10" aria-label="Previous slide"><i data-lucide="chevron-left"></i></button>
+          <button id="next" class="w-9 h-9 grid place-items-center rounded-full border border-cream/25 hover:bg-cream/10" aria-label="Next slide"><i data-lucide="chevron-right"></i></button>
+          <div id="dots" class="flex gap-1.5 ml-2"></div>
+        </div>
+      </div>
+
+      <!-- Stone finder: category → sub-category → colour -->
+      <div class="lg:col-span-5 flex items-center lg:justify-end">
+        <form id="finder" class="w-full max-w-md bg-cream/95 backdrop-blur rounded-3xl p-6 shadow-2xl" data-map="finder: product_categories parent → child · attribute_values(colour)">
+          <div class="flex items-center justify-between">
+            <h2 class="font-display text-[24px] leading-tight">Find your stone</h2>
+            <span class="text-[12px] text-ink-500"><b id="finderCount" class="text-ink">0</b> matches</span>
+          </div>
+          <p class="text-[13px] text-ink-500 mt-1">Pick where it goes. We'll narrow it down.</p>
+
+          <fieldset class="mt-5">
+            <legend class="text-[11.5px] uppercase tracking-[.14em] text-ink-500 font-semibold mb-2">1 · Where</legend>
+            <div id="fSpace" class="grid grid-cols-3 gap-2"></div>
+          </fieldset>
+          <fieldset class="mt-4">
+            <legend class="text-[11.5px] uppercase tracking-[.14em] text-ink-500 font-semibold mb-2">2 · Which room</legend>
+            <div id="fRoom" class="flex flex-wrap gap-2"></div>
+          </fieldset>
+          <fieldset class="mt-4">
+            <legend class="text-[11.5px] uppercase tracking-[.14em] text-ink-500 font-semibold mb-2">3 · Colour <span class="normal-case tracking-normal font-normal">(optional)</span></legend>
+            <div id="fColour" class="flex flex-wrap gap-2"></div>
+          </fieldset>
+          <button class="mt-6 w-full h-12 rounded-full bg-ink hover:bg-ink-700 text-cream font-semibold flex items-center justify-center gap-2">Show stones <i data-lucide="arrow-right"></i></button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <!-- Promise strip -->
+  <div class="mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3" data-map="config/business.php · payments.md · orders.md">
+    <div class="flex items-center gap-3 bg-white rounded-2xl px-4 py-3.5 border border-ink/5"><span class="w-10 h-10 rounded-xl bg-teal-50 text-teal grid place-items-center"><i data-lucide="truck"></i></span><div class="leading-tight"><b class="text-[14px]">Delivery included</b><p class="text-[12.5px] text-ink-500">No shipping charge at checkout</p></div></div>
+    <div class="flex items-center gap-3 bg-white rounded-2xl px-4 py-3.5 border border-ink/5"><span class="w-10 h-10 rounded-xl bg-teal-50 text-teal grid place-items-center"><i data-lucide="smartphone"></i></span><div class="leading-tight"><b class="text-[14px]">20% advance by UPI</b><p class="text-[12.5px] text-ink-500">Or pay in full. Balance at dispatch</p></div></div>
+    <div class="flex items-center gap-3 bg-white rounded-2xl px-4 py-3.5 border border-ink/5"><span class="w-10 h-10 rounded-xl bg-teal-50 text-teal grid place-items-center"><i data-lucide="receipt-text"></i></span><div class="leading-tight"><b class="text-[14px]">GST invoice</b><p class="text-[12.5px] text-ink-500">With a QR to check it online</p></div></div>
+    <div class="flex items-center gap-3 bg-white rounded-2xl px-4 py-3.5 border border-ink/5"><span class="w-10 h-10 rounded-xl bg-teal-50 text-teal grid place-items-center"><i data-lucide="store"></i></span><div class="leading-tight"><b class="text-[14px]">See the slab first</b><p class="text-[12.5px] text-ink-500">Showroom visit in Bankura</p></div></div>
+  </div>
+</section>
+
+<!-- ============ SHOP BY SPACE (categories + sub-categories) ============ -->
+<section id="spaces" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-20">
+  <div class="flex items-end justify-between gap-6 mb-7">
+    <div>
+      <p class="text-[12px] uppercase tracking-[.2em] text-teal font-semibold">Shop by space</p>
+      <h2 class="font-display text-[34px] sm:text-[42px] leading-tight tracking-tight mt-1">Where will your stone go?</h2>
+    </div>
+    <a href="shop.html" class="hidden sm:inline-flex items-center gap-1.5 text-[14px] font-semibold hover:text-teal">All stone <i data-lucide="arrow-up-right"></i></a>
+  </div>
+  <div id="spaceCards" class="grid md:grid-cols-3 gap-4" data-map="product_categories WHERE parent_id IS NULL AND is_visible · children = sub-categories · count = product_category_map"></div>
+
+  <!-- Origin split -->
+  <div id="origin" class="grid md:grid-cols-2 gap-4 mt-4" data-map="product_categories: Imported / Indian (see note: better as attribute 'origin')"></div>
+</section>
+
+<!-- ============ COLLECTION (product cards) ============ -->
+<section id="collection" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-20">
+  <div class="flex flex-col md:flex-row md:items-end justify-between gap-5 mb-7">
+    <div>
+      <p class="text-[12px] uppercase tracking-[.2em] text-teal font-semibold">The collection</p>
+      <h2 class="font-display text-[34px] sm:text-[42px] leading-tight tracking-tight mt-1">Stones people are choosing</h2>
+    </div>
+    <div id="tabs" role="tablist" class="flex gap-2 overflow-x-auto no-scrollbar" data-map="is_bestseller · tags(New arrival, premium) · compare_at_price > price"></div>
+  </div>
+  <div id="grid" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-3 sm:gap-5" data-map="products(status in active, coming_soon) + product_pricing + product_media + product_attribute_values"></div>
+  <div class="mt-8 text-center">
+    <a href="shop.html" class="inline-flex items-center gap-2 h-12 px-6 rounded-full border border-ink/20 hover:border-ink font-semibold text-[14px]">View all <span id="totalCount"></span> stones <i data-lucide="arrow-right"></i></a>
+  </div>
+</section>
+
+<!-- ============ PRODUCT SPOTLIGHT (preview of detail page) ============ -->
+<section class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-20">
+  <div class="rounded-[28px] overflow-hidden bg-ink text-cream grid lg:grid-cols-2" data-map="product detail preview: product_variants · product_attribute_values · product_pricing.pack_qty">
+    <div class="relative min-h-[380px] lg:min-h-[620px]">
+      <img id="spotMain" src="" alt="" class="absolute inset-0 w-full h-full object-cover">
+      <div class="absolute left-5 bottom-5 right-5 flex gap-2" id="spotThumbs"></div>
+      <span class="absolute top-5 left-5 bg-cream text-ink text-[11px] uppercase tracking-[.16em] font-bold px-3 py-1.5 rounded-full">Stone of the month</span>
+    </div>
+    <div class="p-7 sm:p-10 lg:p-12 flex flex-col">
+      <p id="spotBrand" class="text-[12px] uppercase tracking-[.2em] text-cream/60"></p>
+      <h2 id="spotName" class="font-display text-[38px] sm:text-[46px] leading-[1.05] tracking-tight mt-2"></h2>
+      <p id="spotDesc" class="text-cream/70 mt-3 max-w-lg"></p>
+      <div class="mt-5 flex items-center gap-2 text-[13px]"><span id="spotStars" class="text-gold tracking-wider"></span><span id="spotRating" class="text-cream/60"></span></div>
+
+      <div class="mt-6">
+        <div id="spotOptions" class="space-y-4"></div>
+      </div>
+
+      <dl id="spotSpecs" class="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-px bg-cream/10 rounded-2xl overflow-hidden text-[13px]"></dl>
+
+      <div class="mt-6 bg-cream/[.06] rounded-2xl p-5 border border-cream/10">
+        <div class="flex flex-wrap items-end gap-4 justify-between">
+          <div>
+            <p class="text-[11.5px] uppercase tracking-[.14em] text-cream/55 font-semibold">Price</p>
+            <p class="mt-1"><b id="spotPrice" class="font-display text-[34px] font-normal"></b> <span id="spotUnit" class="text-cream/60">/ sq ft</span> <del id="spotCompare" class="text-cream/40 ml-1"></del></p>
+          </div>
+          <label class="block">
+            <span class="text-[11.5px] uppercase tracking-[.14em] text-cream/55 font-semibold">Your area (sq ft)</span>
+            <input id="spotArea" type="number" min="1" value="450" class="mt-1 block w-36 h-11 px-3 rounded-xl bg-cream text-ink font-semibold outline-none focus:ring-4 focus:ring-teal/40">
+          </label>
+        </div>
+        <div class="mt-4 grid grid-cols-3 gap-3 text-[13px]">
+          <div><p class="text-cream/55">With 8% wastage</p><b id="calcArea" class="text-[16px]"></b></div>
+          <div><p class="text-cream/55">Estimated total</p><b id="calcTotal" class="text-[16px]"></b></div>
+          <div><p class="text-cream/55">20% advance</p><b id="calcAdvance" class="text-[16px] text-[#E9B48F]"></b></div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button id="spotAdd" class="h-12 px-6 rounded-full bg-copper hover:bg-copper-600 text-white font-semibold flex items-center gap-2"><i data-lucide="shopping-bag"></i> Add to bag</button>
+        <a id="spotLink" href="#" class="h-12 px-5 rounded-full border border-cream/25 hover:bg-cream/10 font-medium flex items-center gap-2">Full details <i data-lucide="arrow-right"></i></a>
+        <a href="#" class="h-12 px-5 rounded-full border border-cream/25 hover:bg-cream/10 font-medium flex items-center gap-2"><i data-lucide="message-circle"></i> Ask on WhatsApp</a>
+              </div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SHOP BY NEED (discovery tags) ============ -->
+<section class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-20">
+  <div class="flex items-end justify-between gap-6 mb-7">
+    <div>
+      <p class="text-[12px] uppercase tracking-[.2em] text-teal font-semibold">Shop by need</p>
+      <h2 class="font-display text-[34px] sm:text-[42px] leading-tight tracking-tight mt-1">Built for how you'll use it</h2>
+    </div>
+  </div>
+  <div id="needs" class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3" data-map="tags WHERE purpose='discovery' AND status='active' (internal tags never shown)"></div>
+</section>
+
+<!-- ============ PLAN YOUR SPACE (tools bento) ============ -->
+<section id="tools" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-20">
+  <div class="flex items-end justify-between gap-6 mb-7">
+    <div>
+      <p class="text-[12px] uppercase tracking-[.2em] text-teal font-semibold">Plan your space</p>
+      <h2 class="font-display text-[34px] sm:text-[42px] leading-tight tracking-tight mt-1">Decide with confidence</h2>
+    </div>
+  </div>
+  <div class="grid md:grid-cols-4 md:grid-rows-2 gap-4 md:h-[520px]">
+    <a href="visualizer.html" class="group relative md:col-span-2 md:row-span-2 rounded-[24px] overflow-hidden min-h-[300px]">
+      <img src="https://images.unsplash.com/photo-1631679706909-1844bbd07221?w=1200&q=75&auto=format&fit=crop" alt="Living room with a light stone floor" class="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.03] transition duration-700" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-ink/85 via-ink/20 to-transparent"></div>
+      <div class="absolute left-6 right-6 bottom-6 text-cream">
+        <span class="inline-flex items-center gap-1.5 text-[11.5px] uppercase tracking-[.16em] bg-cream/15 backdrop-blur px-3 py-1 rounded-full"><i data-lucide="scan-eye"></i> Room visualiser</span>
+        <h3 class="font-display text-[30px] leading-tight mt-3">Try a stone on your floor before you buy it.</h3>
+        <p class="text-cream/75 mt-1.5 text-[14px]">Pick a room, swap stones, save the design.</p>
+      </div>
+    </a>
+    <a href="calculator.html" class="group rounded-[24px] bg-teal text-white p-6 flex flex-col justify-between min-h-[200px]">
+      <span class="w-11 h-11 rounded-xl bg-white/15 grid place-items-center"><i data-lucide="ruler"></i></span>
+      <div><h3 class="font-display text-[23px] leading-tight">Area &amp; cost calculator</h3><p class="text-white/75 text-[13.5px] mt-1">Square feet, boxes, slabs and wastage.</p></div>
+    </a>
+    <a href="catalogues.html" class="group rounded-[24px] bg-white border border-ink/5 p-6 flex flex-col justify-between min-h-[200px]">
+      <span class="w-11 h-11 rounded-xl bg-cream grid place-items-center"><i data-lucide="book-open"></i></span>
+      <div><h3 class="font-display text-[23px] leading-tight">Brand catalogues</h3><p class="text-ink-500 text-[13.5px] mt-1">Read the full PDF collections.</p></div>
+    </a>
+    <a href="saved.html#designs" class="group md:col-span-2 rounded-[24px] bg-copper-50 border border-copper/10 p-6 flex flex-col justify-between min-h-[200px]">
+      <span class="w-11 h-11 rounded-xl bg-white grid place-items-center text-copper"><i data-lucide="bookmark"></i></span>
+      <div><h3 class="font-display text-[23px] leading-tight">Saved designs</h3><p class="text-ink-500 text-[13.5px] mt-1">Your rooms and shortlists.</p></div>
+    </a>
+  </div>
+</section>
+
+<!-- ============ HOW ORDERING WORKS ============ -->
+<section class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-20">
+  <div class="rounded-[28px] bg-cream-200 p-6 sm:p-10" data-map="orders + payments flow (docs/orders.md, docs/payments.md)">
+    <div class="grid lg:grid-cols-12 gap-8">
+      <div class="lg:col-span-4">
+        <p class="text-[12px] uppercase tracking-[.2em] text-teal font-semibold">How ordering works</p>
+        <h2 class="font-display text-[32px] leading-tight tracking-tight mt-1">Simple, and you're never in the dark.</h2>
+        <p class="text-ink-500 mt-3 text-[14.5px]">Some rare stones are <b class="text-ink">enquiry only</b> — send a request and we call you back with a quote.</p>
+      </div>
+      <ol class="lg:col-span-8 grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <li class="bg-white rounded-2xl p-5"><span class="font-display text-[28px] text-teal">01</span><h3 class="font-semibold mt-2">Choose your stone</h3><p class="text-[13.5px] text-ink-500 mt-1">Online, or see the slab at the showroom.</p></li>
+        <li class="bg-white rounded-2xl p-5"><span class="font-display text-[28px] text-teal">02</span><h3 class="font-semibold mt-2">Pay by UPI</h3><p class="text-[13.5px] text-ink-500 mt-1">20% advance or the full amount. Add your UTR or a screenshot.</p></li>
+        <li class="bg-white rounded-2xl p-5"><span class="font-display text-[28px] text-teal">03</span><h3 class="font-semibold mt-2">We confirm</h3><p class="text-[13.5px] text-ink-500 mt-1">We check your payment and confirm your order.</p></li>
+        <li class="bg-white rounded-2xl p-5"><span class="font-display text-[28px] text-teal">04</span><h3 class="font-semibold mt-2">Delivered</h3><p class="text-[13.5px] text-ink-500 mt-1">Delivery is included. GST invoice comes with it.</p></li>
+      </ol>
+    </div>
+  </div>
+</section>
+
+<!-- ============ BRANDS ============ -->
+<section id="brands" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-20">
+  <div class="flex items-end justify-between gap-6 mb-7">
+    <div>
+      <p class="text-[12px] uppercase tracking-[.2em] text-teal font-semibold">Our brands</p>
+      <h2 class="font-display text-[34px] sm:text-[42px] leading-tight tracking-tight mt-1">Sourced from the right quarries</h2>
+    </div>
+  </div>
+  <div id="brandCards" class="grid md:grid-cols-3 gap-4" data-map="brands WHERE status=active · tier · country · is_featured · logo"></div>
+</section>
+
+<!-- ============ REVIEWS ============ -->
+<section class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-20">
+  <div class="grid lg:grid-cols-12 gap-6" data-map="product_reviews WHERE status='published' · response">
+    <div class="lg:col-span-4 bg-white rounded-[24px] p-7 border border-ink/5 flex flex-col">
+      <p class="text-[12px] uppercase tracking-[.2em] text-teal font-semibold">Customer reviews</p>
+      <div class="flex items-end gap-3 mt-3"><span id="avgRating" class="font-display text-[64px] leading-none"></span><div class="pb-2"><div id="avgStars" class="text-gold tracking-wider"></div><p id="reviewTotal" class="text-[13px] text-ink-500"></p></div></div>
+      <div id="ratingBars" class="mt-5 space-y-1.5 text-[12.5px]"></div>
+      <a href="review.html?slug=statuario-white" class="mt-auto pt-6 inline-flex items-center gap-1.5 font-semibold text-[14px] hover:text-teal">Write a review <i data-lucide="pen-line"></i></a>
+    </div>
+    <div id="reviews" class="lg:col-span-8 grid md:grid-cols-2 gap-4"></div>
+  </div>
+</section>
+
+<!-- ============ SHOWROOM + ENQUIRY ============ -->
+<section id="visit" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-20">
+  <div class="grid lg:grid-cols-2 rounded-[28px] overflow-hidden bg-white border border-ink/5">
+    <div class="relative min-h-[320px]">
+      <img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1200&q=75&auto=format&fit=crop" alt="Bright showroom interior" class="absolute inset-0 w-full h-full object-cover" loading="lazy">
+      <div class="absolute inset-0 bg-gradient-to-t from-ink/80 to-ink/10"></div>
+      <div class="absolute left-6 right-6 bottom-6 text-cream">
+        <h2 class="font-display text-[34px] leading-tight">Visit the showroom</h2>
+        <p class="text-cream/80 mt-1">Main Road, Bankura, West Bengal</p>
+        <div class="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-[13.5px] text-cream/85">
+          <span class="flex items-center gap-1.5"><i data-lucide="clock"></i> Mon–Sat · 10:00–20:00 IST</span>
+          <span class="flex items-center gap-1.5"><i data-lucide="phone"></i> +91 00000 00000</span>
+        </div>
+      </div>
+    </div>
+    <form class="p-7 sm:p-10" data-map="enquiry → customers (phone = primary identity) + category/sub-category">
+      <h3 class="font-display text-[28px] leading-tight">Tell us about your project</h3>
+      <p class="text-ink-500 text-[14px] mt-1">We'll call you back with stone options and a price.</p>
+      <div class="grid sm:grid-cols-2 gap-4 mt-6">
+        <label class="block"><span class="text-[13px] font-semibold">Your name</span><input required class="mt-1.5 w-full h-11 px-3.5 rounded-xl bg-cream-50 border border-ink/10 focus:border-teal focus:ring-4 focus:ring-teal/10 outline-none"></label>
+        <label class="block"><span class="text-[13px] font-semibold">Mobile number</span><input required type="tel" inputmode="numeric" placeholder="10-digit mobile" class="mt-1.5 w-full h-11 px-3.5 rounded-xl bg-cream-50 border border-ink/10 focus:border-teal focus:ring-4 focus:ring-teal/10 outline-none"></label>
+        <label class="block"><span class="text-[13px] font-semibold">Space</span><select id="eqSpace" class="mt-1.5 w-full h-11 px-3 rounded-xl bg-cream-50 border border-ink/10 focus:border-teal outline-none"></select></label>
+        <label class="block"><span class="text-[13px] font-semibold">Room</span><select id="eqRoom" class="mt-1.5 w-full h-11 px-3 rounded-xl bg-cream-50 border border-ink/10 focus:border-teal outline-none"></select></label>
+        <label class="block"><span class="text-[13px] font-semibold">Approx. area (sq ft)</span><input type="number" min="1" class="mt-1.5 w-full h-11 px-3.5 rounded-xl bg-cream-50 border border-ink/10 focus:border-teal focus:ring-4 focus:ring-teal/10 outline-none"></label>
+        <label class="block"><span class="text-[13px] font-semibold">Pincode</span><input inputmode="numeric" maxlength="6" placeholder="722101" class="mt-1.5 w-full h-11 px-3.5 rounded-xl bg-cream-50 border border-ink/10 focus:border-teal focus:ring-4 focus:ring-teal/10 outline-none"></label>
+        <label class="block sm:col-span-2"><span class="text-[13px] font-semibold">Anything else?</span><textarea rows="3" placeholder="Finish, budget, timeline…" class="mt-1.5 w-full px-3.5 py-2.5 rounded-xl bg-cream-50 border border-ink/10 focus:border-teal focus:ring-4 focus:ring-teal/10 outline-none"></textarea></label>
+      </div>
+      <div class="mt-6 flex flex-wrap gap-3">
+        <button type="submit" class="h-12 px-6 rounded-full bg-ink hover:bg-ink-700 text-cream font-semibold">Send enquiry</button>
+        <a href="https://wa.me/910000000000" class="h-12 px-5 rounded-full border border-ink/15 hover:border-ink font-semibold flex items-center gap-2"><i data-lucide="message-circle"></i> WhatsApp us</a>
+      </div>
+    </form>
+  </div>
+</section>
+
+</main>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+renderChrome({ active: 'home' });
+
+/* HERO SLIDER */
+const SLIDES = [
+  { img: U('1600607687939-ce8a6c25118c', 1800), kicker: 'Bankura showroom', title: 'Stone for the<br>rooms you live in.', copy: 'Italian and Indian marble, granite and onyx for floors, walls and kitchens. See every slab in our showroom before it reaches your home.', href: 'shop.html' },
+  { img: U('1556911220-bff31c812dba', 1800), kicker: 'Countertops · Kitchen', title: 'Kitchens that<br>take the heat.', copy: 'Granite and quartzite cut to your counter, with the edge profile you choose. Heat resistant, easy to clean.', href: 'shop.html?cat=kitchen' },
+  { img: U('1620626011761-996317b8d101', 1800), kicker: 'Flooring · Bathroom', title: 'Calm, cool<br>bathrooms.', copy: 'Honed and leather finishes that stay safe underfoot. Matching vanity tops from the same block.', href: 'shop.html?cat=bathroom' }
+];
+let slide = 0, timer;
+$('#slides').innerHTML = SLIDES.map((s, i) => `<img src="${s.img}" alt="" class="slide absolute inset-0 w-full h-full object-cover ${i === 0 ? 'on' : ''}">`).join('');
+$('#dots').innerHTML = SLIDES.map((_, i) => `<button class="h-1.5 rounded-full transition-all ${i === 0 ? 'w-8 bg-cream' : 'w-3 bg-cream/35'}" aria-label="Slide ${i + 1}"></button>`).join('');
+function go(step) {
+  slide = (slide + step + SLIDES.length) % SLIDES.length; const s = SLIDES[slide];
+  $$('#slides .slide').forEach((el, i) => el.classList.toggle('on', i === slide));
+  $$('#dots button').forEach((b, i) => b.className = `h-1.5 rounded-full transition-all ${i === slide ? 'w-8 bg-cream' : 'w-3 bg-cream/35'}`);
+  $('#slideKicker').textContent = s.kicker; $('#slideTitle').innerHTML = s.title; $('#slideCopy').textContent = s.copy; $('#slideCta').href = s.href;
+  clearInterval(timer); timer = setInterval(() => go(1), 7000);
+}
+$$('#dots button').forEach((b, i) => b.onclick = () => go(i - slide));
+$('#prev').onclick = () => go(-1); $('#next').onclick = () => go(1);
+timer = setInterval(() => go(1), 7000);
+
+/* STONE FINDER — category → sub-category → colour */
+const finder = { space: 1, room: null, colour: null };
+function renderFinder() {
+  $('#fSpace').innerHTML = topCats().filter(c => children(c.id).length).map(c => `<button type="button" class="chip flex flex-col items-center gap-1 py-3 rounded-2xl border border-ink/10 bg-white text-[12.5px] font-semibold hover:border-ink/40" aria-pressed="${finder.space === c.id}" data-space="${c.id}"><i data-lucide="${c.icon}" class="!w-5 !h-5"></i>${c.name}</button>`).join('');
+  $('#fRoom').innerHTML = `<button type="button" class="chip px-3.5 h-9 rounded-full border border-ink/10 bg-white text-[13px] font-medium hover:border-ink/40" aria-pressed="${finder.room === null}" data-room="">Any</button>`
+    + children(finder.space).map(s => `<button type="button" class="chip px-3.5 h-9 rounded-full border border-ink/10 bg-white text-[13px] font-medium hover:border-ink/40" aria-pressed="${finder.room === s.id}" data-room="${s.id}">${s.name}</button>`).join('');
+  $('#fColour').innerHTML = Object.keys(COLOURS).map(c => `<button type="button" title="${c}" aria-label="${c}" aria-pressed="${finder.colour === c}" data-colour="${c}" class="w-9 h-9 rounded-full ring-1 ring-ink/15 bg-cover bg-center transition ${finder.colour === c ? 'ring-2 ring-teal ring-offset-2' : 'hover:scale-110'}" style="background-image:url('${colourStone(c)}')"></button>`).join('');
+  $('#finderCount').textContent = live.filter(p => p.cats.includes(finder.room ?? finder.space) && (!finder.colour || p.colour === finder.colour)).length;
+  icons();
+}
+$('#finder').addEventListener('click', e => {
+  const b = e.target.closest('button[type=button]'); if (!b) return;
+  if (b.dataset.space) { finder.space = +b.dataset.space; finder.room = null; }
+  if ('room' in b.dataset) finder.room = b.dataset.room ? +b.dataset.room : null;
+  if (b.dataset.colour) finder.colour = finder.colour === b.dataset.colour ? null : b.dataset.colour;
+  renderFinder();
+});
+$('#finder').addEventListener('submit', e => { e.preventDefault(); const c = catById(finder.room ?? finder.space); location.href = `shop.html?cat=${c.slug}${finder.colour ? '&colour=' + encodeURIComponent(finder.colour) : ''}`; });
+renderFinder();
+
+/* SHOP BY SPACE + ORIGIN */
+$('#spaceCards').innerHTML = topCats().filter(c => c.is_featured).map(c => `
+  <article class="group bg-white rounded-[24px] overflow-hidden border border-ink/5 flex flex-col">
+    <a href="shop.html?cat=${c.slug}" class="relative block aspect-[4/3] overflow-hidden"><img src="${c.image}" alt="${c.name}" class="absolute inset-0 w-full h-full object-cover group-hover:scale-[1.04] transition duration-700" loading="lazy"><div class="absolute inset-0 bg-gradient-to-t from-ink/70 via-transparent to-transparent"></div>
+      <div class="absolute left-5 bottom-4 right-5 text-cream flex items-end justify-between"><div><h3 class="font-display text-[30px] leading-none">${c.name}</h3><p class="text-[13px] text-cream/80 mt-1.5">${c.description}</p></div><span class="shrink-0 text-[12px] bg-cream/15 backdrop-blur rounded-full px-2.5 py-1">${countIn(c.id)} stones</span></div></a>
+    <div class="p-4 grid grid-cols-${Math.min(children(c.id).length, 3)} gap-2">${children(c.id).map(s => `<a href="shop.html?cat=${s.slug}" class="flex items-center gap-2.5 p-2 rounded-xl hover:bg-cream"><img src="${s.image}" alt="" class="w-10 h-10 rounded-lg object-cover" loading="lazy"><span class="leading-tight"><b class="block text-[13px] font-semibold">${s.name}</b><small class="text-ink-400 text-[11.5px]">${countIn(s.id)} stones</small></span></a>`).join('')}</div>
+  </article>`).join('');
+$('#origin').innerHTML = topCats().filter(c => !children(c.id).length).map((c, i) => `<a href="shop.html?cat=${c.slug}" class="group relative rounded-[24px] overflow-hidden ${i ? 'bg-copper-50' : 'bg-teal-50'} p-6 sm:p-8 flex items-center gap-6 min-h-[200px]">
+    <div class="flex-1"><p class="eyebrow ${i ? '!text-copper' : ''}">${countIn(c.id)} stones</p><h3 class="font-display text-[34px] leading-tight mt-1">${c.name} marble</h3><p class="text-ink-500 text-[14px] mt-1">${c.description}</p><span class="mt-4 inline-flex items-center gap-1.5 font-semibold text-[14px]">Explore <i data-lucide="arrow-up-right"></i></span></div>
+    <div class="hidden sm:grid grid-cols-2 gap-2 shrink-0">${live.filter(p => p.cats.includes(c.id)).slice(0, 4).map(p => `<img src="${p.img}" alt="" class="w-[72px] h-[72px] rounded-xl object-cover ring-1 ring-ink/10 group-hover:rotate-2 transition">`).join('')}</div></a>`).join('');
+
+/* COLLECTION TABS */
+const TABS = [
+  ['best', 'Bestsellers', p => p.is_bestseller], ['new', 'New arrivals', p => p.tags.includes('New arrival')], ['premium', 'Premium', p => p.tags.includes('premium')],
+  ['offer', 'On offer', p => purchasable(p) && (p.pricing.compare_at_price || p.variants.some(v => v.compare_at_price))], ['all', 'All', () => true]];
+let tab = 'all';
+function renderCollection() {
+  $('#tabs').innerHTML = TABS.map(([k, l, f]) => `<button role="tab" class="tab shrink-0 px-4 h-10 rounded-full border border-ink/15 text-[13.5px] font-semibold hover:border-ink" aria-selected="${k === tab}" data-tab="${k}">${l} <span class="opacity-50 font-normal">${live.filter(f).length}</span></button>`).join('');
+  $('#grid').innerHTML = live.filter(TABS.find(t => t[0] === tab)[2]).map(card).join('');
+  $('#totalCount').textContent = live.length; icons();
+}
+$('#tabs').onclick = e => { const b = e.target.closest('[data-tab]'); if (b) { tab = b.dataset.tab; renderCollection(); } };
+renderCollection();
+
+/* SPOTLIGHT — preview of the product page, driven by variants */
+const spot = PRODUCTS[0]; let spotSel = selFromVariant(defaultVariant(spot));
+const shots = [spot.img, spot.room, ...spot.gallery];
+$('#spotMain').src = shots[1];
+$('#spotThumbs').innerHTML = shots.map((s, i) => `<button class="w-16 h-16 rounded-xl overflow-hidden ring-2 ${i === 1 ? 'ring-cream' : 'ring-transparent'} hover:ring-cream/70" data-shot="${i}"><img src="${s}" alt="" class="w-full h-full object-cover"></button>`).join('');
+$('#spotThumbs').onclick = e => { const b = e.target.closest('[data-shot]'); if (!b) return; $('#spotMain').src = shots[b.dataset.shot]; $$('#spotThumbs button').forEach(x => x.classList.replace('ring-cream', 'ring-transparent')); b.classList.replace('ring-transparent', 'ring-cream'); };
+$('#spotLink').href = productUrl(spot);
+function renderSpot() {
+  const v = pickVariant(spot, spotSel);
+  $('#spotBrand').textContent = `${brandOf(spot).name} · ${v.sku}`; $('#spotName').textContent = spot.name; $('#spotDesc').textContent = spot.short_description;
+  $('#spotStars').textContent = stars(spot.rating); $('#spotRating').textContent = `${spot.rating} · ${spot.reviews} reviews`;
+  renderOptions($('#spotOptions'), spot, spotSel, s => { spotSel = s; renderSpot(); }, true);
+  const specs = ['origin', 'stone_type', 'pattern', 'grade', 'slab_size', 'water_absorption'];
+  $('#spotSpecs').innerHTML = specs.filter(k => spot.attrs[k]).map(k => `<div class="bg-ink px-4 py-3"><dt class="text-cream/50 text-[11.5px]">${ATTR_LABELS[k]}</dt><dd class="font-semibold mt-0.5">${spot.attrs[k]}</dd></div>`).join('')
+    + `<div class="bg-ink px-4 py-3 col-span-2"><dt class="text-cream/50 text-[11.5px]">Rooms</dt><dd class="font-semibold mt-0.5">${spot.cats.map(catById).filter(c => c.parent_id).map(c => c.name).join(', ')}</dd></div>`;
+  $('#spotPrice').textContent = inr(v.price); $('#spotCompare').textContent = v.compare_at_price ? inr(v.compare_at_price) : '';
+  calc();
+}
+function calc() {
+  const v = pickVariant(spot, spotSel), a = Math.max(0, +$('#spotArea').value || 0), area = Math.ceil(a * 1.08), sub = area * v.price, total = round2(sub * (1 + BUSINESS.gst_percent / 100));
+  $('#calcArea').textContent = area.toLocaleString('en-IN') + ' sq ft'; $('#calcTotal').textContent = inr(total); $('#calcAdvance').textContent = inr(ceil2(total * .2));
+}
+$('#spotArea').addEventListener('input', calc);
+$('#spotAdd').onclick = () => { const v = pickVariant(spot, spotSel), q = Math.ceil((+$('#spotArea').value || 0) * 1.08); bag.add(spot.slug, v.id, q); toast(`Added ${q} sq ft · ${variantTitle(v)}`); };
+renderSpot();
+
+/* NEEDS · BRANDS · REVIEWS · ENQUIRY */
+$('#needs').innerHTML = TAGS.filter(t => t.purpose === 'discovery').map(t => `<a href="shop.html?tag=${encodeURIComponent(t.name)}" class="group bg-white rounded-[20px] border border-ink/5 p-5 hover:border-teal/40 hover:shadow-card transition flex flex-col min-h-[160px]">
+  <span class="w-11 h-11 rounded-xl bg-teal-50 text-teal grid place-items-center group-hover:bg-teal group-hover:text-white transition"><i data-lucide="${t.icon}"></i></span>
+  <h3 class="font-semibold mt-4">${t.label || t.name}</h3><p class="text-[12.5px] text-ink-500 mt-0.5">${t.copy || 'Browse the range'}</p><span class="mt-auto pt-3 text-[12px] text-ink-400">${live.filter(p => p.tags.includes(t.name)).length} stones →</span></a>`).join('');
+$('#brandCards').innerHTML = BRANDS.map(b => `<a href="shop.html?brand=${b.slug}" class="group bg-white rounded-[24px] border border-ink/5 overflow-hidden flex"><img src="${b.image}" alt="" class="w-28 sm:w-32 object-cover">
+  <div class="p-5 flex-1"><div class="flex items-center gap-2"><span class="text-[10.5px] font-bold uppercase tracking-[.12em] px-2 py-0.5 rounded-md ${b.tier === 'signature' ? 'bg-gold/15 text-[#8a6a35]' : 'bg-teal-50 text-teal'}">${b.tier}</span><span class="text-[12px] text-ink-400">${b.country}</span></div>
+  <h3 class="font-display text-[22px] mt-2 leading-tight group-hover:text-teal">${b.name}</h3><p class="text-[13px] text-ink-500 mt-1">${b.description}</p><p class="text-[12px] text-ink-400 mt-2">${live.filter(p => p.brand === b.id).length} stones →</p></div></a>`).join('');
+(function reviews() {
+  const all = live.filter(p => p.reviews), total = all.reduce((s, p) => s + p.reviews, 0), avg = (all.reduce((s, p) => s + p.rating * p.reviews, 0) / total).toFixed(1);
+  $('#avgRating').textContent = avg; $('#avgStars').textContent = stars(avg); $('#reviewTotal').textContent = `${total.toLocaleString('en-IN')} published reviews`;
+  $('#ratingBars').innerHTML = [72, 19, 6, 2, 1].map((d, i) => `<div class="flex items-center gap-2"><span class="w-3 text-ink-500">${5 - i}</span><span class="flex-1 h-1.5 rounded-full bg-cream-200 overflow-hidden"><i class="block h-full bg-gold rounded-full" style="width:${d}%"></i></span><span class="w-8 text-right text-ink-400">${d}%</span></div>`).join('');
+  $('#reviews').innerHTML = REVIEWS.slice(0, 4).map(r => { const p = bySlug(r.product); return `<article class="bg-white rounded-[24px] p-6 border border-ink/5 flex flex-col">
+    <div class="flex items-center justify-between"><span class="text-gold tracking-wider text-[14px]">${stars(r.rating)}</span><span class="text-[11.5px] text-teal flex items-center gap-1"><i data-lucide="badge-check"></i> Verified buyer</span></div>
+    <h3 class="font-semibold mt-3">${r.title}</h3><p class="text-[14px] text-ink-500 mt-1.5 leading-relaxed">${r.body}</p>
+    ${r.response ? `<div class="mt-3 text-[13px] bg-cream rounded-xl px-3.5 py-2.5"><b class="text-[12px]">Maa Sarada replied</b><p class="text-ink-500">${r.response}</p></div>` : ''}
+    <a href="${productUrl(p)}" class="mt-auto pt-4 flex items-center gap-3 border-t border-ink/5"><img src="${p.img}" alt="" class="w-10 h-10 rounded-lg object-cover"><div class="leading-tight text-[12.5px]"><b>${r.customer_name}</b> · ${r.city}<p class="text-ink-400">${p.name} · ${r.application}</p></div></a></article>`; }).join('');
+})();
+$('#eqSpace').innerHTML = topCats().filter(c => children(c.id).length).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+const fillRoom = () => $('#eqRoom').innerHTML = '<option value="">Not sure yet</option>' + children(+$('#eqSpace').value).map(s => `<option>${s.name}</option>`).join('');
+$('#eqSpace').onchange = fillRoom; fillRoom();
+icons();
+</script>
+</body>
+</html>

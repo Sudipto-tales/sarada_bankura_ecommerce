@@ -1,0 +1,269 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Stone — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+<style>.zoom{background-repeat:no-repeat;background-size:200%}</style>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 pt-6">
+
+  <nav id="crumbs" class="text-[13px] text-ink-500 flex items-center gap-1.5 flex-wrap" aria-label="Breadcrumb" data-map="product_category_map.is_primary → parent path"></nav>
+
+  <!-- ========== TOP: gallery + buy box ========== -->
+  <section class="mt-5 grid lg:grid-cols-[minmax(0,1.15fr),minmax(0,1fr)] xl:grid-cols-[minmax(0,1.3fr),minmax(0,1fr)] gap-8 xl:gap-14 items-start">
+    <div class="lg:sticky lg:top-[92px]" data-map="product_media (is_cover, sort, type) — role: cover | gallery | room">
+      <div class="grid grid-cols-[72px,1fr] sm:grid-cols-[84px,1fr] gap-3">
+        <div id="thumbs" class="flex flex-col gap-2.5"></div>
+        <div class="relative">
+          <div id="mainImg" class="zoom relative aspect-[4/5] sm:aspect-square rounded-[24px] overflow-hidden bg-cream-200 bg-cover bg-center cursor-zoom-in" role="img"></div>
+          <div id="imgBadges" class="absolute top-4 left-4 flex flex-col items-start gap-1.5 [&>span]:text-[11px] [&>span]:font-bold [&>span]:uppercase [&>span]:tracking-[.1em] [&>span]:px-2.5 [&>span]:py-1 [&>span]:rounded-md"></div>
+          <button id="saveBtn" class="absolute top-4 right-4 w-11 h-11 rounded-full bg-white/90 backdrop-blur grid place-items-center shadow-card" aria-label="Save"></button>
+          <p class="mt-2.5 text-[12px] text-ink-400 flex items-center gap-1.5"><i data-lucide="info"></i> Natural stone — every lot varies. Ask for photos of the exact slabs we’ll send.</p>
+        </div>
+      </div>
+    </div>
+
+    <div id="buy" class="min-w-0"></div>
+  </section>
+
+  <!-- ========== DETAILS ========== -->
+  <section class="mt-16 grid lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-7 space-y-6">
+      <article class="bg-white rounded-[24px] border border-ink/5 p-7">
+        <p class="eyebrow">About this stone</p>
+        <h2 class="font-display text-[28px] leading-tight mt-1">Why people choose it</h2>
+        <p id="desc" class="text-[15px] text-ink-500 mt-3 leading-relaxed"></p>
+        <div id="rooms" class="mt-5 flex flex-wrap gap-2" data-map="product_category_map → sub-categories"></div>
+        <div id="tagRow" class="mt-3 flex flex-wrap gap-2" data-map="tags (discovery only)"></div>
+      </article>
+
+      <article id="variantTableWrap" class="bg-white rounded-[24px] border border-ink/5 p-7" data-map="product_variants (sku, price, compare_at_price, status) × option_values">
+        <div class="flex items-end justify-between gap-4"><div><p class="eyebrow">All options</p><h2 class="font-display text-[28px] leading-tight mt-1">Sizes, finishes &amp; prices</h2></div><p class="text-[12.5px] text-ink-400 hidden sm:block">Tap a row to select it</p></div>
+        <div class="mt-5 overflow-x-auto"><table id="vTable" class="w-full text-[14px] min-w-[520px]"></table></div>
+      </article>
+
+      <article id="reviewsBox" class="bg-white rounded-[24px] border border-ink/5 p-7" data-map="product_reviews WHERE product_id AND status='published'">
+        <div class="flex flex-wrap items-end justify-between gap-4"><div><p class="eyebrow">Reviews</p><h2 class="font-display text-[28px] leading-tight mt-1">What buyers say</h2></div><a id="writeReview" href="#" class="btn btn-line !h-10 !px-4 text-[13.5px]"><i data-lucide="pen-line"></i> Write a review</a></div>
+        <div id="revSummary" class="mt-5 grid sm:grid-cols-[auto,1fr] gap-6 items-center"></div>
+        <div id="revFilter" class="mt-5 flex flex-wrap gap-2"></div>
+        <div id="revList" class="mt-4 divide-y divide-ink/5"></div>
+      </article>
+    </div>
+
+    <aside class="lg:col-span-5 space-y-6">
+      <article class="bg-white rounded-[24px] border border-ink/5 p-7" data-map="product_attribute_values (+ selected variant values)">
+        <p class="eyebrow">Specifications</p>
+        <dl id="specs" class="mt-4 divide-y divide-ink/5 text-[14px]"></dl>
+      </article>
+      <article class="bg-white rounded-[24px] border border-ink/5 p-7" data-map="product_return_policies (return_allowed, replacement_allowed, days)">
+        <p class="eyebrow">Delivery &amp; returns</p>
+        <ul class="mt-4 space-y-4 text-[14px]">
+          <li class="flex gap-3"><span class="w-9 h-9 rounded-xl bg-teal-50 text-teal grid place-items-center shrink-0"><i data-lucide="truck"></i></span><div><b>Delivery included</b><p class="text-ink-500 text-[13.5px]">Price includes delivery to your site. We call before we dispatch.</p></div></li>
+          <li class="flex gap-3"><span class="w-9 h-9 rounded-xl bg-teal-50 text-teal grid place-items-center shrink-0"><i data-lucide="package-check"></i></span><div><b>Replacement within 7 days</b><p class="text-ink-500 text-[13.5px]">For pieces broken in transit. Report with photos — we approve each request.</p></div></li>
+          <li class="flex gap-3"><span class="w-9 h-9 rounded-xl bg-teal-50 text-teal grid place-items-center shrink-0"><i data-lucide="undo-2"></i></span><div><b>No returns on cut-to-size</b><p class="text-ink-500 text-[13.5px]">Uncut full slabs can be returned within 3 days. <a href="policy.html#returns" class="text-teal font-semibold">Policy</a></p></div></li>
+        </ul>
+      </article>
+      <article class="bg-ink text-cream rounded-[24px] p-7">
+        <p class="text-[12px] uppercase tracking-[.2em] text-cream/60 font-semibold">Care</p>
+        <h2 class="font-display text-[24px] leading-tight mt-1">Keep it looking new</h2>
+        <ul class="mt-4 space-y-2.5 text-[14px] text-cream/80"><li class="flex gap-2"><i data-lucide="check" class="mt-1 text-[#E9B48F] shrink-0"></i>Wipe spills — lemon, vinegar and cola etch marble.</li><li class="flex gap-2"><i data-lucide="check" class="mt-1 text-[#E9B48F] shrink-0"></i>Mop with plain water or a pH-neutral cleaner.</li><li class="flex gap-2"><i data-lucide="check" class="mt-1 text-[#E9B48F] shrink-0"></i>Re-seal every 12–18 months in kitchens.</li></ul>
+      </article>
+    </aside>
+  </section>
+
+  <!-- ========== RELATED ========== -->
+  <section class="mt-20">
+    <div class="flex items-end justify-between gap-6 mb-6"><div><p class="eyebrow">You may also like</p><h2 id="relTitle" class="font-display text-[34px] leading-tight mt-1"></h2></div><a id="relLink" href="shop.html" class="hidden sm:inline-flex items-center gap-1.5 text-[14px] font-semibold hover:text-teal">See all <i data-lucide="arrow-up-right"></i></a></div>
+    <div id="related" class="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-4 2xl:grid-cols-6 gap-3 sm:gap-5" data-map="same primary sub-category, then shared tags"></div>
+  </section>
+</main>
+
+<!-- mobile sticky buy bar -->
+<div id="mbar" class="lg:hidden fixed bottom-[57px] inset-x-0 z-20 bg-white border-t border-ink/10 px-4 py-2.5 flex items-center gap-3"></div>
+
+<script>
+renderChrome({ active: 'shop' });
+const p = bySlug(qs('slug')) || PRODUCTS[0];
+if (p.status !== 'active' && p.status !== 'coming_soon') location.replace('shop.html'); // draft / archived never public
+document.title = `${p.name} — Maa Sarada`;
+let sel = selFromVariant(variantById(p, qs('v')) || defaultVariant(p));
+const cur = () => p.variants.length ? pickVariant(p, sel) : null;
+const isBox = () => unitOf(p, cur()) === 'box';
+let qty = isBox() ? 10 : 100, shot = 1;
+
+/* breadcrumb from primary category */
+const prim = catById(p.primary), par = prim && prim.parent_id ? catById(prim.parent_id) : null;
+$('#crumbs').innerHTML = [['index.html', 'Home'], ['shop.html', 'Shop'], par && [`shop.html?cat=${par.slug}`, par.name], prim && [`shop.html?cat=${prim.slug}`, prim.name]].filter(Boolean)
+  .map(([h, l]) => `<a href="${h}" class="hover:text-ink">${l}</a><i data-lucide="chevron-right" class="!w-3.5 !h-3.5"></i>`).join('') + `<span class="text-ink font-semibold truncate">${esc(p.name)}</span>`;
+
+/* gallery */
+const shots = [p.img, p.room, ...p.gallery];
+function renderGallery() {
+  $('#thumbs').innerHTML = shots.map((s, i) => `<button class="aspect-square rounded-xl overflow-hidden ring-2 ${i === shot ? 'ring-ink' : 'ring-transparent hover:ring-ink/30'}" data-shot="${i}" aria-label="Image ${i + 1}"><img src="${s}" alt="" class="w-full h-full object-cover"></button>`).join('');
+  const m = $('#mainImg'); m.style.backgroundImage = `url("${shots[shot]}")`; m.setAttribute('aria-label', `${p.name} — image ${shot + 1}`);
+  $('#imgBadges').innerHTML = badgeHtml(p);
+  const on = saved.has(p.slug); $('#saveBtn').innerHTML = `<i data-lucide="heart" class="${on ? 'text-copper' : ''}" ${on ? 'fill="currentColor"' : ''}></i>`; icons();
+}
+$('#thumbs').onclick = e => { const b = e.target.closest('[data-shot]'); if (b) { shot = +b.dataset.shot; renderGallery(); } };
+$('#mainImg').onmousemove = e => { const r = e.currentTarget.getBoundingClientRect(); e.currentTarget.style.backgroundSize = '200%'; e.currentTarget.style.backgroundPosition = `${(e.clientX - r.left) / r.width * 100}% ${(e.clientY - r.top) / r.height * 100}%`; };
+$('#mainImg').onmouseleave = e => { e.currentTarget.style.backgroundSize = 'cover'; e.currentTarget.style.backgroundPosition = 'center'; };
+$('#saveBtn').onclick = () => { toast(saved.toggle(p.slug) ? 'Saved' : 'Removed from saved'); renderGallery(); };
+
+/* buy box */
+function buyBox() {
+  const v = cur(), price = priceOf(p, v), cmp = compareOf(p, v), unit = unitOf(p, v), pack = p.pricing.pack_qty;
+  const off = cmp ? Math.round((1 - price / cmp) * 100) : 0, line = round2(price * qty), gst = round2(line * BUSINESS.gst_percent / 100);
+  const head = `<p class="text-[12px] uppercase tracking-[.18em] text-ink-400"><a href="shop.html?brand=${brandOf(p).slug}" class="hover:text-teal">${brandOf(p).name}</a> · <span data-map="products.sku / product_variants.sku">SKU ${v ? v.sku : p.sku}</span></p>
+    <h1 class="font-display text-[40px] sm:text-[48px] leading-[1.04] tracking-tight mt-2">${esc(p.name)}</h1>
+    <div class="mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-[13.5px]">${p.reviews ? `<a href="#reviewsBox" class="flex items-center gap-1.5"><span class="text-gold tracking-wider">${stars(p.rating)}</span><b>${p.rating}</b><span class="text-ink-500 underline-offset-2 hover:underline">${p.reviews} reviews</span></a>` : '<span class="text-ink-400">No reviews yet</span>'}<span class="text-ink-500">${esc(p.attrs.stone_type)} · ${esc(p.attrs.origin)}</span></div>
+    <p class="mt-4 text-ink-500 text-[15.5px] leading-relaxed">${esc(p.short_description)}</p>`;
+
+  // ---- state: coming soon ----
+  if (p.status === 'coming_soon') return head + `
+    <div class="mt-6 rounded-[24px] bg-ink text-cream p-6" data-map="products.status = coming_soon"><p class="text-[12px] uppercase tracking-[.16em] text-cream/60">Coming soon</p>
+      <p class="font-display text-[26px] mt-1">${p.show_price ? `Expected from ${inr(price)} / ${unit}` : 'Price at launch'}</p><p class="text-cream/70 text-[14px] mt-1">The first lot is on its way. Leave your number and we’ll message you the day it lands.</p>
+      <form class="mt-4 flex gap-2" onsubmit="event.preventDefault();toast('We’ll message you on WhatsApp')"><input required inputmode="numeric" placeholder="Mobile number" class="field !bg-cream !text-ink flex-1"><button class="btn btn-copper">Notify me</button></form></div>` + specsTeaser();
+
+  // ---- state: enquiry only / price hidden ----
+  if (p.is_enquiry_only || !p.show_price) return head + `
+    <div id="enquire" class="mt-6 rounded-[24px] bg-white border border-ink/5 p-6" data-map="products.is_enquiry_only / show_price = 0">
+      <p class="text-[12px] uppercase tracking-[.16em] text-ink-400">${p.is_enquiry_only ? 'Enquiry only' : 'Price on request'}</p>
+      <p class="font-display text-[26px] mt-1">${p.is_enquiry_only ? 'Quoted for your project' : 'Ask for today’s rate'}</p>
+      <p class="text-ink-500 text-[14px] mt-1">${p.is_enquiry_only ? 'Rare stone priced per lot and size. Tell us about your space and we’ll call with a quote.' : 'The rate on this stone moves with each shipment. We’ll call you back within a working day.'}</p>
+      <form class="mt-5 grid sm:grid-cols-2 gap-3" onsubmit="event.preventDefault();toast('Thanks — we’ll call you soon')">
+        <label><span class="lbl">Name</span><input required class="field"></label><label><span class="lbl">Mobile</span><input required inputmode="numeric" class="field"></label>
+        <label><span class="lbl">Approx. area (sq ft)</span><input type="number" class="field"></label><label><span class="lbl">Where</span><select class="field">${p.cats.map(catById).filter(c => c.parent_id).map(c => `<option>${c.name}</option>`).join('')}</select></label>
+        <div class="sm:col-span-2 flex flex-wrap gap-2 pt-1"><button class="btn btn-dark">Request a quote</button><a href="https://wa.me/${BUSINESS.whatsapp}?text=${encodeURIComponent('Hi, I’d like a quote for ' + p.name)}" class="btn btn-line"><i data-lucide="message-circle"></i> WhatsApp</a></div>
+      </form></div>` + specsTeaser();
+
+  // ---- state: purchasable (with or without variants) ----
+  const out = p.stock === 'out';
+  return head + `
+    <div class="mt-6 flex flex-wrap items-end gap-x-3 gap-y-1" data-map="${v ? 'product_variants.price / compare_at_price / unit' : 'product_pricing.price / compare_at_price / unit'}">
+      <b class="font-display text-[42px] leading-none font-normal">${inr(price)}</b><span class="text-ink-500 pb-1">/ ${unit}</span>
+      ${cmp ? `<del class="text-ink-300 pb-1">${inr(cmp)}</del><span class="pb-1 text-[13px] font-bold text-copper bg-copper-50 px-2 py-0.5 rounded-md">${off}% off</span>` : ''}
+    </div>
+    <p class="text-[12.5px] text-ink-400 mt-1.5">${pack ? `1 box = ${pack} ${p.pricing.pack_unit} (${inr(price / pack)}/${p.pricing.pack_unit}) · ` : ''}GST ${BUSINESS.gst_percent}% added at checkout · Delivery included</p>
+
+    ${p.variants.length ? `<div id="opts" class="mt-6 space-y-5" data-map="option_groups → option_values used by this product's variants"></div>
+      <p class="mt-3 text-[12.5px] text-ink-500 flex items-center gap-1.5"><i data-lucide="check-circle-2" class="text-teal"></i> Selected: <b class="text-ink">${variantTitle(v)}</b></p>` : ''}
+
+    <div class="mt-6 rounded-[24px] bg-white border border-ink/5 p-5" data-map="bag line: qty in ${unit}${pack ? ' · pack_qty converts sq ft → boxes' : ''}">
+      <div class="flex flex-wrap items-end gap-4 justify-between">
+        <div><span class="lbl">Quantity (${unit})</span>
+          <div class="flex items-center h-12 rounded-full border border-ink/15 bg-cream-50 w-fit">
+            <button id="qMinus" class="w-12 h-12 grid place-items-center" aria-label="Less"><i data-lucide="minus"></i></button>
+            <input id="qty" type="number" min="1" step="${unit === 'box' ? 1 : 10}" value="${qty}" class="w-20 text-center bg-transparent font-semibold outline-none" aria-label="Quantity">
+            <button id="qPlus" class="w-12 h-12 grid place-items-center" aria-label="More"><i data-lucide="plus"></i></button></div></div>
+        <div class="text-right"><p class="text-[12px] text-ink-400">Line total</p><p class="font-display text-[26px] leading-tight">${inr(line)}</p><p class="text-[12px] text-ink-400">+ GST ${inr(gst)} · ${BUSINESS.advance_percent}% advance ${inr(ceil2((line + gst) * .2))}</p></div>
+      </div>
+      <details class="mt-4 group"><summary class="cursor-pointer list-none text-[13.5px] font-semibold text-teal flex items-center gap-1.5"><i data-lucide="ruler"></i> Not sure how much? Work it out from your room</summary>
+        <div class="mt-3 grid grid-cols-3 gap-2 items-end">
+          <label><span class="text-[12px] text-ink-500">Length (ft)</span><input id="cL" type="number" min="0" value="15" class="field !h-10"></label>
+          <label><span class="text-[12px] text-ink-500">Width (ft)</span><input id="cW" type="number" min="0" value="12" class="field !h-10"></label>
+          <button id="cUse" class="btn btn-dark !h-10 !px-3 text-[13px]">Use</button>
+        </div><p id="cOut" class="mt-2 text-[12.5px] text-ink-500"></p></details>
+    </div>
+
+    ${p.stock === 'low' ? `<p class="mt-4 text-[13px] text-copper flex items-center gap-1.5" data-map="inventory_stock.status = low"><i data-lucide="flame"></i> Only a few slabs left in this lot — order soon or ask us to hold them.</p>` : ''}
+    ${out ? `<p class="mt-4 text-[13px] text-ink-500 flex items-center gap-1.5" data-map="inventory_stock.status = out"><i data-lucide="package-x"></i> Out of stock right now. Next lot in 2–3 weeks.</p>` : ''}
+
+    <div class="mt-5 grid sm:grid-cols-2 gap-3">
+      ${out ? `<a href="https://wa.me/${BUSINESS.whatsapp}" class="btn btn-dark sm:col-span-2"><i data-lucide="message-circle"></i> Ask for restock</a>`
+        : `<button id="addBtn" class="btn btn-dark"><i data-lucide="shopping-bag"></i> Add to bag</button><button id="buyNow" class="btn btn-copper">Buy now <i data-lucide="arrow-right"></i></button>`}
+    </div>
+    <div class="mt-5 grid grid-cols-3 gap-2 text-center text-[12px] text-ink-500">
+      <div class="bg-white rounded-xl py-3 border border-ink/5"><i data-lucide="truck" class="mx-auto text-teal"></i><p class="mt-1">Delivery included</p></div>
+      <div class="bg-white rounded-xl py-3 border border-ink/5"><i data-lucide="smartphone" class="mx-auto text-teal"></i><p class="mt-1">${BUSINESS.advance_percent}% UPI advance</p></div>
+      <div class="bg-white rounded-xl py-3 border border-ink/5"><i data-lucide="receipt-text" class="mx-auto text-teal"></i><p class="mt-1">GST invoice</p></div>
+    </div>
+    <a href="https://wa.me/${BUSINESS.whatsapp}?text=${encodeURIComponent('Hi, please send photos of ' + p.name + (v ? ' ' + variantTitle(v) : ''))}" class="mt-4 flex items-center justify-between gap-3 bg-teal-50 rounded-2xl px-4 py-3.5 text-[14px] hover:bg-teal-100"><span class="flex items-center gap-2.5"><i data-lucide="camera" class="text-teal"></i><span><b>See the actual slabs</b><br><span class="text-ink-500 text-[13px]">We’ll WhatsApp you photos of this lot</span></span></span><i data-lucide="arrow-up-right"></i></a>`;
+}
+const specsTeaser = () => `<dl class="mt-6 grid grid-cols-2 gap-px bg-ink/5 rounded-2xl overflow-hidden text-[13.5px]">${['origin', 'finish', 'thickness', 'grade'].filter(k => p.attrs[k]).map(k => `<div class="bg-white px-4 py-3"><dt class="text-ink-400 text-[12px]">${ATTR_LABELS[k]}</dt><dd class="font-semibold">${p.attrs[k]}</dd></div>`).join('')}</dl>`;
+
+function renderBuy() {
+  $('#buy').innerHTML = buyBox();
+  if ($('#opts')) renderOptions($('#opts'), p, sel, s => { sel = s; const v = cur(); history.replaceState(null, '', `product.html?slug=${p.slug}&v=${v.id}`); renderAll(); });
+  const q = $('#qty');
+  if (q) {
+    const set = n => { qty = Math.max(1, Math.round(n)); renderBuy(); renderBar(); };
+    q.onchange = () => set(+q.value || 1);
+    $('#qMinus').onclick = () => set(qty - (isBox() ? 1 : 10)); $('#qPlus').onclick = () => set(qty + (isBox() ? 1 : 10));
+    const calc = () => { const a = (+$('#cL').value || 0) * (+$('#cW').value || 0), w = a * 1.08, need = isBox() ? Math.ceil(w / p.pricing.pack_qty) : Math.ceil(w);
+      $('#cOut').textContent = `${a} sq ft + 8% wastage = ${Math.ceil(w)} sq ft${isBox() ? ` → ${need} boxes` : ''}`; return need; };
+    $('#cL').oninput = $('#cW').oninput = calc; calc(); $('#cUse').onclick = () => set(calc());
+  }
+  const add = () => { const v = cur(); bag.add(p.slug, v ? v.id : 0, qty); toast(`Added ${qty} ${unitOf(p, v)}${v ? ' · ' + variantTitle(v) : ''}`); };
+  if ($('#addBtn')) { $('#addBtn').onclick = add; $('#buyNow').onclick = () => { add(); location.href = 'checkout.html'; }; }
+  icons();
+}
+
+/* variant table */
+function renderVariantTable() {
+  if (!p.variants.length) { $('#variantTableWrap').innerHTML = `<p class="eyebrow">Options</p><h2 class="font-display text-[28px] leading-tight mt-1">One size, one finish</h2><p class="text-ink-500 mt-2 text-[14.5px]">${esc(p.name)} comes as ${[p.attrs.thickness, p.attrs.finish].filter(Boolean).join(', ') || 'a single option'}. ${p.show_price && !p.is_enquiry_only ? `Priced at ${inr(p.pricing.price)} / ${p.pricing.unit}.` : ''}</p>`; return; }
+  const groups = p.options.map(id => OPTION_GROUPS.find(g => g.id === id)), v0 = cur();
+  $('#vTable').innerHTML = `<thead><tr class="text-left text-[12px] uppercase tracking-[.1em] text-ink-400">${groups.map(g => `<th class="py-2 pr-4 font-semibold">${g.name}</th>`).join('')}<th class="py-2 pr-4 font-semibold">SKU</th><th class="py-2 pr-4 font-semibold text-right">Price</th><th class="py-2 font-semibold text-right">Status</th></tr></thead>
+    <tbody>${p.variants.map(v => { const on = v0 && v.id === v0.id, act = v.status === 'active';
+      return `<tr class="border-t border-ink/5 ${act ? 'cursor-pointer hover:bg-cream-50' : 'opacity-50'} ${on ? 'bg-teal-50/60' : ''}" ${act ? `data-pick="${v.id}"` : ''}>
+        ${groups.map(g => `<td class="py-3 pr-4 ${on ? 'font-semibold' : ''}">${optionValue(v.values.find(id => optionValue(id).group.id === g.id))?.value || '—'}</td>`).join('')}
+        <td class="py-3 pr-4 text-ink-400 text-[12.5px] font-mono">${v.sku}</td>
+        <td class="py-3 pr-4 text-right whitespace-nowrap">${p.show_price ? `<b>${inr(v.price)}</b><span class="text-ink-400 text-[12px]">/${unitOf(p, v)}</span>${v.compare_at_price ? `<br><del class="text-[12px] text-ink-300">${inr(v.compare_at_price)}</del>` : ''}` : '—'}</td>
+        <td class="py-3 text-right">${on ? '<span class="text-[11.5px] font-bold text-teal">Selected</span>' : act ? '<span class="text-[11.5px] text-ink-500">Available</span>' : '<span class="text-[11.5px] text-ink-400">Not offered</span>'}</td></tr>`; }).join('')}</tbody>`;
+  $('#vTable').onclick = e => { const r = e.target.closest('[data-pick]'); if (r) { sel = selFromVariant(variantById(p, r.dataset.pick)); history.replaceState(null, '', `product.html?slug=${p.slug}&v=${r.dataset.pick}`); renderAll(); scrollTo({ top: 0, behavior: 'smooth' }); } };
+}
+
+/* specs: attributes, with variant values overriding thickness / finish / size / grade */
+function renderSpecs() {
+  const v = cur(), fromV = {}; (v?.values || []).forEach(id => { const o = optionValue(id); fromV[{ Thickness: 'thickness', Finish: 'finish', Size: 'slab_size', Grade: 'grade' }[o.group.name]] = o.value; });
+  const rows = Object.keys(ATTR_LABELS).map(k => [k, fromV[k] || p.attrs[k]]).filter(([, val]) => val);
+  $('#specs').innerHTML = rows.map(([k, val]) => `<div class="flex justify-between gap-4 py-2.5"><dt class="text-ink-500">${ATTR_LABELS[k]}</dt><dd class="font-semibold text-right">${esc(val)}${fromV[k] ? ' <span class="text-[10.5px] font-bold uppercase tracking-wide text-teal bg-teal-50 rounded px-1.5 py-0.5 ml-1">selected</span>' : ''}</dd></div>`).join('')
+    + `<div class="flex justify-between gap-4 py-2.5"><dt class="text-ink-500">Sold by</dt><dd class="font-semibold">${unitOf(p, v)}${p.pricing.pack_qty ? ` (${p.pricing.pack_qty} ${p.pricing.pack_unit} per box)` : ''}</dd></div>`
+    + `<div class="flex justify-between gap-4 py-2.5"><dt class="text-ink-500">Brand</dt><dd class="font-semibold">${brandOf(p).name} <span class="text-ink-400 font-normal">· ${brandOf(p).country}</span></dd></div>`;
+}
+
+function renderStatic() {
+  $('#desc').textContent = p.description;
+  $('#rooms').innerHTML = '<span class="text-[12px] uppercase tracking-[.14em] text-ink-400 font-semibold w-full">Used for</span>' + p.cats.map(catById).filter(c => c.parent_id).map(c => `<a href="shop.html?cat=${c.slug}" class="flex items-center gap-2 h-10 pl-1 pr-3.5 rounded-full bg-cream hover:bg-cream-300 text-[13.5px] font-medium"><img src="${c.image}" alt="" class="w-8 h-8 rounded-full object-cover">${catById(c.parent_id).name} · ${c.name}</a>`).join('');
+  $('#tagRow').innerHTML = publicTags(p).filter(t => t.purpose === 'discovery').map(t => `<a href="shop.html?tag=${encodeURIComponent(t.name)}" class="flex items-center gap-1.5 h-8 px-3 rounded-full border border-teal/20 text-teal text-[12.5px] font-semibold hover:bg-teal-50">${t.icon ? `<i data-lucide="${t.icon}"></i>` : ''}${t.label || t.name}</a>`).join('');
+  // reviews
+  const rs = REVIEWS.filter(r => r.product === p.slug); $('#writeReview').href = `review.html?slug=${p.slug}`;
+  if (!p.reviews) { $('#revSummary').innerHTML = `<p class="text-ink-500 col-span-2">No reviews yet. Bought this stone? <a href="review.html?slug=${p.slug}" class="text-teal font-semibold">Be the first to review it.</a></p>`; }
+  else {
+    const dist = [74, 18, 5, 2, 1];
+    $('#revSummary').innerHTML = `<div class="text-center sm:text-left"><p class="font-display text-[60px] leading-none">${p.rating}</p><p class="text-gold tracking-wider mt-1">${stars(p.rating)}</p><p class="text-[13px] text-ink-500">${p.reviews} reviews</p></div>
+      <div class="space-y-1.5 text-[12.5px]">${dist.map((d, i) => `<div class="flex items-center gap-2"><span class="w-3 text-ink-500">${5 - i}</span><span class="flex-1 h-1.5 rounded-full bg-cream-200 overflow-hidden"><i class="block h-full bg-gold rounded-full" style="width:${d}%"></i></span><span class="w-8 text-right text-ink-400">${d}%</span></div>`).join('')}</div>`;
+    const apps = [...new Set(rs.map(r => r.application))];
+    let f = '';
+    const list = () => { $('#revList').innerHTML = (rs.filter(r => !f || r.application === f).map(r => `<article class="py-5"><div class="flex items-center justify-between gap-3"><span class="text-gold tracking-wider text-[14px]">${stars(r.rating)}</span><span class="text-[12px] text-ink-400">${r.date}</span></div>
+        <h3 class="font-semibold mt-2">${esc(r.title)}</h3><p class="text-[14.5px] text-ink-500 mt-1 leading-relaxed">${esc(r.body)}</p>
+        <p class="mt-2 text-[12.5px] text-ink-400"><b class="text-ink">${esc(r.customer_name)}</b> · ${esc(r.city)} · ${esc(r.application)} <span class="text-teal ml-1 inline-flex items-center gap-1"><i data-lucide="badge-check"></i>Verified buyer</span></p>
+        ${r.response ? `<div class="mt-3 text-[13.5px] bg-cream rounded-xl px-4 py-3 border-l-2 border-teal"><b class="text-[12px]">Maa Sarada replied</b><p class="text-ink-500">${esc(r.response)}</p></div>` : ''}</article>`).join('')) || '<p class="py-5 text-ink-500">Only rating-only reviews so far.</p>'; icons(); };
+    $('#revFilter').innerHTML = apps.length > 1 ? ['', ...apps].map(a => `<button class="chip h-8 px-3 rounded-full border border-ink/15 text-[12.5px] font-semibold" data-app="${esc(a)}" aria-pressed="${a === f}">${a || 'All'}</button>`).join('') : '';
+    $('#revFilter').onclick = e => { const b = e.target.closest('[data-app]'); if (!b) return; f = b.dataset.app; $$('#revFilter [data-app]').forEach(x => x.setAttribute('aria-pressed', x.dataset.app === f)); list(); };
+    list();
+  }
+  // related: same primary sub-category, then shared tags
+  const rel = live.filter(x => x.id !== p.id).map(x => ({ x, s: (x.cats.includes(p.primary) ? 3 : 0) + x.tags.filter(t => p.tags.includes(t)).length })).sort((a, b) => b.s - a.s).slice(0, 6).map(r => r.x);
+  $('#relTitle').textContent = `More for ${prim ? prim.name.toLowerCase() : 'your space'}`; $('#relLink').href = prim ? `shop.html?cat=${prim.slug}` : 'shop.html';
+  $('#related').innerHTML = rel.map(card).join('');
+}
+
+function renderBar() {
+  const v = cur(), ok = purchasable(p) && p.stock !== 'out';
+  $('#mbar').innerHTML = ok ? `<div class="leading-tight flex-1 min-w-0"><b class="text-[17px]">${inr(round2(priceOf(p, v) * qty))}</b><p class="text-[11.5px] text-ink-500 truncate">${qty} ${unitOf(p, v)}${v ? ' · ' + variantTitle(v) : ''}</p></div><button class="btn btn-dark !h-11" onclick="$('#addBtn').click()"><i data-lucide="shopping-bag"></i> Add</button>`
+    : `<a href="#buy" class="btn btn-dark !h-11 w-full">${p.status === 'coming_soon' ? 'Notify me' : p.stock === 'out' ? 'Ask for restock' : 'Request a quote'}</a>`;
+  icons();
+}
+function renderAll() { renderGallery(); renderBuy(); renderVariantTable(); renderSpecs(); renderBar(); icons(); }
+renderStatic(); renderAll();
+</script>
+</body>
+</html>

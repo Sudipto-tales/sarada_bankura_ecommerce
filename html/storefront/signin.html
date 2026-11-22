@@ -1,0 +1,47 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sign In — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 pt-8">
+  <div class="grid lg:grid-cols-2 rounded-[28px] overflow-hidden bg-white border border-ink/5 min-h-[640px]">
+    <div class="relative hidden lg:block"><img src="https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?w=1400&q=75&auto=format&fit=crop" alt="" class="absolute inset-0 w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-ink/85 to-ink/10"></div>
+      <div class="absolute left-10 right-10 bottom-10 text-cream"><h2 class="font-display text-[38px] leading-tight">Your orders, addresses and saved stones — in one place.</h2><ul class="mt-5 space-y-2 text-cream/80 text-[14.5px]"><li class="flex gap-2"><i data-lucide="check" class="mt-1"></i> Track every order and pay balances</li><li class="flex gap-2"><i data-lucide="check" class="mt-1"></i> Check out faster with saved addresses</li><li class="flex gap-2"><i data-lucide="check" class="mt-1"></i> Shop with us in person? Same number links your showroom orders.</li></ul></div></div>
+    <div class="p-7 sm:p-12 flex flex-col justify-center" data-map="users (phone unique, email, password, status, phone_verified_at) ↔ customers (link by phone)">
+      <div role="tablist" class="flex gap-1 p-1 rounded-full bg-cream w-fit"><button role="tab" data-t="in" class="tab px-5 h-10 rounded-full text-[14px] font-semibold" aria-selected="true">Sign in</button><button role="tab" data-t="up" class="tab px-5 h-10 rounded-full text-[14px] font-semibold" aria-selected="false">Create account</button></div>
+      <form id="in" class="mt-8 space-y-4 max-w-md" onsubmit="event.preventDefault();location.href=qs('next')||'account.html'">
+        <h1 class="font-display text-[36px] leading-tight">Welcome back</h1>
+        <label class="block"><span class="lbl">Mobile number or email</span><input required class="field" autocomplete="username"></label>
+        <label class="block"><span class="lbl flex justify-between">Password <a href="#forgot" class="text-teal font-semibold" onclick="$('#forgot').classList.toggle('hidden')">Forgot?</a></span><input required type="password" class="field" autocomplete="current-password"></label>
+        <div id="forgot" class="hidden rounded-2xl bg-cream p-4 text-[13.5px]"><p>We’ll email a 6-digit code to reset your password. No email on your account? <a href="https://wa.me/910000000000" class="text-teal font-semibold">Message us</a> and we’ll reset it.</p><div class="mt-3 flex gap-2"><input class="field !h-10" placeholder="Email"><button type="button" class="btn btn-dark !h-10 !px-4" onclick="toast('Code sent')">Send code</button></div></div>
+        <button class="btn btn-dark w-full">Sign in</button>
+      </form>
+      <form id="up" class="hidden mt-8 space-y-4 max-w-md" onsubmit="event.preventDefault();location.href='account.html'">
+        <h1 class="font-display text-[36px] leading-tight">Create your account</h1>
+        <label class="block"><span class="lbl">Full name</span><input required class="field" autocomplete="name"></label>
+        <label class="block"><span class="lbl">Mobile number</span><input required inputmode="numeric" maxlength="10" class="field" autocomplete="tel-national"><span class="text-[12px] text-ink-400 mt-1 block">Already bought from our showroom? Use the same number and we’ll link your orders.</span></label>
+        <label class="block"><span class="lbl">Email <span class="text-ink-400 font-normal">(optional)</span></span><input type="email" class="field" autocomplete="email"></label>
+        <label class="block"><span class="lbl">Password</span><input required type="password" minlength="8" class="field" autocomplete="new-password"></label>
+        <label class="flex items-start gap-2.5 text-[13.5px]"><input type="checkbox" class="mt-0.5 w-4 h-4 accent-[#1E6E74]"> Send me new arrivals and offers on WhatsApp</label>
+        <button class="btn btn-dark w-full">Create account</button>
+      </form>
+    </div>
+  </div>
+</main>
+<script>
+renderChrome({ active: 'account' });
+$$('[data-t]').forEach(b => b.onclick = () => { $$('[data-t]').forEach(x => x.setAttribute('aria-selected', x === b)); $('#in').classList.toggle('hidden', b.dataset.t !== 'in'); $('#up').classList.toggle('hidden', b.dataset.t !== 'up'); });
+if (location.hash === '#up') $('[data-t=up]').click();
+icons();
+</script>
+</body>
+</html>

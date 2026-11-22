@@ -1,0 +1,56 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Your Account — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 pt-8">
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div><p class="eyebrow">Your account</p><h1 class="font-display text-[40px] sm:text-[46px] leading-tight tracking-tight mt-1">Namaskar, Ritika</h1><p class="text-ink-500 text-[14px]">+91 98300 00000 <span class="text-teal font-semibold ml-1 inline-flex items-center gap-1"><i data-lucide="badge-check"></i>verified</span> · ritika@example.com</p></div>
+    <a href="signin.html" class="btn btn-line !h-11"><i data-lucide="log-out"></i> Sign out</a>
+  </div>
+  <div class="mt-8 grid lg:grid-cols-[240px,1fr] gap-6 items-start">
+    <nav class="bg-white rounded-[24px] border border-ink/5 p-2 flex lg:flex-col gap-1 overflow-x-auto no-scrollbar lg:sticky lg:top-[92px]" aria-label="Account">
+
+    </nav>
+    <div id="panel"></div>
+  </div>
+</main>
+<script>
+renderChrome({ active: 'account' });
+const TABS = [['orders', 'package', 'Orders'], ['addresses', 'map-pin', 'Addresses'], ['profile', 'user-round', 'Profile'], ['saved', 'heart', 'Saved']];
+$('nav[aria-label=Account]').innerHTML = TABS.map(([k, i, l]) => `<a href="${k === 'saved' ? 'saved.html' : '#' + k}" data-tab="${k}" class="shrink-0 flex items-center gap-2.5 px-4 h-11 rounded-2xl text-[14px] font-semibold hover:bg-cream"><i data-lucide="${i}"></i>${l}</a>`).join('');
+const ORDERS = [ // orders for this customer (online + showroom, linked by phone)
+  { no: 'MSM-2026-0142', date: '22 Nov 2026', state: 'dispatched', total: 389270, due: 311416, items: 'Statuario White, Black Galaxy Granite', ch: 'Website', img: bySlug('statuario-white').img },
+  { no: 'MSM-2026-0097', date: '3 Oct 2026', state: 'delivered', total: 52864, due: 0, items: 'Makrana White · Premium', ch: 'Showroom', img: bySlug('makrana-white').img },
+  { no: 'MSM-2026-0031', date: '14 Jul 2026', state: 'rejected', total: 18400, due: 0, items: 'Rajnagar Pink', ch: 'Website', img: bySlug('rajnagar-pink').img }
+];
+const tone = { pending: ['Payment under review', 'bg-gold/15 text-[#8a6a35]'], accepted: ['Confirmed', 'bg-teal-50 text-teal'], processing: ['Preparing', 'bg-teal-50 text-teal'], packed: ['Packed', 'bg-teal-50 text-teal'], dispatched: ['On the way', 'bg-teal text-white'], delivered: ['Delivered', 'bg-cream-200 text-ink'], rejected: ['Not accepted', 'bg-copper-50 text-copper'] };
+const ADDR = [{ label: 'Home', default: 1, ...DEMO_ORDER.address }, { label: 'Site — new house', name: 'Ritika Sharma', phone: '+91 98300 00000', line1: 'Plot 22, Sarada Pally', line2: 'Behind Water Tank', area: 'Bishnupur H.O.', district: 'Bankura', state: 'West Bengal', pincode: '722122' }];
+const panels = {
+  orders: () => `<section class="space-y-3" data-map="orders WHERE customer_id (channel online | offline)">${ORDERS.map(o => `<article class="bg-white rounded-[24px] border border-ink/5 p-5 grid sm:grid-cols-[64px,1fr,auto] gap-4 items-center">
+      <img src="${o.img}" alt="" class="w-16 h-16 rounded-xl object-cover"><div><div class="flex flex-wrap items-center gap-2"><b class="font-display text-[20px] font-normal">${o.no}</b><span class="text-[11.5px] font-bold uppercase tracking-wide px-2 py-0.5 rounded-md ${tone[o.state][1]}">${tone[o.state][0]}</span><span class="text-[11.5px] text-ink-400 border border-ink/10 rounded-md px-1.5">${o.ch}</span></div>
+      <p class="text-[13.5px] text-ink-500 mt-0.5">${o.date} · ${o.items}</p><p class="text-[13.5px] mt-0.5"><b>${inr(o.total)}</b>${o.due ? ` · <span class="text-copper font-semibold">${inr(o.due)} due</span>` : ''}</p></div>
+      <div class="flex gap-2">${o.due ? '<a href="pay.html?token=k7Qe2xVn" class="btn btn-copper !h-10 !px-4 text-[13.5px]">Pay</a>' : ''}<a href="order.html?token=k7Qe2xVn&state=${o.state}" class="btn btn-line !h-10 !px-4 text-[13.5px]">View</a></div></article>`).join('')}</section>`,
+  addresses: () => `<section class="grid md:grid-cols-2 gap-4" data-map="customer_addresses (type, is_default, area/post_office)">${ADDR.map(a => `<article class="bg-white rounded-[24px] border border-ink/5 p-6"><div class="flex items-center justify-between"><b>${a.label}</b>${a.default ? '<span class="text-[11px] font-bold uppercase tracking-wide bg-teal-50 text-teal px-2 py-0.5 rounded-md">Default</span>' : '<button class="text-[12.5px] font-semibold text-teal">Make default</button>'}</div>
+      <address class="not-italic text-[14px] text-ink-500 mt-3 leading-relaxed">${a.name}<br>${a.line1}, ${a.line2}<br>${a.area}, ${a.district}<br>${a.state} ${a.pincode}<br>${a.phone}</address><div class="mt-4 flex gap-4 text-[13px] font-semibold"><button class="hover:text-teal">Edit</button><button class="text-ink-400 hover:text-copper">Remove</button></div></article>`).join('')}
+      <button class="rounded-[24px] border-2 border-dashed border-ink/15 hover:border-teal p-6 grid place-items-center text-ink-500 hover:text-teal min-h-[200px]"><span class="text-center"><i data-lucide="plus" class="mx-auto !w-6 !h-6"></i><b class="block mt-2">Add an address</b><span class="text-[12.5px]">Pincode fills state and district</span></span></button></section>`,
+  profile: () => `<section class="bg-white rounded-[24px] border border-ink/5 p-6 sm:p-8 max-w-2xl" data-map="users + customers (name, phone, email, marketing_consent)"><h2 class="font-display text-[26px]">Profile</h2>
+      <form class="mt-5 grid sm:grid-cols-2 gap-4" onsubmit="event.preventDefault();toast('Saved')"><label class="block sm:col-span-2"><span class="lbl">Full name</span><input class="field" value="Ritika Sharma"></label>
+      <label class="block"><span class="lbl">Mobile</span><input class="field" value="+91 98300 00000" disabled><span class="text-[12px] text-ink-400">To change your number, contact us.</span></label><label class="block"><span class="lbl">Email</span><input class="field" value="ritika@example.com"></label>
+      <label class="sm:col-span-2 flex items-start gap-2.5 text-[14px]"><input type="checkbox" checked class="mt-0.5 w-4 h-4 accent-[#1E6E74]"> Send me new arrivals and offers on WhatsApp</label>
+      <div class="sm:col-span-2 flex gap-2"><button class="btn btn-dark">Save changes</button><button type="button" class="btn btn-line" onclick="toast('We’ve emailed you a code')">Change password</button></div></form></section>`
+};
+function show() { const k = (location.hash.slice(1) || 'orders'); $('#panel').innerHTML = (panels[k] || panels.orders)(); $$('[data-tab]').forEach(a => { const on = a.dataset.tab === k; a.classList.toggle('bg-ink', on); a.classList.toggle('text-cream', on); a.classList.toggle('hover:bg-cream', !on); }); icons(); }
+addEventListener('hashchange', show); show();
+</script>
+</body>
+</html>

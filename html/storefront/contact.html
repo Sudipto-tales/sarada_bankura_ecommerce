@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contact <title>Track Your Order — Maa Sarada</title> Visit — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 pt-8">
+  <div class="grid lg:grid-cols-2 gap-6">
+    <section class="relative rounded-[28px] overflow-hidden bg-ink text-cream min-h-[460px]"><img src="https://images.unsplash.com/photo-1497366216548-37526070297c?w=1400&q=75&auto=format&fit=crop" alt="Showroom" class="absolute inset-0 w-full h-full object-cover opacity-60"><div class="absolute inset-0 bg-gradient-to-t from-ink via-ink/40 to-transparent"></div>
+      <div class="relative p-8 sm:p-10 h-full flex flex-col justify-end"><p class="text-[12px] uppercase tracking-[.2em] text-cream/70 font-semibold">Visit us</p><h1 class="font-display text-[44px] leading-tight mt-1">See the slab before you buy it</h1>
+        <dl id="info" class="mt-6 grid sm:grid-cols-2 gap-4 text-[14px]"></dl>
+        <div class="mt-6 flex flex-wrap gap-2"><a href="https://maps.google.com/?q=Bankura" class="btn bg-cream text-ink"><i data-lucide="navigation"></i> Directions</a><a href="https://wa.me/910000000000" class="btn border border-cream/30 hover:bg-cream/10"><i data-lucide="message-circle"></i> WhatsApp</a></div></div></section>
+    <form class="bg-white rounded-[28px] border border-ink/5 p-7 sm:p-10" onsubmit="event.preventDefault();toast('Thanks — we’ll call you within a working day')" data-map="enquiry → customers (phone) · category / sub-category · optional product">
+      <h2 class="font-display text-[30px] leading-tight">Tell us about your project</h2><p class="text-ink-500 text-[14px] mt-1">We’ll call you back with options and a price.</p>
+      <div class="grid sm:grid-cols-2 gap-4 mt-6">
+        <label class="block"><span class="lbl">Your name</span><input required class="field"></label><label class="block"><span class="lbl">Mobile</span><input required inputmode="numeric" class="field"></label>
+        <label class="block"><span class="lbl">Space</span><select id="sp" class="field"></select></label><label class="block"><span class="lbl">Room</span><select id="rm" class="field"></select></label>
+        <label class="block"><span class="lbl">Approx. area (sq ft)</span><input type="number" class="field"></label><label class="block"><span class="lbl">Book a visit <span class="text-ink-400 font-normal">(optional)</span></span><input type="date" class="field"></label>
+        <label class="block sm:col-span-2"><span class="lbl">Message</span><textarea rows="3" class="field" placeholder="Stone you liked, finish, budget, timeline…"></textarea></label>
+      </div><button class="btn btn-dark mt-6">Send enquiry</button></form>
+  </div>
+  <section class="mt-16 grid lg:grid-cols-12 gap-6"><div class="lg:col-span-4"><p class="eyebrow">Questions</p><h2 class="font-display text-[34px] leading-tight mt-1">Before you order</h2></div>
+    <div id="faq" class="lg:col-span-8 space-y-3"></div></section>
+</main>
+<script>
+renderChrome();
+$('#info').innerHTML = [['map-pin', 'Address', BUSINESS.address], ['clock', 'Open', BUSINESS.hours], ['phone', 'Call', BUSINESS.phone], ['receipt-text', 'GSTIN', BUSINESS.gstin]].map(([i, l, v]) => `<div class="flex gap-3"><i data-lucide="${i}" class="mt-0.5 text-[#E9B48F]"></i><div><dt class="text-cream/60 text-[12px]">${l}</dt><dd class="font-semibold">${v}</dd></div></div>`).join('');
+$('#sp').innerHTML = topCats().filter(c => children(c.id).length).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+const fill = () => $('#rm').innerHTML = '<option>Not sure yet</option>' + children(+$('#sp').value).map(s => `<option>${s.name}</option>`).join(''); $('#sp').onchange = fill; fill();
+$('#faq').innerHTML = [['Is delivery really included?', 'Yes. Every price on the site includes delivery to your site. There is no delivery charge at checkout.'], ['How do I pay?', `By UPI — ${BUSINESS.advance_percent}% advance or the full amount at checkout. Bank transfer is available for large amounts. We check every payment by hand and confirm on WhatsApp.`], ['Can I cancel my order?', 'You can’t cancel once we’ve confirmed the order, because we start cutting stone to your size. Before that, message us and we’ll help.'], ['What if a piece arrives broken?', 'Report it with photos within 7 days of delivery. We review it and send a replacement.'], ['Is GST included?', `Prices are before GST. ${BUSINESS.gst_percent}% GST is added at checkout and shown on your invoice.`]]
+  .map(([q, a]) => `<details class="bg-white rounded-2xl border border-ink/5 px-5 py-4 group"><summary class="flex items-center justify-between font-semibold cursor-pointer list-none">${q}<i data-lucide="plus" class="group-open:rotate-45 transition"></i></summary><p class="text-ink-500 mt-2 text-[14.5px]">${a}</p></details>`).join('');
+icons();
+</script>
+</body>
+</html>

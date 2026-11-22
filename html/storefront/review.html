@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Write a Review — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[900px] mx-auto px-4 sm:px-6 pt-8">
+  <a id="back" href="#" class="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-ink-500 hover:text-ink"><i data-lucide="arrow-left"></i> Back to stone</a>
+  <div id="prod" class="mt-4 flex items-center gap-4"></div>
+  <form id="f" class="mt-6 bg-white rounded-[28px] border border-ink/5 p-6 sm:p-9 space-y-5" novalidate data-map="product_reviews (rating, title, body, customer_name, customer_email, city, application, source=storefront, status=pending) + photo via media_links">
+    <fieldset><legend class="lbl">Your rating <span class="text-copper">*</span></legend><div id="stars" class="flex gap-1" role="radiogroup"></div><p id="rLabel" class="text-[13px] text-ink-500 mt-1">Tap a star</p></fieldset>
+    <label class="block"><span class="lbl">Headline <span class="text-copper">*</span></span><input id="title" class="field" maxlength="80" placeholder="Sum it up in a few words"></label>
+    <label class="block"><span class="lbl">Your review <span class="text-copper">*</span></span><textarea id="body" rows="5" maxlength="1000" class="field" placeholder="How does it look and feel? How was delivery and fitting?"></textarea></label>
+    <div class="grid sm:grid-cols-2 gap-4">
+      <label class="block"><span class="lbl">Where did you use it?</span><select class="field" id="app"></select></label>
+      <label class="block"><span class="lbl">Town / city</span><input class="field" placeholder="Bankura"></label>
+      <label class="block"><span class="lbl">Your name <span class="text-copper">*</span></span><input id="nm" class="field" autocomplete="name"></label>
+      <label class="block"><span class="lbl">Mobile or email <span class="text-ink-400 font-normal">(not shown)</span></span><input class="field"><span class="text-[12px] text-ink-400">Lets us mark you as a verified buyer.</span></label>
+    </div>
+    <label class="block"><span class="lbl">Photos of your space <span class="text-ink-400 font-normal">(optional)</span></span><span class="field !h-24 !flex items-center justify-center gap-2 text-ink-500 cursor-pointer border-dashed"><i data-lucide="image-plus"></i> Add up to 3 photos<input type="file" accept="image/*" class="sr-only"></span></label>
+    <p id="err" class="hidden text-[13.5px] text-copper"></p>
+    <button class="btn btn-dark w-full">Submit review</button>
+    <p class="text-[12px] text-ink-400 text-center">Reviews appear after a quick check, usually within a day.</p>
+  </form>
+</main>
+<script>
+renderChrome();
+const p = bySlug(qs('slug')) || PRODUCTS[0]; let rating = 0;
+$('#back').href = productUrl(p);
+$('#prod').innerHTML = `<img src="${p.img}" alt="" class="w-20 h-20 rounded-2xl object-cover"><div><p class="eyebrow">Review</p><h1 class="font-display text-[34px] leading-tight">${esc(p.name)}</h1></div>`;
+$('#app').innerHTML = ['Flooring', 'Wall cladding', 'Kitchen countertop', 'Vanity top', 'Staircase', 'Outdoor paving', 'Temple & murti', 'Table top'].map(a => `<option>${a}</option>`).join(''); // attribute_values for 'application'
+const words = ['', 'Poor', 'Fair', 'Good', 'Very good', 'Excellent'];
+function drawStars() { $('#stars').innerHTML = [1, 2, 3, 4, 5].map(i => `<button type="button" role="radio" aria-checked="${i === rating}" aria-label="${i} star" data-s="${i}" class="text-[40px] leading-none ${i <= rating ? 'text-gold' : 'text-ink/15 hover:text-gold/60'}">★</button>`).join(''); $('#rLabel').textContent = rating ? words[rating] : 'Tap a star'; }
+$('#stars').onclick = e => { const b = e.target.closest('[data-s]'); if (b) { rating = +b.dataset.s; drawStars(); } };
+$('#f').onsubmit = e => { e.preventDefault(); const m = !rating ? 'Choose a star rating.' : !$('#title').value.trim() ? 'Add a headline.' : $('#body').value.trim().length < 20 ? 'Write a few more words (20+).' : !$('#nm').value.trim() ? 'Add your name.' : '';
+  if (m) { $('#err').textContent = m; $('#err').classList.remove('hidden'); return; }
+  $('#f').outerHTML = `<div class="mt-6 bg-white rounded-[28px] border border-ink/5 p-10 text-center"><span class="w-14 h-14 mx-auto rounded-full bg-teal text-white grid place-items-center"><i data-lucide="check" class="!w-7 !h-7"></i></span><h2 class="font-display text-[30px] mt-4">Thank you!</h2><p class="text-ink-500 mt-1">Your review will appear on the page once we’ve checked it.</p><a href="${productUrl(p)}" class="btn btn-dark mt-6">Back to ${esc(p.name)}</a></div>`; icons(); };
+drawStars(); icons();
+</script>
+</body>
+</html>
