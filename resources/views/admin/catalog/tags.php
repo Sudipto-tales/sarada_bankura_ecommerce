@@ -22,8 +22,6 @@ include __DIR__ . '/../partials/header.php';
   </div>
 </div>
 <?php include __DIR__ . '/../partials/catalog-tabs.php'; ?>
-<?php if ($success): ?><div class="notice ok">✓ <?= e($success) ?></div><?php endif; ?>
-<?php if ($error): ?><div class="notice bad"><?= e($error) ?></div><?php endif; ?>
 
 <div class="statstrip">
   <div class="stat glass"><span class="metric-icon"><i data-lucide="tag"></i></span><div><small>Active tags</small><b><?= $stats['active'] ?></b><em><?= count($rows) ?> governed labels</em></div></div>

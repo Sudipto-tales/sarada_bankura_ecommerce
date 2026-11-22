@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Checkout — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>.plan:has(input:checked){border-color:#15211F;box-shadow:0 0 0 1px #15211F;background:#fff}</style>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-10 pt-8">
+  <a href="cart.html" class="inline-flex items-center gap-1.5 text-[13.5px] font-semibold text-ink-500 hover:text-ink"><i data-lucide="arrow-left"></i> Back to bag</a>
+  <div class="mt-3 flex flex-wrap items-end justify-between gap-4">
+    <h1 class="font-display text-[40px] sm:text-[46px] leading-tight tracking-tight">Checkout</h1>
+    <ol class="flex items-center gap-2 text-[13px] text-ink-500" aria-label="Checkout steps">
+      <li class="flex items-center gap-2"><span class="w-6 h-6 rounded-full bg-teal text-white grid place-items-center"><i data-lucide="check" class="!w-3.5 !h-3.5"></i></span>Bag</li><li class="w-8 h-px bg-ink/20"></li>
+      <li class="flex items-center gap-2 text-ink font-semibold"><span class="w-6 h-6 rounded-full bg-ink text-cream grid place-items-center text-[12px]">2</span>Details</li><li class="w-8 h-px bg-ink/20"></li>
+      <li class="flex items-center gap-2"><span class="w-6 h-6 rounded-full border border-ink/25 grid place-items-center text-[12px]">3</span>Pay by UPI</li>
+    </ol>
+  </div>
+
+  <form id="co" class="mt-8 grid lg:grid-cols-[minmax(0,1fr),440px] gap-8 items-start" novalidate>
+    <div class="space-y-5">
+
+      <!-- 1 CONTACT -->
+      <section class="bg-white rounded-[24px] border border-ink/5 p-6 sm:p-8" data-map="customers (phone = identity, unique) · users if account created">
+        <div class="flex items-center justify-between gap-4"><h2 class="font-display text-[24px] flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-ink text-cream text-[14px] font-sans font-semibold grid place-items-center">1</span>Your details</h2>
+          <a href="signin.html?next=checkout.html" class="text-[13.5px] font-semibold text-teal">Have an account? Sign in</a></div>
+        <div class="mt-6 grid sm:grid-cols-2 gap-4">
+          <label class="block"><span class="lbl">Mobile number <span class="text-copper">*</span></span>
+            <div class="flex"><span class="h-11 px-3 grid place-items-center rounded-l-xl border border-r-0 border-ink/10 bg-cream text-[14px] text-ink-500">+91</span><input id="phone" required inputmode="numeric" maxlength="10" placeholder="10-digit mobile" class="field !rounded-l-none" autocomplete="tel-national"></div>
+            <span class="text-[12px] text-ink-400 mt-1 block">We use this to find your past orders and to call before delivery.</span></label>
+          <label class="block"><span class="lbl">Full name <span class="text-copper">*</span></span><input id="name" required class="field" autocomplete="name"></label>
+          <label class="block sm:col-span-2"><span class="lbl">Email <span class="text-ink-400 font-normal">(optional — for your invoice)</span></span><input type="email" class="field" autocomplete="email"></label>
+        </div>
+        <label class="mt-4 flex items-start gap-2.5 text-[14px] cursor-pointer"><input type="checkbox" class="mt-0.5 w-4 h-4 accent-[#1E6E74]" id="mkAcct"><span>Create an account with this number <span class="text-ink-400">— track orders and reorder faster</span></span></label>
+        <div id="pwRow" class="hidden mt-3 max-w-sm"><label class="block"><span class="lbl">Choose a password</span><input type="password" class="field" autocomplete="new-password" minlength="8"></label></div>
+      </section>
+
+      <!-- 2 ADDRESS -->
+      <section class="bg-white rounded-[24px] border border-ink/5 p-6 sm:p-8" data-map="customer_addresses (type, pincode, state, district→city, area/post_office) · pincodes cache">
+        <h2 class="font-display text-[24px] flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-ink text-cream text-[14px] font-sans font-semibold grid place-items-center">2</span>Delivery address</h2>
+        <div class="mt-6 grid sm:grid-cols-6 gap-4">
+          <label class="block sm:col-span-2"><span class="lbl">Pincode <span class="text-copper">*</span></span><div class="relative"><input id="pin" required inputmode="numeric" maxlength="6" placeholder="6 digits" class="field pr-9" autocomplete="postal-code"><span id="pinSpin" class="hidden absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-teal border-t-transparent rounded-full animate-spin"></span></div>
+            <span id="pinMsg" class="text-[12px] text-ink-400 mt-1 block">Try 722101, 722102, 713201 or 700001</span></label>
+          <label class="block sm:col-span-2"><span class="lbl">State <span class="text-copper">*</span></span><input id="state" required class="field" autocomplete="address-level1"></label>
+          <label class="block sm:col-span-2"><span class="lbl">District / city <span class="text-copper">*</span></span><input id="district" required class="field" autocomplete="address-level2"></label>
+          <label class="block sm:col-span-3"><span class="lbl">Area / post office</span><select id="area" class="field"><option value="">Enter pincode first</option></select></label>
+          <label class="block sm:col-span-3"><span class="lbl">Landmark <span class="text-ink-400 font-normal">(optional)</span></span><input class="field" placeholder="Near temple, school…"></label>
+          <label class="block sm:col-span-6"><span class="lbl">House / building, street <span class="text-copper">*</span></span><input id="line1" required class="field" autocomplete="address-line1"></label>
+          <label class="block sm:col-span-6"><span class="lbl">Road, village or locality</span><input class="field" autocomplete="address-line2"></label>
+        </div>
+        <div class="mt-4 grid sm:grid-cols-2 gap-3 text-[14px]">
+          <label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" checked class="w-4 h-4 accent-[#1E6E74]" id="sameBill"> Billing address is the same</label>
+          <label class="flex items-center gap-2.5 cursor-pointer"><input type="checkbox" checked class="w-4 h-4 accent-[#1E6E74]"> Save this address for next time</label>
+        </div>
+        <div id="billBox" class="hidden mt-4 p-4 rounded-2xl bg-cream-50 border border-ink/5 grid sm:grid-cols-2 gap-4"><label class="block sm:col-span-2"><span class="lbl">Billing name</span><input class="field"></label><label class="block sm:col-span-2"><span class="lbl">Billing address</span><textarea rows="2" class="field"></textarea></label></div>
+        <label class="block mt-5"><span class="lbl">Note for us <span class="text-ink-400 font-normal">(optional)</span></span><textarea rows="2" class="field" placeholder="Best time to deliver, floor number, lift access, unloading help…"></textarea></label>
+        <p class="mt-3 text-[12.5px] text-ink-500 flex items-center gap-1.5"><i data-lucide="truck" class="text-teal"></i> Delivery is included in the price. We’ll call to fix a date once your order is confirmed.</p>
+      </section>
+
+      <!-- 3 PAYMENT -->
+      <section class="bg-white rounded-[24px] border border-ink/5 p-6 sm:p-8" data-map="checkout plan: advance (20%, rounded up) | full → payment_attempts.amount">
+        <h2 class="font-display text-[24px] flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-ink text-cream text-[14px] font-sans font-semibold grid place-items-center">3</span>How much to pay now</h2>
+        <div id="plans" class="mt-6 grid sm:grid-cols-2 gap-3"></div>
+        <div class="mt-5 flex items-center gap-3 rounded-2xl bg-cream p-4 text-[13.5px]"><span class="w-10 h-10 rounded-xl bg-white grid place-items-center text-teal shrink-0"><i data-lucide="scan-qr-code"></i></span><p><b>UPI only</b> — GPay, PhonePe, Paytm or any UPI app. Bank transfer is available in the next step for large amounts. We confirm every payment by hand.</p></div>
+        <label class="mt-5 flex items-start gap-2.5 text-[14px] cursor-pointer"><input id="terms" type="checkbox" class="mt-0.5 w-4 h-4 accent-[#1E6E74]"><span>I agree to the <a href="policy.html#terms" class="text-teal font-semibold">terms</a> and <a href="policy.html#returns" class="text-teal font-semibold">returns policy</a>. I understand an order can’t be cancelled once it’s confirmed.</span></label>
+        <p id="err" class="hidden mt-4 text-[13.5px] text-copper bg-copper-50 rounded-xl px-4 py-3"></p>
+        <button id="placeBtn" class="btn btn-copper w-full mt-5 !h-14 text-[16px]"></button>
+        <p class="mt-3 text-[12.5px] text-ink-400 text-center">A 6-minute payment window opens. Your order is created when you submit your payment details.</p>
+      </section>
+    </div>
+
+    <!-- SUMMARY -->
+    <aside class="lg:sticky lg:top-6 bg-white rounded-[28px] border border-ink/5 p-6 sm:p-7" data-map="totals: subtotal + GST (CGST/SGST if West Bengal else IGST) · delivery included">
+      <div class="flex items-center justify-between"><h2 class="font-display text-[24px]">Your order</h2><a href="cart.html" class="text-[13px] font-semibold text-teal">Edit</a></div>
+      <ul id="lines" class="mt-5 space-y-4"></ul>
+      <dl id="sum" class="mt-6 pt-5 border-t border-ink/10 space-y-2.5 text-[14.5px]"></dl>
+    </aside>
+  </form>
+</main>
+
+<script>
+renderChrome({ minimal: true });
+seedDemoBag();
+if (!bag.lines().length) location.replace('cart.html');
+
+let plan = 'advance';
+const PINCODES = { // pincodes cache rows (state, district, areas JSON)
+  '722101': { state: 'West Bengal', district: 'Bankura', areas: ['Bankura H.O.', 'Bankura Bazar', 'Lalbazar', 'Machantala', 'Pathakpara'] },
+  '722102': { state: 'West Bengal', district: 'Bankura', areas: ['Kenduadihi', 'Lokepur', 'Bankura Christian College'] },
+  '713201': { state: 'West Bengal', district: 'Paschim Bardhaman', areas: ['Durgapur H.O.', 'Benachity', 'City Centre'] },
+  '700001': { state: 'West Bengal', district: 'Kolkata', areas: ['Kolkata G.P.O.', 'Dalhousie', 'B.B.D. Bagh'] },
+  '834001': { state: 'Jharkhand', district: 'Ranchi', areas: ['Ranchi H.O.', 'Main Road', 'Lalpur'] }
+};
+const totals = () => bag.totals($('#state').value.trim() || BUSINESS.state);
+
+function renderSummary() {
+  const t = totals();
+  $('#lines').innerHTML = t.items.map(i => `<li class="flex gap-3"><span class="relative shrink-0"><img src="${i.p.img}" alt="" class="w-14 h-14 rounded-xl object-cover"><b class="absolute -top-1.5 -right-1.5 min-w-[22px] h-[22px] px-1 rounded-full bg-ink text-cream text-[10.5px] grid place-items-center">${i.qty}</b></span>
+    <div class="min-w-0 flex-1"><p class="font-semibold leading-tight truncate">${esc(i.p.name)}</p><p class="text-[12.5px] text-ink-400">${i.v ? variantTitle(i.v) + ' · ' : ''}${i.qty} ${i.unit} × ${inr(i.price)}</p></div><p class="font-semibold text-[14px]">${inr(i.line)}</p></li>`).join('');
+  const half = round2(t.tax / 2);
+  $('#sum').innerHTML = `<div class="flex justify-between"><dt class="text-ink-500">Subtotal</dt><dd>${inr(t.subtotal, true)}</dd></div>
+    <div class="flex justify-between"><dt class="text-ink-500">Delivery</dt><dd class="text-teal font-semibold">Included</dd></div>
+    ${t.intra ? `<div class="flex justify-between"><dt class="text-ink-500">CGST ${BUSINESS.gst_percent / 2}%</dt><dd>${inr(half, true)}</dd></div><div class="flex justify-between"><dt class="text-ink-500">SGST ${BUSINESS.gst_percent / 2}%</dt><dd>${inr(round2(t.tax - half), true)}</dd></div>`
+      : `<div class="flex justify-between"><dt class="text-ink-500">IGST ${BUSINESS.gst_percent}% <span class="text-[12px] text-ink-400">(outside West Bengal)</span></dt><dd>${inr(t.tax, true)}</dd></div>`}
+    <div class="flex justify-between pt-3 border-t border-ink/10"><dt class="font-semibold text-[16px]">Total</dt><dd class="font-display text-[26px] leading-none">${inr(t.total, true)}</dd></div>
+    <div class="mt-3 rounded-2xl bg-ink text-cream p-4 space-y-1.5"><div class="flex justify-between"><dt>Pay now</dt><dd class="font-bold text-[18px]">${inr(plan === 'advance' ? t.advance : t.total, true)}</dd></div>
+      ${plan === 'advance' ? `<div class="flex justify-between text-cream/70 text-[13px]"><dt>Balance — pay any time before delivery</dt><dd>${inr(round2(t.total - t.advance), true)}</dd></div>` : '<p class="text-cream/70 text-[13px]">Nothing more to pay later.</p>'}</div>`;
+  $('#plans').innerHTML = [['advance', `${BUSINESS.advance_percent}% advance`, t.advance, `Balance ${inr(round2(t.total - t.advance))} before delivery. We’ll send you a payment link.`], ['full', 'Pay in full', t.total, 'Nothing left to pay. Fastest to dispatch.']]
+    .map(([k, l, a, c]) => `<label class="plan cursor-pointer rounded-2xl border border-ink/15 bg-cream-50 p-4 flex gap-3 transition"><input type="radio" name="plan" value="${k}" ${plan === k ? 'checked' : ''} class="mt-1 w-4 h-4 accent-[#15211F]"><span><span class="block font-semibold">${l}</span><span class="block font-display text-[24px] mt-0.5">${inr(a, true)}</span><span class="block text-[12.5px] text-ink-500 mt-0.5">${c}</span></span></label>`).join('');
+  $('#placeBtn').innerHTML = `<i data-lucide="lock-keyhole"></i> Place order &amp; pay ${inr(plan === 'advance' ? t.advance : t.total, true)}`;
+  icons();
+}
+$('#plans').addEventListener('change', e => { plan = e.target.value; renderSummary(); });
+$('#mkAcct').onchange = e => $('#pwRow').classList.toggle('hidden', !e.target.checked);
+$('#sameBill').onchange = e => $('#billBox').classList.toggle('hidden', e.target.checked);
+$('#state').addEventListener('input', renderSummary);
+
+/* pincode auto-fill — browser calls our proxy /lookup/pincode/{code}, never the third-party API */
+$('#pin').addEventListener('input', e => {
+  const v = e.target.value.replace(/\D/g, '').slice(0, 6); e.target.value = v;
+  if (v.length < 6) return;
+  $('#pinSpin').classList.remove('hidden'); $('#pinMsg').textContent = 'Looking up…';
+  setTimeout(() => {
+    $('#pinSpin').classList.add('hidden'); const r = PINCODES[v];
+    if (r) { $('#state').value = r.state; $('#district').value = r.district; $('#area').innerHTML = r.areas.map(a => `<option>${a}</option>`).join('') + '<option value="">Other / not listed</option>';
+      $('#pinMsg').innerHTML = `<span class="text-teal">✓ ${r.district}, ${r.state}</span>`; }
+    else { $('#area').innerHTML = '<option value="">Type your area in the address</option>'; $('#pinMsg').innerHTML = '<span class="text-copper">Couldn’t look this up — please type state and city.</span>'; }
+    renderSummary();
+  }, 450);
+});
+
+/* place order → payment window → order is created only on submit */
+$('#co').addEventListener('submit', e => {
+  e.preventDefault();
+  const need = [['#phone', v => /^\d{10}$/.test(v), 'Enter a 10-digit mobile number.'], ['#name', v => v, 'Enter your name.'], ['#pin', v => /^\d{6}$/.test(v), 'Enter a 6-digit pincode.'], ['#state', v => v, 'Enter your state.'], ['#district', v => v, 'Enter your district or city.'], ['#line1', v => v, 'Enter your house and street.']];
+  let first = null;
+  need.forEach(([s, ok, m]) => { const el = $(s), bad = !ok(el.value.trim()); el.setAttribute('aria-invalid', bad); if (bad && !first) first = [el, m]; });
+  if (!first && !$('#terms').checked) first = [$('#terms'), 'Please accept the terms to continue.'];
+  if (first) { $('#err').textContent = first[1]; $('#err').classList.remove('hidden'); first[0].focus(); return; }
+  $('#err').classList.add('hidden');
+  const t = totals(), amt = plan === 'advance' ? t.advance : t.total;
+  openPayWindow({ amount: amt, ref: 'MSM-PA-0043', title: plan === 'advance' ? `${BUSINESS.advance_percent}% advance` : 'Full payment',
+    onSubmit: () => { bag.clear(); location.href = 'order.html?token=k7Qe2xVn&state=pending&just=1&plan=' + plan; } });
+});
+renderSummary();
+</script>
+</body>
+</html>

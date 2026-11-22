@@ -69,6 +69,23 @@ class DashboardController
              GROUP BY c.id ORDER BY n DESC, c.name LIMIT 4'
         );
 
+        // Inventory snapshot for the dashboard stock card.
+        $stock = ['tracked' => 0, 'healthy' => 0, 'low' => 0, 'out' => 0];
+        foreach (DB::select('SELECT status, COUNT(*) AS n FROM inventory_stock GROUP BY status') as $r) {
+            $stock['tracked'] += (int) $r['n'];
+            if (isset($stock[$r['status']])) {
+                $stock[$r['status']] = (int) $r['n'];
+            }
+        }
+        $stock['untracked'] = max(0, $total - $stock['tracked']);
+        $stockAttention = DB::select(
+            "SELECT p.id, p.name, s.quantity, s.unit, s.status
+             FROM inventory_stock s JOIN products p ON p.id = s.product_id
+             WHERE s.status IN ('out','low')
+             ORDER BY CASE s.status WHEN 'out' THEN 0 ELSE 1 END, s.quantity ASC
+             LIMIT 5"
+        );
+
         $recent = DB::select(
             'SELECT p.id, p.name, p.sku, p.status, p.created_at, p.updated_at, pt.name AS type_name, b.name AS brand_name,
                     (SELECT path FROM product_media m WHERE m.product_id = p.id AND m.is_cover = 1 LIMIT 1) AS cover,
@@ -87,6 +104,8 @@ class DashboardController
             'coverage' => $coverage,
             'daily' => $daily,
             'byCategory' => $byCategory,
+            'stock' => $stock,
+            'stockAttention' => $stockAttention,
         ]);
     }
 }

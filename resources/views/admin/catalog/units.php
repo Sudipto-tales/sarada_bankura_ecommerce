@@ -20,8 +20,6 @@ include __DIR__ . '/../partials/header.php';
 <div class="pagehead">
   <div><div class="crumbs">Catalog <i data-lucide="chevron-right"></i> Units</div><h1>Units of measure<span style="color:#dca71f">.</span></h1></div>
 </div>
-<?php if ($success): ?><div class="notice ok">✓ <?= e($success) ?></div><?php endif; ?>
-<?php if ($error): ?><div class="notice bad"><?= e($error) ?></div><?php endif; ?>
 
 <div class="notice" style="margin-bottom:16px">
   Units are used in three places: the <b>selling unit</b> and <b>box/pack contents</b> on the product Pricing step, the unit of each <b>variant</b>, and the measurement unit of an <b>attribute</b> (e.g. Thickness in mm).

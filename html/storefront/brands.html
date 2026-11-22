@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Brands — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 pt-8">
+  <p class="eyebrow">Our brands</p><h1 class="font-display text-[40px] sm:text-[50px] leading-tight tracking-tight mt-1">Sourced from the right quarries</h1>
+  <p class="text-ink-500 mt-2 max-w-2xl">Signature lines are hand-picked lots we stand behind personally. Core lines are dependable everyday stone at honest prices.</p>
+  <div id="tiers" class="mt-6 flex gap-2"></div>
+  <div id="list" class="mt-8 space-y-6" data-map="brands WHERE status=active (tier, country, brand_type, description, logo, is_featured)"></div>
+</main>
+<script>
+renderChrome({ active: 'brands' });
+let tier = 'all';
+function render() {
+  $('#tiers').innerHTML = [['all', 'All'], ['signature', 'Signature'], ['core', 'Core'], ['value', 'Value']].map(([k, l]) => `<button class="chip h-10 px-4 rounded-full border border-ink/15 text-[13.5px] font-semibold" aria-pressed="${k === tier}" data-tier="${k}">${l} <span class="opacity-50 font-normal">${k === 'all' ? BRANDS.length : BRANDS.filter(b => b.tier === k).length}</span></button>`).join('');
+  $('#list').innerHTML = BRANDS.filter(b => tier === 'all' || b.tier === tier).map(b => { const ps = live.filter(p => p.brand === b.id);
+    return `<section class="bg-white rounded-[28px] border border-ink/5 overflow-hidden grid lg:grid-cols-[360px,1fr]">
+      <div class="relative min-h-[220px]"><img src="${b.image}" alt="" class="absolute inset-0 w-full h-full object-cover"><div class="absolute inset-0 bg-gradient-to-t from-ink/80 to-transparent"></div>
+        <div class="absolute left-6 right-6 bottom-6 text-cream"><span class="text-[10.5px] font-bold uppercase tracking-[.12em] px-2 py-0.5 rounded-md ${b.tier === 'signature' ? 'bg-gold text-white' : 'bg-cream text-ink'}">${b.tier}</span><h2 class="font-display text-[32px] leading-tight mt-2">${b.name}</h2><p class="text-cream/80 text-[13.5px]">${b.country} · ${ps.length} stones</p></div></div>
+      <div class="p-6"><p class="text-ink-500">${b.description}</p><div class="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-3">${ps.slice(0, 4).map(p => `<a href="${productUrl(p)}" class="group"><div class="aspect-square rounded-2xl overflow-hidden"><img src="${p.img}" alt="" class="w-full h-full object-cover group-hover:scale-105 transition"></div><p class="text-[13.5px] font-semibold mt-2 leading-tight group-hover:text-teal">${esc(p.name)}</p><p class="text-[12px] text-ink-400">${purchasable(p) ? 'from ' + inr(minPrice(p)) + '/' + p.pricing.unit : p.status === 'coming_soon' ? 'Coming soon' : 'Price on request'}</p></a>`).join('')}</div>
+        <a href="shop.html?brand=${b.slug}" class="mt-5 inline-flex items-center gap-1.5 font-semibold text-[14px] hover:text-teal">All ${b.name} stones <i data-lucide="arrow-right"></i></a></div></section>`; }).join('') || '<p class="text-ink-500">No brands in this tier yet.</p>';
+  icons();
+}
+$('#tiers').onclick = e => { const b = e.target.closest('[data-tier]'); if (b) { tier = b.dataset.tier; render(); } };
+render();
+</script>
+</body>
+</html>

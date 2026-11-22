@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Policies — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 pt-8">
+  <p class="eyebrow">Policies</p><h1 class="font-display text-[40px] sm:text-[48px] leading-tight tracking-tight mt-1">The fine print, in plain words</h1>
+  <div class="mt-8 grid lg:grid-cols-[240px,1fr] gap-8 items-start">
+    <nav class="lg:sticky lg:top-[92px] bg-white rounded-[24px] border border-ink/5 p-2 flex lg:flex-col gap-1 overflow-x-auto no-scrollbar text-[14px] font-semibold">
+      <a href="#delivery" class="shrink-0 px-4 h-11 rounded-2xl flex items-center hover:bg-cream">Delivery</a><a href="#payments" class="shrink-0 px-4 h-11 rounded-2xl flex items-center hover:bg-cream">Payments</a><a href="#orders" class="shrink-0 px-4 h-11 rounded-2xl flex items-center hover:bg-cream">Orders &amp; cancellation</a><a href="#returns" class="shrink-0 px-4 h-11 rounded-2xl flex items-center hover:bg-cream">Returns &amp; replacements</a><a href="#privacy" class="shrink-0 px-4 h-11 rounded-2xl flex items-center hover:bg-cream">Privacy</a><a href="#terms" class="shrink-0 px-4 h-11 rounded-2xl flex items-center hover:bg-cream">Terms</a></nav>
+    <div class="space-y-6 text-[15px] text-ink-500 leading-relaxed [&_h2]:font-display [&_h2]:text-[28px] [&_h2]:text-ink [&_h2]:leading-tight [&_b]:text-ink [&_section]:bg-white [&_section]:rounded-[24px] [&_section]:border [&_section]:border-ink/5 [&_section]:p-7 [&_section]:scroll-mt-28 [&_ul]:list-disc [&_ul]:pl-5 [&_ul]:space-y-1.5 [&_ul]:mt-3">
+      <section id="delivery"><h2>Delivery</h2><ul><li><b>Delivery is included</b> in every price. There’s no delivery line on your bill.</li><li>We call to fix a date once your order is confirmed. Stone travels on our own trucks or a trusted transporter.</li><li>At delivery you’ll get a <b>delivery OTP</b>. Share it only after the stone is unloaded and checked.</li></ul></section>
+      <section id="payments"><h2>Payments</h2><ul><li>Pay by <b>UPI</b> to our own account. Bank transfer is available for large amounts.</li><li>At checkout pay a <b>${BUSINESS.advance_percent}% advance</b> (rounded up) or the full amount. Pay the balance any time before or at delivery.</li><li>The payment window stays open for <b>6 minutes</b>. If time runs out after you paid, don’t pay again — message us your payment ID.</li><li>We check every payment by hand. If you pay more than is due, we refund the extra.</li><li>Prices are before GST. ${BUSINESS.gst_percent}% GST is added at checkout (CGST + SGST in West Bengal, IGST elsewhere).</li></ul></section>
+      <section id="orders"><h2>Orders &amp; cancellation</h2><ul><li>Your order is placed when you submit your payment details.</li><li>We review each order. If we can’t fulfil it, we’ll tell you why on your order page and refund your advance.</li><li><b>Orders can’t be cancelled once confirmed</b> — we start cutting stone to your size.</li></ul></section>
+      <section id="returns"><h2>Returns &amp; replacements</h2><ul><li><b>Breakage in transit:</b> report with photos within 7 days of delivery for a replacement.</li><li><b>Returns:</b> only for uncut full slabs, within 3 days, in original condition.</li><li>Cut-to-size pieces and countertops can’t be returned.</li><li>Every request is reviewed by us. Once submitted, a request can’t be cancelled. You can return part of an order (for example 3 of 10 boxes).</li><li>Natural stone varies in colour and veining — that isn’t a defect.</li></ul></section>
+      <section id="privacy"><h2>Privacy</h2><p>We use your phone number to manage orders and, if you agree, to send offers on WhatsApp. We never sell your details. Payment screenshots are stored privately and only our staff can see them.</p></section>
+      <section id="terms"><h2>Terms</h2><p>Prices and availability can change without notice until your order is confirmed. Images show typical stone from each lot. Ask us for photos of the exact slabs before you order. Disputes fall under the courts of Bankura, West Bengal.</p></section>
+    </div>
+  </div>
+</main>
+<script>renderChrome(); document.querySelectorAll('section').forEach(s => s.innerHTML = s.innerHTML.replace(/\$\{BUSINESS\.(\w+)\}/g, (_, k) => BUSINESS[k])); icons();</script>
+</body>
+</html>

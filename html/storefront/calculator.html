@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Area <title>Track Your Order — Maa Sarada</title> Cost Calculator — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 pt-8">
+  <p class="eyebrow">Plan your space</p><h1 class="font-display text-[40px] sm:text-[48px] leading-tight tracking-tight mt-1">Area &amp; cost calculator</h1>
+  <p class="text-ink-500 mt-2 max-w-2xl">Add your rooms, pick a stone and we’ll work out how much to order — including cutting waste, boxes and GST.</p>
+  <div class="mt-8 grid lg:grid-cols-[minmax(0,1fr),420px] gap-6 items-start">
+    <div class="space-y-6">
+      <section class="bg-white rounded-[24px] border border-ink/5 p-6 sm:p-8">
+        <div class="flex items-center justify-between"><h2 class="font-display text-[24px]">1 · Your rooms</h2><button id="addRoom" class="btn btn-line !h-10 !px-4 text-[13.5px]"><i data-lucide="plus"></i> Add room</button></div>
+        <div id="rooms" class="mt-5 space-y-3"></div>
+        <label class="mt-5 flex items-center gap-3 text-[14px]">Extra for cutting &amp; breakage <select id="waste" class="field !w-28 !h-10"><option value="5">5%</option><option value="8" selected>8%</option><option value="10">10%</option><option value="15">15% (diagonal)</option></select></label>
+      </section>
+      <section class="bg-white rounded-[24px] border border-ink/5 p-6 sm:p-8" data-map="purchasable products → variants (price per unit, pack_qty)">
+        <h2 class="font-display text-[24px]">2 · Choose a stone</h2>
+        <div id="stones" class="mt-5 grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-3"></div>
+        <div id="opts" class="mt-5 space-y-4"></div>
+      </section>
+    </div>
+    <aside id="out" class="lg:sticky lg:top-[92px] rounded-[28px] bg-ink text-cream p-6 sm:p-7"></aside>
+  </div>
+</main>
+<script>
+renderChrome({ active: 'plan' });
+let rooms = [{ name: 'Living room', l: 18, w: 14, minus: 0 }, { name: 'Dining', l: 12, w: 10, minus: 6 }];
+const choices = live.filter(purchasable); let p = choices[0], sel = selFromVariant(defaultVariant(p));
+function renderRooms() {
+  $('#rooms').innerHTML = rooms.map((r, i) => `<div class="grid grid-cols-[1fr,80px,80px,90px,auto] gap-2 items-end">
+    <label><span class="text-[12px] text-ink-500">Room</span><input class="field !h-10" value="${esc(r.name)}" data-i="${i}" data-k="name"></label>
+    <label><span class="text-[12px] text-ink-500">Length ft</span><input type="number" min="0" class="field !h-10" value="${r.l}" data-i="${i}" data-k="l"></label>
+    <label><span class="text-[12px] text-ink-500">Width ft</span><input type="number" min="0" class="field !h-10" value="${r.w}" data-i="${i}" data-k="w"></label>
+    <label title="Cupboards, kitchen platform, etc."><span class="text-[12px] text-ink-500">Minus sq ft</span><input type="number" min="0" class="field !h-10" value="${r.minus}" data-i="${i}" data-k="minus"></label>
+    <button class="w-10 h-10 rounded-full hover:bg-cream grid place-items-center text-ink-400" data-del="${i}" aria-label="Remove room"><i data-lucide="trash-2"></i></button></div>`).join('');
+  icons();
+}
+function renderStones() {
+  $('#stones').innerHTML = choices.map(x => `<button class="text-left rounded-2xl border p-2 ${x === p ? 'border-ink ring-1 ring-ink bg-cream-50' : 'border-ink/10 hover:border-ink/40'}" data-pick="${x.slug}"><img src="${x.img}" alt="" class="w-full aspect-[4/3] rounded-xl object-cover"><p class="text-[13.5px] font-semibold mt-2 leading-tight">${esc(x.name)}</p><p class="text-[12px] text-ink-400">from ${inr(minPrice(x))}/${x.pricing.unit}</p></button>`).join('');
+  if (p.variants.length) renderOptions($('#opts'), p, sel, s => { sel = s; renderStones(); calc(); }); else $('#opts').innerHTML = '';
+}
+function calc() {
+  const area = rooms.reduce((s, r) => s + Math.max(0, r.l * r.w - r.minus), 0), wst = +$('#waste').value, need = area * (1 + wst / 100);
+  const v = p.variants.length ? pickVariant(p, sel) : null, unit = unitOf(p, v), price = priceOf(p, v), pack = p.pricing.pack_qty;
+  const qty = unit === 'box' ? Math.ceil(need / pack) : Math.ceil(need), sub = round2(qty * price), gst = round2(sub * BUSINESS.gst_percent / 100), total = round2(sub + gst);
+  $('#out').innerHTML = `<p class="text-[12px] uppercase tracking-[.16em] text-cream/60">Your estimate</p><h2 class="font-display text-[26px] leading-tight mt-1">${esc(p.name)}</h2><p class="text-cream/60 text-[13px]">${v ? variantTitle(v) + ' · ' : ''}${inr(price)} / ${unit}</p>
+    <dl class="mt-5 space-y-2.5 text-[14px]"><div class="flex justify-between"><dt class="text-cream/70">Floor area</dt><dd>${area.toLocaleString('en-IN')} sq ft</dd></div><div class="flex justify-between"><dt class="text-cream/70">+ ${wst}% extra</dt><dd>${Math.ceil(need).toLocaleString('en-IN')} sq ft</dd></div>
+      <div class="flex justify-between font-semibold"><dt>Order</dt><dd>${qty.toLocaleString('en-IN')} ${unit}${unit === 'box' ? ` <span class="text-cream/60 font-normal">(${round2(qty * pack)} sq ft)</span>` : ''}</dd></div>
+      <div class="flex justify-between pt-3 border-t border-cream/10"><dt class="text-cream/70">Stone</dt><dd>${inr(sub)}</dd></div><div class="flex justify-between"><dt class="text-cream/70">GST ${BUSINESS.gst_percent}%</dt><dd>${inr(gst)}</dd></div><div class="flex justify-between"><dt class="text-cream/70">Delivery</dt><dd class="text-[#9FD3D6]">Included</dd></div>
+      <div class="flex justify-between items-end pt-3 border-t border-cream/10"><dt class="font-semibold">Total</dt><dd class="font-display text-[34px] leading-none">${inr(total)}</dd></div>
+      <div class="flex justify-between text-[#E9B48F]"><dt>${BUSINESS.advance_percent}% advance</dt><dd class="font-semibold">${inr(ceil2(total * .2))}</dd></div></dl>
+    <button id="addAll" class="btn btn-copper w-full mt-6"><i data-lucide="shopping-bag"></i> Add ${qty} ${unit} to bag</button>
+    <a href="${productUrl(p)}${v ? '&v=' + v.id : ''}" class="btn w-full mt-2 border border-cream/25 hover:bg-cream/10">View stone</a>
+    <p class="text-[12px] text-cream/50 mt-4">Estimates only. For stairs, skirting and countertops, send us your drawing on WhatsApp.</p>`;
+  $('#addAll').onclick = () => { bag.add(p.slug, v ? v.id : 0, qty); toast(`Added ${qty} ${unit} to your bag`); };
+  icons();
+}
+$('#rooms').addEventListener('input', e => { const t = e.target; if (t.dataset.k) { rooms[t.dataset.i][t.dataset.k] = t.dataset.k === 'name' ? t.value : +t.value || 0; calc(); } });
+$('#rooms').addEventListener('click', e => { const b = e.target.closest('[data-del]'); if (b && rooms.length > 1) { rooms.splice(+b.dataset.del, 1); renderRooms(); calc(); } });
+$('#addRoom').onclick = () => { rooms.push({ name: 'Room ' + (rooms.length + 1), l: 10, w: 10, minus: 0 }); renderRooms(); calc(); };
+$('#stones').addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (b) { p = bySlug(b.dataset.pick); sel = selFromVariant(defaultVariant(p)); renderStones(); calc(); } });
+$('#waste').onchange = calc;
+renderRooms(); renderStones(); calc();
+</script>
+</body>
+</html>

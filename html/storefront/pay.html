@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Pay — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script></head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[640px] mx-auto px-4 pt-10">
+  <div class="bg-white rounded-[28px] border border-ink/5 overflow-hidden" data-map="/pay/{orders.public_token} — due recomputed on open · payment_request_logs">
+    <div class="bg-ink text-cream p-7"><p class="text-[12px] uppercase tracking-[.16em] text-cream/60">Payment request</p><h1 class="font-display text-[34px] leading-tight mt-1">Hi Ritika, here’s your balance</h1><p class="text-cream/70 mt-1 text-[14px]">Order <b class="text-cream">MSM-2026-0142</b> · requested 26 Nov, 9:40 AM IST</p></div>
+    <div id="body" class="p-7"></div>
+  </div>
+  <p class="text-center text-[12.5px] text-ink-400 mt-5">The 6-minute timer starts only when you press Pay now.</p>
+</main>
+<script>
+renderChrome({ minimal: true });
+const o = JSON.parse(JSON.stringify(DEMO_ORDER)); const base = orderTotals({ ...o, payments: [] });
+o.payments = [{ amount: ceil2(base.total * .2), status: 'verified' }];
+if (qs('pending')) o.payments.push({ amount: 50000, status: 'pending' });
+const t = orderTotals(o);
+function render(done) {
+  $('#body').innerHTML = done ? `<div class="text-center py-4"><span class="w-14 h-14 mx-auto rounded-full bg-teal text-white grid place-items-center"><i data-lucide="check" class="!w-7 !h-7"></i></span><h2 class="font-display text-[28px] mt-4">Payment submitted</h2><p class="text-ink-500 mt-1">We’ll confirm it within a few hours and message you on WhatsApp.</p><a href="order.html?token=${o.public_token}&state=dispatched" class="btn btn-dark mt-6">View your order</a></div>`
+  : `<ul class="divide-y divide-ink/5">${t.items.map(i => `<li class="py-3 flex gap-3 items-center"><img src="${i.p.img}" class="w-12 h-12 rounded-xl object-cover" alt=""><div class="flex-1 text-[14px] leading-tight"><b>${esc(i.p.name)}</b><br><span class="text-ink-400 text-[12.5px]">${i.v ? variantTitle(i.v) + ' · ' : ''}${i.qty} ${i.unit}</span></div><span class="font-semibold text-[14px]">${inr(i.line)}</span></li>`).join('')}</ul>
+    <dl class="mt-4 pt-4 border-t border-ink/10 space-y-2 text-[14.5px]"><div class="flex justify-between"><dt class="text-ink-500">Order total (incl. GST)</dt><dd>${inr(t.total, true)}</dd></div><div class="flex justify-between text-teal"><dt>Paid</dt><dd>− ${inr(t.paid, true)}</dd></div>${t.pending ? `<div class="flex justify-between text-[#8a6a35]"><dt>Under review</dt><dd>− ${inr(t.pending, true)}</dd></div>` : ''}
+      <div class="flex justify-between items-end pt-3 border-t border-ink/10"><dt class="font-semibold">Pay now</dt><dd class="font-display text-[34px] leading-none">${inr(t.due, true)}</dd></div></dl>
+    ${t.due ? `<button id="go" class="btn btn-copper w-full mt-6 !h-14 text-[16px]"><i data-lucide="smartphone"></i> Pay now</button>` : '<p class="mt-6 text-center text-teal font-semibold">Nothing to pay right now — thank you!</p>'}`;
+  const g = $('#go'); if (g) g.onclick = () => openPayWindow({ amount: t.due, ref: 'MSM-PA-0051', title: 'Balance', onSubmit: () => render(true) });
+  icons();
+}
+render();
+</script>
+</body>
+</html>

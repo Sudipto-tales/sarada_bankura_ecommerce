@@ -29,8 +29,6 @@ include __DIR__ . '/../partials/header.php';
   <div><div class="crumbs">Catalog <i data-lucide="chevron-right"></i> Categories</div><h1>Categories<span style="color:#dca71f">.</span></h1></div>
   <button class="btn gold" type="button" data-open-cat><i data-lucide="plus" style="width:16px"></i>Add category</button>
 </div>
-<?php if ($success): ?><div class="notice ok">✓ <?= e($success) ?></div><?php endif; ?>
-<?php if ($error): ?><div class="notice bad"><?= e($error) ?></div><?php endif; ?>
 
 <div class="statstrip">
   <div class="stat glass"><span class="metric-icon"><i data-lucide="tag"></i></span><div><small>Total categories</small><b><?= $stats['total'] ?></b><em>Catalogue taxonomy</em></div></div>

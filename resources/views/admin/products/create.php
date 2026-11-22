@@ -15,6 +15,9 @@ $media = $media ?? [];
 $units = $units ?? [];
 $optionGroups = $optionGroups ?? [];
 $variants = $variants ?? [];
+$stockRow = $stockRow ?? null;
+$isTracked = $stockRow !== null;
+$stockEnabled = $stockEnabled ?? true;
 
 $active = 'products.create';
 $title = $isEdit ? 'Edit product' : 'Add product';
@@ -257,6 +260,35 @@ include __DIR__ . '/../partials/header.php';
           <label class="checkline"><input type="checkbox" name="is_enquiry_only" value="1" <?= $chk('is_enquiry_only', $isEdit ? $pv('is_enquiry_only', 0) : 0) ? 'checked' : '' ?>> Enquiry only (hide price, show enquiry button)</label>
         </div>
 
+        <?php $effTrack = $hasErr ? (bool) old('track_stock', '') : $isTracked; ?>
+        <div class="subbox stockbox">
+          <div class="flex items-center justify-between gap-3" style="flex-wrap:wrap">
+            <div><b class="text-sm">Stock tracking</b><p class="text-xs muted mt-1">Keep a running stock count for this product. Receipts and adjustments are managed on the Stock page.</p></div>
+            <?php if ($isEdit && $isTracked): ?>
+              <span class="chip" style="background:#eaf5ee;color:#2f7a53;border-color:#cfe8d8"><i data-lucide="check" style="width:13px"></i>Tracking on</span>
+            <?php else: ?>
+              <label class="switch"><input type="checkbox" name="track_stock" value="1" id="trackStock" <?= $effTrack ? 'checked' : '' ?> <?= $stockEnabled ? '' : 'disabled' ?>><span></span><b class="text-xs">Track stock for this product</b></label>
+            <?php endif; ?>
+          </div>
+          <?php if ($isEdit && $isTracked): ?>
+            <div class="stockinfo">
+              <div>
+                <span class="muted text-xs">Current stock</span>
+                <b style="font-size:18px"><?= e(rtrim(rtrim((string) ($stockRow['quantity'] ?? '0'), '0'), '.') ?: '0') ?> <span class="muted" style="font-weight:600;font-size:13px"><?= e((string) ($stockRow['unit'] ?? '')) ?></span></b>
+              </div>
+              <a class="btn" href="<?= route('admin.inventory.stock') ?>?product=<?= (int) $productId ?>" target="_blank"><i data-lucide="archive" style="width:15px"></i>Manage stock</a>
+            </div>
+          <?php elseif (!$stockEnabled): ?>
+            <div class="hint" style="margin-top:12px">Inventory tracking is turned off in <a href="<?= route('admin.inventory.alerts') ?>" target="_blank" style="font-weight:800">Inventory settings</a>. Turn it on to track stock.</div>
+          <?php else: ?>
+            <div id="stockFields" class="grid3 <?= $effTrack ? '' : 'hidden' ?>" style="margin-top:14px">
+              <div class="field"><label>Opening quantity</label><input name="opening_qty" type="number" step="0.001" min="0" value="<?= e((string) $cur('opening_qty', '0')) ?>" placeholder="0"></div>
+              <div class="field"><label>Stock unit</label><select name="stock_unit" id="stockUnit"><?= $unitOptions((string) $cur('stock_unit', $curUnit), 'Select unit') ?></select></div>
+              <div class="field"><label>Low-stock alert <span class="muted">· optional</span></label><input name="low_stock_threshold" type="number" step="0.001" min="0" value="<?= e((string) $cur('low_stock_threshold', '')) ?>" placeholder="Default"></div>
+            </div>
+          <?php endif; ?>
+        </div>
+
         <div class="subbox variantbox">
           <div class="flex items-center justify-between gap-3" style="flex-wrap:wrap">
             <div><b class="text-sm">Variants</b><p class="text-xs muted mt-1">Sell this product in several thicknesses, finishes or sizes — each with its own SKU and price.</p></div>
@@ -444,6 +476,12 @@ $scripts .= <<<'JS'
     $('#genHint').textContent=`${combos.length} combination${combos.length===1?'':'s'} · ${added} added · ${removed} removed.`;
   };
   $('#hasVariants').onchange=e=>$('#variantBuilder').classList.toggle('hidden',!e.target.checked);
+  const ts=$('#trackStock');ts&&(ts.onchange=e=>{
+    $('#stockFields').classList.toggle('hidden',!e.target.checked);
+    // On first enable, default the stock unit to the selling unit when unset.
+    const stu=$('#stockUnit'),su2=$('#sellingUnit');
+    if(e.target.checked&&stu&&!stu.value&&su2&&su2.value)stu.value=su2.value;
+  });
   const su=$('#sellingUnit');su&&su.addEventListener('change',()=>$('#packOf').textContent=su.value||'unit');
 })();
 </script>

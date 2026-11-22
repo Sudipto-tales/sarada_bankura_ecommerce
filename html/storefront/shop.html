@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Shop Stone — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+<style>
+  .fbox input{accent-color:#1E6E74;width:16px;height:16px}
+  @media (max-width:1023px){ #filters{position:fixed;inset:0;z-index:55;background:#F6F2EA;padding:20px;overflow-y:auto;transform:translateX(-100%);transition:transform .25s} #filters.open{transform:none} }
+</style>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main">
+
+<!-- Category header: breadcrumb + title + sub-category chips -->
+<section class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 pt-6">
+  <nav id="crumbs" class="text-[13px] text-ink-500 flex items-center gap-1.5 flex-wrap" aria-label="Breadcrumb"></nav>
+  <div id="hero" class="mt-4 relative rounded-[28px] overflow-hidden bg-ink text-cream min-h-[220px] isolate" data-map="product_categories: name · description · image · children"></div>
+  <div id="subcats" class="mt-4 flex gap-2 overflow-x-auto no-scrollbar" data-map="sub-categories (parent_id = current) or siblings"></div>
+</section>
+
+<section class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-8 grid lg:grid-cols-[280px,1fr] gap-8 items-start">
+
+  <!-- FILTERS -->
+  <aside id="filters" class="lg:sticky lg:top-[92px] lg:max-h-[calc(100vh-110px)] lg:overflow-y-auto no-scrollbar" aria-label="Filters" data-map="facets: product_category_map · product_attribute_values · option_values · tags(discovery) · brands · product_pricing">
+    <div class="flex items-center justify-between lg:hidden mb-4"><h2 class="font-display text-[24px]">Filters</h2><button id="closeFilters" class="p-2 rounded-full hover:bg-ink/5" aria-label="Close filters"><i data-lucide="x"></i></button></div>
+    <div id="facetList" class="space-y-3"></div>
+    <div class="lg:hidden sticky bottom-0 pt-4 pb-2 bg-cream flex gap-2"><button id="clearAll2" class="btn btn-line flex-1">Clear</button><button id="applyFilters" class="btn btn-dark flex-1">Show <span id="applyCount"></span></button></div>
+  </aside>
+
+  <!-- RESULTS -->
+  <div>
+    <div class="flex flex-wrap items-center gap-3 justify-between">
+      <div class="flex items-center gap-3">
+        <button id="openFilters" class="lg:hidden h-10 px-4 rounded-full border border-ink/15 bg-white text-[13.5px] font-semibold flex items-center gap-2"><i data-lucide="sliders-horizontal"></i> Filters <span id="fCount" class="hidden min-w-[20px] h-5 px-1 rounded-full bg-teal text-white text-[11px] grid place-items-center"></span></button>
+        <p class="text-[14px] text-ink-500"><b id="count" class="text-ink"></b> stones</p>
+      </div>
+      <div class="flex items-center gap-2">
+        <label for="sort" class="text-[13px] text-ink-500 hidden sm:block">Sort</label>
+        <select id="sort" class="h-10 pl-3 pr-8 rounded-full bg-white border border-ink/15 text-[13.5px] font-semibold outline-none focus:border-teal">
+          <option value="featured">Featured</option><option value="best">Bestselling</option><option value="rating">Top rated</option><option value="low">Price: low to high</option><option value="high">Price: high to low</option><option value="new">Newest</option>
+        </select>
+        <div class="hidden md:flex rounded-full border border-ink/15 bg-white p-0.5" role="group" aria-label="Grid size">
+          <button data-dense="0" class="w-9 h-9 rounded-full grid place-items-center" aria-label="Large tiles"><i data-lucide="layout-grid"></i></button>
+          <button data-dense="1" class="w-9 h-9 rounded-full grid place-items-center" aria-label="Small tiles"><i data-lucide="grid-3x3"></i></button>
+        </div>
+      </div>
+    </div>
+    <div id="chips" class="mt-4 flex flex-wrap gap-2"></div>
+    <div id="results" class="mt-5 grid gap-3 sm:gap-5"></div>
+    <nav id="pager" class="mt-10 flex items-center justify-center gap-1.5" aria-label="Pages"></nav>
+  </div>
+</section>
+
+<!-- category copy + other rooms -->
+<section class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 mt-20">
+  <div class="grid lg:grid-cols-12 gap-6">
+    <div class="lg:col-span-5 bg-white rounded-[24px] p-7 border border-ink/5" data-map="product_categories.description (SEO copy)">
+      <p class="eyebrow">Buying guide</p>
+      <h2 id="guideTitle" class="font-display text-[28px] leading-tight mt-1"></h2>
+      <div id="guideBody" class="text-[14.5px] text-ink-500 mt-3 space-y-3 leading-relaxed"></div>
+    </div>
+    <div class="lg:col-span-7">
+      <p class="eyebrow">Other spaces</p>
+      <div id="otherRooms" class="mt-3 grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+    </div>
+  </div>
+</section>
+</main>
+
+<script>
+renderChrome({ active: 'shop' });
+
+/* ---------- facets ---------- */
+const attrVals = (p, k) => { const s = new Set(); if (p.attrs[k]) s.add(p.attrs[k]); const g = { finish: 2, thickness: 1 }[k];
+  if (g) activeVariants(p).forEach(v => v.values.forEach(id => { const o = optionValue(id); if (o.group.id === g) s.add(o.value); })); return [...s]; };
+const originGroup = p => p.cats.includes(4) ? 'Imported' : 'Indian';
+const FACETS = [
+  { key: 'type', label: 'Stone type', get: p => [p.attrs.stone_type] },
+  { key: 'origin', label: 'Origin', get: p => [originGroup(p), p.attrs.origin] , nested: true },
+  { key: 'finish', label: 'Finish', get: p => attrVals(p, 'finish') },
+  { key: 'thickness', label: 'Thickness', get: p => attrVals(p, 'thickness') },
+  { key: 'colour', label: 'Colour', get: p => p.colour ? [p.colour] : [], swatch: true },
+  { key: 'tag', label: 'Good for', get: p => publicTags(p).filter(t => t.purpose === 'discovery').map(t => t.name) },
+  { key: 'brand', label: 'Brand', get: p => [brandOf(p).slug], show: v => BRANDS.find(b => b.slug === v).name }
+];
+const params = new URLSearchParams(location.search);
+const state = { cat: params.get('cat'), q: params.get('q') || '', offer: params.get('offer') === '1', sort: params.get('sort') || 'featured', page: 1, dense: false,
+  min: params.get('min') || '', max: params.get('max') || '', avail: params.getAll('avail'), f: {} };
+FACETS.forEach(f => state.f[f.key] = params.getAll(f.key));
+const curCat = () => state.cat ? catBySlug(state.cat) : null;
+
+function baseSet() { // category + search + offer: the scope facets are counted within
+  const c = curCat(), q = state.q.toLowerCase();
+  return live.filter(p => (!c || p.cats.includes(c.id))
+    && (!q || [p.name, p.attrs.origin, p.colour, p.attrs.stone_type, p.short_description, ...p.tags].join(' ').toLowerCase().includes(q))
+    && (!state.offer || (purchasable(p) && (p.pricing.compare_at_price || p.variants.some(v => v.compare_at_price)))));
+}
+function passes(p, skip) {
+  for (const f of FACETS) { if (f.key === skip || !state.f[f.key].length) continue; const vals = f.get(p); if (!state.f[f.key].some(v => vals.includes(v))) return false; }
+  if (skip !== 'price') { const price = minPrice(p); if (state.min && (!purchasable(p) || price < +state.min)) return false; if (state.max && (!purchasable(p) || price > +state.max)) return false; }
+  if (skip !== 'avail') {
+    if (state.avail.includes('in') && !(p.status === 'active' && p.stock !== 'out')) return false;
+    if (state.avail.includes('price') && !purchasable(p)) return false;
+    if (state.avail.includes('nosoon') && p.status === 'coming_soon') return false;
+  }
+  return true;
+}
+function results() {
+  const r = baseSet().filter(p => passes(p));
+  const s = { best: (a, b) => b.is_bestseller - a.is_bestseller || b.reviews - a.reviews, rating: (a, b) => b.rating - a.rating, low: (a, b) => (purchasable(b) - purchasable(a)) || minPrice(a) - minPrice(b),
+    high: (a, b) => (purchasable(b) - purchasable(a)) || minPrice(b) - minPrice(a), new: (a, b) => b.tags.includes('New arrival') - a.tags.includes('New arrival') || b.id - a.id,
+    featured: (a, b) => (b.is_featured - a.is_featured) || (a.status === 'coming_soon') - (b.status === 'coming_soon') || b.reviews - a.reviews }[state.sort];
+  return r.sort(s);
+}
+
+/* ---------- header ---------- */
+function renderHeader() {
+  const c = curCat(), parent = c && c.parent_id ? catById(c.parent_id) : null, tag = state.f.tag.length === 1 && !c ? TAGS.find(t => t.name === state.f.tag[0]) : null;
+  const brand = state.f.brand.length === 1 && !c ? BRANDS.find(b => b.slug === state.f.brand[0]) : null;
+  const title = c ? c.name : state.q ? `Results for “${esc(state.q)}”` : state.offer ? 'Offers' : tag ? (tag.label || tag.name) : brand ? brand.name : 'All stone';
+  const copy = c ? (c.description || `${parent.name} stone chosen for the ${c.name.toLowerCase()}.`) : state.offer ? 'Stones priced below their usual rate, while this lot lasts.' : tag ? (tag.copy || '') : brand ? brand.description : 'Marble, granite and onyx for every room. Delivery included in every price.';
+  const img = c ? c.image : tag || state.q ? U('1631679706909-1844bbd07221', 1600) : brand ? brand.image : U('1600607687939-ce8a6c25118c', 1600);
+  $('#crumbs').innerHTML = `<a href="index.html" class="hover:text-ink">Home</a><i data-lucide="chevron-right" class="!w-3.5 !h-3.5"></i><a href="shop.html" class="hover:text-ink">Shop</a>${parent ? `<i data-lucide="chevron-right" class="!w-3.5 !h-3.5"></i><a href="shop.html?cat=${parent.slug}" class="hover:text-ink">${parent.name}</a>` : ''}${c ? `<i data-lucide="chevron-right" class="!w-3.5 !h-3.5"></i><span class="text-ink font-semibold" aria-current="page">${c.name}</span>` : ''}`;
+  $('#hero').innerHTML = `<img src="${img}" alt="" class="absolute inset-0 w-full h-full object-cover -z-10"><div class="absolute inset-0 -z-10 bg-gradient-to-r from-ink/90 via-ink/60 to-ink/10"></div>
+    <div class="p-7 sm:p-10 max-w-2xl"><p class="text-[11.5px] uppercase tracking-[.2em] text-cream/70">${parent ? parent.name : c && !children(c.id).length ? 'By origin' : c ? 'Shop by space' : 'Shop'}</p>
+    <h1 class="font-display font-light text-[40px] sm:text-[52px] leading-[1.05] tracking-tight mt-2">${title}</h1><p class="text-cream/80 mt-3 max-w-lg">${copy}</p></div>`;
+  document.title = `${c ? c.name : 'Shop stone'} — Maa Sarada`;
+  // sub-category chips: children of a top category, or siblings of a sub-category, or the top-level spaces
+  let chips;
+  if (c && children(c.id).length) chips = [{ label: `All ${c.name.toLowerCase()}`, slug: c.slug, on: true, n: countIn(c.id) }, ...children(c.id).map(s => ({ label: s.name, slug: s.slug, img: s.image, n: countIn(s.id) }))];
+  else if (parent) chips = [{ label: `All ${parent.name.toLowerCase()}`, slug: parent.slug, n: countIn(parent.id) }, ...children(parent.id).map(s => ({ label: s.name, slug: s.slug, img: s.image, on: s.id === c.id, n: countIn(s.id) }))];
+  else chips = topCats().map(t => ({ label: t.name, slug: t.slug, img: t.image, on: c && t.id === c.id, n: countIn(t.id) }));
+  $('#subcats').innerHTML = chips.map(x => `<a href="shop.html?cat=${x.slug}" class="chip shrink-0 flex items-center gap-2.5 h-12 pl-1.5 pr-4 rounded-full border border-ink/10 bg-white hover:border-ink/40 text-[13.5px] font-semibold" aria-pressed="${!!x.on}">${x.img ? `<img src="${x.img}" alt="" class="w-9 h-9 rounded-full object-cover">` : '<span class="w-9 h-9 rounded-full bg-cream grid place-items-center"><i data-lucide="layers"></i></span>'}${x.label}<span class="opacity-50 font-normal">${x.n}</span></a>`).join('');
+  // guide + other rooms
+  const g = c || { name: 'natural stone' };
+  $('#guideTitle').textContent = `Choosing ${g.name.toLowerCase()} stone`;
+  $('#guideBody').innerHTML = `<p>For busy floors choose a <b class="text-ink">honed</b> or <b class="text-ink">leather</b> finish — polished marble is beautiful but can be slippery when wet.</p><p>Order about <b class="text-ink">8% extra</b> to cover cutting and breakage. Our calculator adds it for you.</p><p>Every lot varies. Visit the showroom in Bankura, or ask us on WhatsApp for photos of the exact slabs we will send.</p>`;
+  $('#otherRooms').innerHTML = CATEGORIES.filter(x => x.parent_id && (!c || x.id !== c.id)).slice(0, 6).map(x => `<a href="shop.html?cat=${x.slug}" class="group relative rounded-2xl overflow-hidden aspect-[4/3]"><img src="${x.image}" alt="" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-500" loading="lazy"><div class="absolute inset-0 bg-gradient-to-t from-ink/75 to-transparent"></div><span class="absolute left-4 bottom-3 text-cream"><small class="block text-[11px] text-cream/70">${catById(x.parent_id).name}</small><b class="font-display text-[19px] font-normal">${x.name}</b></span></a>`).join('');
+}
+
+/* ---------- filters ---------- */
+function facetCounts(f) { const m = new Map(); baseSet().filter(p => passes(p, f.key)).forEach(p => new Set(f.get(p)).forEach(v => m.set(v, (m.get(v) || 0) + 1))); return m; }
+function renderFacets() {
+  const c = curCat(), top = c ? (c.parent_id ? catById(c.parent_id) : c) : null;
+  const tree = `<details open class="fbox bg-white rounded-2xl border border-ink/5 p-4"><summary class="flex items-center justify-between font-semibold cursor-pointer list-none text-[14px]">Category<i data-lucide="chevron-down"></i></summary>
+    <ul class="mt-3 space-y-0.5 text-[14px]"><li><a href="shop.html" class="flex justify-between py-1.5 ${!c ? 'font-semibold text-teal' : 'text-ink-500 hover:text-ink'}">All stone<span class="text-ink-300 text-[12px]">${live.length}</span></a></li>
+    ${topCats().map(t => `<li><a href="shop.html?cat=${t.slug}" class="flex justify-between py-1.5 ${c && c.id === t.id ? 'font-semibold text-teal' : 'text-ink-500 hover:text-ink'}">${t.name}<span class="text-ink-300 text-[12px]">${countIn(t.id)}</span></a>
+      ${top && top.id === t.id && children(t.id).length ? `<ul class="ml-3 pl-3 border-l border-ink/10">${children(t.id).map(s => `<li><a href="shop.html?cat=${s.slug}" class="flex justify-between py-1.5 ${c.id === s.id ? 'font-semibold text-teal' : 'text-ink-500 hover:text-ink'}">${s.name}<span class="text-ink-300 text-[12px]">${countIn(s.id)}</span></a></li>`).join('')}</ul>` : ''}</li>`).join('')}</ul></details>`;
+  const boxes = FACETS.map(f => {
+    const m = facetCounts(f), vals = [...m.keys()].sort((a, b) => f.key === 'thickness' ? parseFloat(a) - parseFloat(b) : 0);
+    if (!vals.length && !state.f[f.key].length) return '';
+    const open = state.f[f.key].length || ['type', 'finish', 'tag'].includes(f.key);
+    const items = f.swatch
+      ? `<div class="mt-3 grid grid-cols-4 gap-2">${vals.map(v => `<label class="cursor-pointer text-center" title="${v}"><input type="checkbox" class="sr-only peer" data-f="${f.key}" value="${esc(v)}" ${state.f[f.key].includes(v) ? 'checked' : ''}><span class="block aspect-square rounded-full bg-cover ring-1 ring-ink/15 peer-checked:ring-2 peer-checked:ring-teal peer-checked:ring-offset-2" style="background-image:url('${colourStone(v)}')"></span><small class="block text-[10.5px] text-ink-500 mt-1 leading-tight">${v.split(' ')[0]}</small></label>`).join('')}</div>`
+      : `<div class="mt-3 space-y-1">${vals.map(v => `<label class="flex items-center gap-2.5 py-1 text-[14px] cursor-pointer ${f.nested && v !== 'Imported' && v !== 'Indian' ? 'ml-6 text-[13px] text-ink-500' : ''}"><input type="checkbox" data-f="${f.key}" value="${esc(v)}" ${state.f[f.key].includes(v) ? 'checked' : ''}><span class="flex-1">${f.show ? f.show(v) : v}</span><span class="text-ink-300 text-[12px]">${m.get(v)}</span></label>`).join('')}</div>`;
+    return `<details ${open ? 'open' : ''} class="fbox bg-white rounded-2xl border border-ink/5 p-4"><summary class="flex items-center justify-between font-semibold cursor-pointer list-none text-[14px]">${f.label}${state.f[f.key].length ? `<span class="ml-auto mr-2 text-[11px] bg-teal text-white rounded-full px-2">${state.f[f.key].length}</span>` : ''}<i data-lucide="chevron-down"></i></summary>${items}</details>`;
+  }).join('');
+  const price = `<details open class="fbox bg-white rounded-2xl border border-ink/5 p-4"><summary class="flex items-center justify-between font-semibold cursor-pointer list-none text-[14px]">Price per unit<i data-lucide="chevron-down"></i></summary>
+    <div class="mt-3 grid grid-cols-2 gap-2"><label><span class="text-[12px] text-ink-500">Min ₹</span><input id="pmin" type="number" min="0" value="${state.min}" placeholder="0" class="field !h-10"></label><label><span class="text-[12px] text-ink-500">Max ₹</span><input id="pmax" type="number" min="0" value="${state.max}" placeholder="Any" class="field !h-10"></label></div>
+    <div class="mt-2 flex flex-wrap gap-1.5">${[[0, 200], [200, 500], [500, 1000], [1000, '']].map(([a, b]) => `<button type="button" data-range="${a},${b}" class="text-[12px] px-2.5 py-1 rounded-full bg-cream hover:bg-cream-300">${b ? `₹${a}–${b}` : `₹${a}+`}</button>`).join('')}</div></details>`;
+  const avail = `<details open class="fbox bg-white rounded-2xl border border-ink/5 p-4"><summary class="flex items-center justify-between font-semibold cursor-pointer list-none text-[14px]">Availability<i data-lucide="chevron-down"></i></summary>
+    <div class="mt-3 space-y-1 text-[14px]">${[['in', 'Ready to order'], ['price', 'Show price online'], ['nosoon', 'Hide coming soon']].map(([k, l]) => `<label class="flex items-center gap-2.5 py-1 cursor-pointer"><input type="checkbox" data-avail value="${k}" ${state.avail.includes(k) ? 'checked' : ''}>${l}</label>`).join('')}</div></details>`;
+  $('#facetList').innerHTML = tree + boxes + price + avail;
+}
+
+/* ---------- results ---------- */
+const PER = 12;
+function renderResults() {
+  const r = results(), pages = Math.max(1, Math.ceil(r.length / PER)); state.page = Math.min(state.page, pages);
+  $('#count').textContent = r.length; $('#applyCount').textContent = `${r.length} stones`;
+  $('#results').className = `mt-5 grid gap-3 sm:gap-5 ${state.dense ? 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6' : 'grid-cols-2 md:grid-cols-3 2xl:grid-cols-4'}`;
+  $('#results').innerHTML = r.length ? r.slice((state.page - 1) * PER, state.page * PER).map(card).join('')
+    : `<div class="col-span-full bg-white rounded-[24px] border border-ink/5 p-10 text-center"><span class="w-14 h-14 mx-auto rounded-full bg-cream grid place-items-center"><i data-lucide="search-x" class="!w-6 !h-6"></i></span><h2 class="font-display text-[26px] mt-4">No stones match</h2><p class="text-ink-500 mt-1">Try removing a filter, or tell us what you need — we source to order.</p><div class="mt-5 flex justify-center gap-2"><button class="btn btn-dark" data-clear>Clear filters</button><a href="contact.html" class="btn btn-line">Ask us</a></div></div>`;
+  $('#pager').innerHTML = pages > 1 ? Array.from({ length: pages }, (_, i) => `<button data-page="${i + 1}" class="w-10 h-10 rounded-full text-[14px] font-semibold ${i + 1 === state.page ? 'bg-ink text-cream' : 'hover:bg-white'}">${i + 1}</button>`).join('') : '';
+  // active chips
+  const chips = [];
+  if (state.q) chips.push(['q', '', `“${state.q}”`]);
+  if (state.offer) chips.push(['offer', '', 'On offer']);
+  FACETS.forEach(f => state.f[f.key].forEach(v => chips.push([f.key, v, f.show ? f.show(v) : v])));
+  if (state.min || state.max) chips.push(['price', '', `₹${state.min || 0} – ${state.max ? '₹' + state.max : 'any'}`]);
+  state.avail.forEach(a => chips.push(['avail', a, { in: 'Ready to order', price: 'Price shown', nosoon: 'No coming soon' }[a]]));
+  $('#chips').innerHTML = chips.map(([k, v, l]) => `<button data-chip="${k}" data-val="${esc(v)}" class="h-8 pl-3 pr-2 rounded-full bg-white border border-ink/10 hover:border-ink text-[13px] flex items-center gap-1.5">${esc(l)}<i data-lucide="x" class="!w-3.5 !h-3.5"></i></button>`).join('') + (chips.length ? '<button data-clear class="h-8 px-2 text-[13px] font-semibold text-teal">Clear all</button>' : '');
+  const n = chips.length; $('#fCount').textContent = n; $('#fCount').classList.toggle('hidden', !n); $('#fCount').classList.toggle('grid', !!n);
+  $$('[data-dense]').forEach(b => b.classList.toggle('bg-ink', +b.dataset.dense === +state.dense));
+  $$('[data-dense]').forEach(b => b.classList.toggle('text-cream', +b.dataset.dense === +state.dense));
+  icons();
+}
+function syncUrl() {
+  const u = new URLSearchParams(); if (state.cat) u.set('cat', state.cat); if (state.q) u.set('q', state.q); if (state.offer) u.set('offer', 1);
+  FACETS.forEach(f => state.f[f.key].forEach(v => u.append(f.key, v))); if (state.min) u.set('min', state.min); if (state.max) u.set('max', state.max);
+  state.avail.forEach(a => u.append('avail', a)); if (state.sort !== 'featured') u.set('sort', state.sort);
+  history.replaceState(null, '', 'shop.html' + (u.toString() ? '?' + u : ''));
+}
+const refresh = () => { state.page = 1; syncUrl(); renderFacets(); renderResults(); };
+
+$('#facetList').addEventListener('change', e => {
+  const t = e.target;
+  if (t.dataset.f) { const a = state.f[t.dataset.f]; t.checked ? a.push(t.value) : a.splice(a.indexOf(t.value), 1); refresh(); }
+  if ('avail' in t.dataset) { t.checked ? state.avail.push(t.value) : state.avail.splice(state.avail.indexOf(t.value), 1); refresh(); }
+  if (t.id === 'pmin' || t.id === 'pmax') { state.min = $('#pmin').value; state.max = $('#pmax').value; refresh(); }
+});
+$('#facetList').addEventListener('click', e => { const b = e.target.closest('[data-range]'); if (b) { [state.min, state.max] = b.dataset.range.split(','); refresh(); } });
+document.addEventListener('click', e => {
+  const c = e.target.closest('[data-chip]'), clr = e.target.closest('[data-clear]'), pg = e.target.closest('[data-page]'), d = e.target.closest('[data-dense]');
+  if (c) { const k = c.dataset.chip, v = c.dataset.val;
+    if (k === 'q') state.q = ''; else if (k === 'offer') state.offer = false; else if (k === 'price') state.min = state.max = ''; else if (k === 'avail') state.avail = state.avail.filter(x => x !== v); else state.f[k] = state.f[k].filter(x => x !== v);
+    refresh(); }
+  if (clr) { state.q = ''; state.offer = false; state.min = state.max = ''; state.avail = []; FACETS.forEach(f => state.f[f.key] = []); refresh(); }
+  if (pg) { state.page = +pg.dataset.page; renderResults(); scrollTo({ top: $('#count').getBoundingClientRect().top + scrollY - 120 }); }
+  if (d) { state.dense = d.dataset.dense === '1'; renderResults(); }
+});
+$('#sort').value = state.sort; $('#sort').onchange = e => { state.sort = e.target.value; syncUrl(); renderResults(); };
+$('#openFilters').onclick = () => $('#filters').classList.add('open');
+$('#closeFilters').onclick = $('#applyFilters').onclick = () => $('#filters').classList.remove('open');
+$('#clearAll2').onclick = () => $('[data-clear]')?.click() ?? 0;
+document.addEventListener('saved-changed', () => {});
+
+renderHeader(); renderFacets(); renderResults();
+</script>
+</body>
+</html>

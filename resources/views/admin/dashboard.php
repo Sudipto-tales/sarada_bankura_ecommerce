@@ -7,6 +7,8 @@ $byStatus = $byStatus ?? [];
 $coverage = $coverage ?? [];
 $daily = $daily ?? ['this' => array_fill(0, 30, 0), 'last' => array_fill(0, 30, 0), 'labels' => []];
 $byCategory = $byCategory ?? [];
+$stock = $stock ?? ['tracked' => 0, 'healthy' => 0, 'low' => 0, 'out' => 0, 'untracked' => 0];
+$stockAttention = $stockAttention ?? [];
 $s = static fn($k) => (int) ($stats[$k] ?? 0);
 $total = $s('products');
 $pct = static fn(int $n, int $of): int => $of > 0 ? (int) round($n / $of * 100) : 0;
@@ -187,6 +189,57 @@ include __DIR__ . '/partials/header.php';
     </div>
   </section>
 </div>
+
+<!-- Inventory stock card -->
+<section class="card dash-stock">
+  <div class="card-h">
+    <div class="flex items-center gap-3">
+      <span class="metric-icon" style="background:#eaf5ee;color:#2f9e63"><i data-lucide="archive"></i></span>
+      <h3 style="font-size:17px">Inventory <span class="muted" style="font-weight:500;font-size:12px">· stock health</span></h3>
+    </div>
+    <a class="viewall" href="<?= route('admin.inventory') ?>">Manage <i data-lucide="arrow-right"></i></a>
+  </div>
+  <?php if ((int) ($stock['tracked'] ?? 0) === 0): ?>
+    <div class="stock-empty muted">
+      <i data-lucide="package-search"></i>
+      <span>No products are tracking stock yet. <a href="<?= route('admin.inventory.stock') ?>">Start tracking →</a></span>
+    </div>
+  <?php else: ?>
+    <div class="stock-grid">
+      <div class="stock-tiles">
+        <?php
+        $tiles = [
+            ['Tracked', (int) $stock['tracked'], '#5b7bb0', route('admin.inventory.stock')],
+            ['In stock', (int) $stock['healthy'], '#2f9e63', route('admin.inventory.stock') . '?status=healthy'],
+            ['Low', (int) $stock['low'], '#c98a12', route('admin.inventory.stock') . '?status=low'],
+            ['Out', (int) $stock['out'], '#c2412a', route('admin.inventory.stock') . '?status=out'],
+        ];
+        foreach ($tiles as [$lbl, $n, $col, $href]): ?>
+        <a class="stock-tile" href="<?= $href ?>">
+          <span class="dot" style="background:<?= $col ?>"></span>
+          <b><?= number_format($n) ?></b>
+          <span class="muted"><?= $lbl ?></span>
+        </a>
+        <?php endforeach; ?>
+      </div>
+      <div class="stock-att">
+        <?php if ($stockAttention): ?>
+          <div class="stock-att-h">Needs attention</div>
+          <?php foreach ($stockAttention as $a): $isOut = (string) $a['status'] === 'out';
+              $qd = rtrim(rtrim((string) $a['quantity'], '0'), '.'); $qd = $qd === '' ? '0' : $qd; ?>
+          <a class="stock-att-row" href="<?= route('admin.inventory.stock') ?>?product=<?= (int) $a['id'] ?>">
+            <span class="pill <?= $isOut ? 'out' : 'low' ?>"><?= $isOut ? 'Out' : 'Low' ?></span>
+            <span class="nm"><?= e((string) $a['name']) ?></span>
+            <span class="q"><?= e($qd) ?> <span class="muted"><?= e((string) $a['unit']) ?></span></span>
+          </a>
+          <?php endforeach; ?>
+        <?php else: ?>
+          <div class="stock-ok"><i data-lucide="circle-check-big"></i> All tracked products are in healthy stock.</div>
+        <?php endif; ?>
+      </div>
+    </div>
+  <?php endif; ?>
+</section>
 
 <div class="dash-bottom">
   <!-- Recent products (≈ Recent Sales) -->

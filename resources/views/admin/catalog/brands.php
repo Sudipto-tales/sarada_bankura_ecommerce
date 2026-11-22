@@ -38,8 +38,6 @@ include __DIR__ . '/../partials/header.php';
   </div>
 </div>
 <?php include __DIR__ . '/../partials/catalog-tabs.php'; ?>
-<?php if ($success): ?><div class="notice ok">✓ <?= e($success) ?></div><?php endif; ?>
-<?php if ($error): ?><div class="notice bad"><?= e($error) ?></div><?php endif; ?>
 
 <div class="statstrip">
   <div class="stat glass"><span class="metric-icon"><i data-lucide="bookmark"></i></span><div><small>Active brands</small><b><?= $stats['active'] ?></b><em><?= count($rows) ?> brand profiles</em></div></div>

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Track Your Order — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[2000px] mx-auto px-4 sm:px-6 lg:px-10 2xl:px-16 pt-8">
+  <div class="grid lg:grid-cols-2 gap-6 items-stretch">
+    <section class="bg-white rounded-[28px] border border-ink/5 p-7 sm:p-10" data-map="lookup: orders.order_no + customers.phone → /order/{public_token}">
+      <p class="eyebrow">Track order</p><h1 class="font-display text-[40px] leading-tight mt-1">Where’s my stone?</h1>
+      <p class="text-ink-500 mt-2">Enter your order number and the mobile number you ordered with.</p>
+      <form class="mt-6 space-y-4" onsubmit="event.preventDefault();location.href='order.html?token=k7Qe2xVn&state=dispatched'">
+        <label class="block"><span class="lbl">Order number</span><input required class="field" placeholder="MSM-2026-0142" value="MSM-2026-0142"></label>
+        <label class="block"><span class="lbl">Mobile number</span><input required inputmode="numeric" maxlength="10" class="field" placeholder="10-digit mobile"></label>
+        <button class="btn btn-dark w-full">Track order</button>
+      </form>
+      <p class="mt-5 text-[13.5px] text-ink-500">Signed in? See all orders in <a href="account.html" class="text-teal font-semibold">your account</a>.</p>
+    </section>
+    <section id="pay" class="rounded-[28px] bg-ink text-cream p-7 sm:p-10 flex flex-col" data-map="/pay/{token} — amount due now">
+      <p class="text-[12px] uppercase tracking-[.2em] text-cream/60 font-semibold">Pay a balance</p><h2 class="font-display text-[40px] leading-tight mt-1">Pay what’s due</h2>
+      <p class="text-cream/70 mt-2">Got a payment link from us? Open it — or look up your order here. The amount is worked out for you.</p>
+      <form class="mt-6 space-y-4" onsubmit="event.preventDefault();location.href='pay.html?token=k7Qe2xVn'">
+        <label class="block"><span class="lbl">Order number</span><input required class="field !bg-cream !text-ink" placeholder="MSM-2026-0142"></label>
+        <label class="block"><span class="lbl">Mobile number</span><input required inputmode="numeric" class="field !bg-cream !text-ink"></label>
+        <button class="btn btn-copper w-full">Find balance</button>
+      </form>
+      <div class="mt-auto pt-8 grid grid-cols-3 gap-3 text-[12.5px] text-cream/70"><span><i data-lucide="smartphone" class="text-[#E9B48F]"></i><br>UPI or bank transfer</span><span><i data-lucide="shield-check" class="text-[#E9B48F]"></i><br>Checked by hand</span><span><i data-lucide="receipt-text" class="text-[#E9B48F]"></i><br>Receipt for every payment</span></div>
+    </section>
+  </div>
+</main>
+<script>renderChrome(); icons();</script>
+</body>
+</html>

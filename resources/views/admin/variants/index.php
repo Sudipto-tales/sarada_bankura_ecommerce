@@ -29,8 +29,6 @@ include __DIR__ . '/../partials/header.php';
     <button class="btn gold" type="button" data-open-groups><i data-lucide="sparkles" style="width:16px"></i>Manage product options</button>
   </div>
 </div>
-<?php if ($success): ?><div class="notice ok">✓ <?= e($success) ?></div><?php endif; ?>
-<?php if ($error): ?><div class="notice bad"><?= e($error) ?></div><?php endif; ?>
 
 <div class="statstrip">
   <div class="stat glass"><span class="metric-icon"><i data-lucide="box"></i></span><div><small>Variant products</small><b><?= $stats['products'] ?></b><em><?= $stats['catalog'] ?> products in catalogue</em></div></div>

@@ -1,8 +1,52 @@
 </main>
-<div class="toast" id="toast"></div>
+<div class="toasts" id="msToasts" role="region" aria-label="Notifications" aria-live="polite"></div>
 <form method="post" id="msDelForm" class="hidden"><?= csrf_field() ?></form>
+<?php
+// Every flashed message becomes a toast, so controllers only need session()->flash('success'|'error'|'warning'|'info', …).
+$msFlash = [];
+foreach (['success', 'error', 'warning', 'info'] as $msTone) {
+    $msVal = session()->get($msTone);
+    if (is_string($msVal) && $msVal !== '') $msFlash[] = ['type' => $msTone, 'message' => $msVal];
+}
+$msErrCount = count(errors());
+if ($msErrCount) $msFlash[] = ['type' => 'warning', 'title' => 'Check the form', 'message' => $msErrCount . ' field' . ($msErrCount === 1 ? ' needs' : 's need') . ' attention — see the highlighted inputs.'];
+?>
 <script>
 lucide.createIcons();
+// ---- Toasts: msToast('Saved') · msToast.error('Failed', {title, duration, action:{label,href}}) · msToast({type,title,message}).
+(function(){
+  var box=document.getElementById('msToasts');
+  var ICON={success:'circle-check',error:'circle-alert',warning:'triangle-alert',info:'info'};
+  var TITLE={success:'Done',error:'Couldn\'t complete that',warning:'Heads up',info:'For your information'};
+  function make(tag,cls,text){var el=document.createElement(tag);if(cls)el.className=cls;if(text!=null)el.textContent=text;return el;}
+  function close(t){if(t.dataset.closing)return;t.dataset.closing=1;clearTimeout(t._timer);t.classList.add('out');setTimeout(function(){t.remove();},230);}
+  function toast(o,opts){
+    if(typeof o==='string')o=Object.assign({message:o},opts||{});
+    var type=ICON[o.type]?o.type:'success';
+    // errors stay until dismissed; everything else fades after a few seconds (longer for long messages)
+    var dur=o.duration!=null?o.duration:(type==='error'?0:Math.min(9000,4200+(o.message||'').length*25));
+    var t=make('div','tst '+type);t.setAttribute('role',type==='error'?'alert':'status');
+    var ic=make('div','tst-ic');ic.innerHTML='<i data-lucide="'+ICON[type]+'"></i>';
+    var body=make('div','tst-body');body.appendChild(make('div','tst-title',o.title||TITLE[type]));
+    if(o.message)body.appendChild(make('div','tst-msg',o.message));
+    if(o.action&&o.action.href){var a=make('a','tst-act',o.action.label||'View');a.href=o.action.href;a.insertAdjacentHTML('beforeend','<i data-lucide="arrow-right" style="width:13px;height:13px"></i>');body.appendChild(a);}
+    var x=make('button','tst-x');x.type='button';x.setAttribute('aria-label','Dismiss');x.innerHTML='<i data-lucide="x"></i>';x.onclick=function(){close(t);};
+    t.append(ic,body,x);
+    if(dur>0){
+      var bar=make('div','tst-bar');bar.style.animationDuration=dur+'ms';t.appendChild(bar);
+      // the bar drives the timer, so hovering (which pauses the bar) also pauses the dismiss
+      bar.addEventListener('animationend',function(){close(t);});
+    }
+    box.appendChild(t);
+    while(box.children.length>4)close(box.firstElementChild);
+    if(window.lucide)lucide.createIcons();
+    return {close:function(){close(t);}};
+  }
+  ['success','error','warning','info'].forEach(function(k){toast[k]=function(m,o){return toast(Object.assign({},o||{},{type:k,message:m}));};});
+  window.msToast=toast;
+  var flash=<?= json_encode($msFlash, JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT) ?>;
+  flash.forEach(function(f,i){setTimeout(function(){toast(f);},120+i*140);});
+})();
 function msToggleSidebar(){
   var r=document.documentElement; r.classList.toggle('sb-mini');
   try{localStorage.setItem('ms.sidebar',r.classList.contains('sb-mini')?'mini':'full')}catch(e){}

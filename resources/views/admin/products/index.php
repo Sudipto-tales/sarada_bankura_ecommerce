@@ -22,9 +22,6 @@ include __DIR__ . '/../partials/header.php';
   </div>
 </div>
 
-<?php if ($success): ?>
-<div class="notice" style="margin-bottom:16px;background:#dff3e9;border-color:#bfe6d2;color:#1f7a53">✓ <?= e($success) ?></div>
-<?php endif; ?>
 
 <form method="get" action="<?= route('admin.products.index') ?>" class="card" style="padding:14px;margin-bottom:16px;display:flex;gap:10px;flex-wrap:wrap;align-items:center">
   <div class="search" style="flex:1;min-width:200px;max-width:none">
@@ -53,11 +50,11 @@ include __DIR__ . '/../partials/header.php';
   <div class="tablewrap">
     <table class="data">
       <thead>
-        <tr><th>Product</th><th>Type</th><th>Brand</th><th>Price</th><th>Status</th><th></th></tr>
+        <tr><th>Product</th><th>Type</th><th>Brand</th><th>Price</th><th>Stock</th><th>Status</th><th></th></tr>
       </thead>
       <tbody>
         <?php if (!$products): ?>
-          <tr><td colspan="6" style="text-align:center;padding:40px" class="muted">No products match. <a style="color:#b17a13;font-weight:700" href="<?= route('admin.products.create') ?>">Add a product →</a></td></tr>
+          <tr><td colspan="7" style="text-align:center;padding:40px" class="muted">No products match. <a style="color:#b17a13;font-weight:700" href="<?= route('admin.products.create') ?>">Add a product →</a></td></tr>
         <?php else: foreach ($products as $p):
             $pid = $row($p, 'id');
             $status = (string) $row($p, 'status', 'draft');
@@ -87,6 +84,25 @@ include __DIR__ . '/../partials/header.php';
               <?php elseif ($showPrice && $price !== null && $price !== ''): ?>
                 <?= e((string) $row($p, 'currency', 'INR')) ?> <?= e((string) $price) ?><?php if ($u = $row($p, 'selling_unit')): ?><span class="muted">/<?= e((string) $u) ?></span><?php endif; ?>
               <?php else: ?><span class="muted">—</span><?php endif; ?>
+            </td>
+            <td style="white-space:nowrap">
+              <?php
+                $stId = $row($p, 'stock_id');
+                if (!$stId) {
+                    echo '<span class="muted" style="font-size:12px">Not tracked</span>';
+                } else {
+                    $sStatus = (string) $row($p, 'stock_status', 'healthy');
+                    $qty = rtrim(rtrim((string) $row($p, 'stock_qty', '0'), '0'), '.');
+                    $qty = $qty === '' ? '0' : $qty;
+                    $sUnit = (string) $row($p, 'stock_unit', '');
+                    $dot = ['healthy' => '#2f9e63', 'low' => '#c98a12', 'out' => '#c2412a'][$sStatus] ?? '#9b958a';
+                    $lbl = ['healthy' => 'In stock', 'low' => 'Low', 'out' => 'Out'][$sStatus] ?? $sStatus;
+              ?>
+              <a href="<?= route('admin.inventory.stock') ?>?product=<?= (int) $pid ?>" style="display:inline-flex;align-items:center;gap:7px;color:inherit" title="Manage stock">
+                <span style="width:8px;height:8px;border-radius:50%;background:<?= $dot ?>;flex-shrink:0"></span>
+                <span><b style="font-weight:700"><?= e($qty) ?></b><?php if ($sUnit): ?> <span class="muted" style="font-size:11px"><?= e($sUnit) ?></span><?php endif; ?><span class="muted" style="font-size:11px;display:block;line-height:1"><?= e($lbl) ?></span></span>
+              </a>
+              <?php } ?>
             </td>
             <td><span class="badge <?= e($status) ?>"><?= e(str_replace('_', ' ', $status)) ?></span></td>
             <td style="text-align:right;white-space:nowrap">

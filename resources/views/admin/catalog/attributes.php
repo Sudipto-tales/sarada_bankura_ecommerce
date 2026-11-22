@@ -38,8 +38,6 @@ include __DIR__ . '/../partials/header.php';
   <a class="btn" href="<?= route('admin.units') ?>"><i data-lucide="ruler" style="width:16px"></i>Manage units</a>
 </div>
 <?php include __DIR__ . '/../partials/catalog-tabs.php'; ?>
-<?php if ($success): ?><div class="notice ok">✓ <?= e($success) ?></div><?php endif; ?>
-<?php if ($error): ?><div class="notice bad"><?= e($error) ?></div><?php endif; ?>
 
 <div class="statstrip">
   <div class="stat glass"><span class="metric-icon"><i data-lucide="sliders-horizontal"></i></span><div><small>Active attributes</small><b><?= $stats['active'] ?></b><em><?= $stats['archived'] ?> archived</em></div></div>

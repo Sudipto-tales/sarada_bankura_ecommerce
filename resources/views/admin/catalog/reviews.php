@@ -23,8 +23,6 @@ include __DIR__ . '/../partials/header.php';
   </div>
 </div>
 <?php include __DIR__ . '/../partials/catalog-tabs.php'; ?>
-<?php if ($success): ?><div class="notice ok">✓ <?= e($success) ?></div><?php endif; ?>
-<?php if ($error): ?><div class="notice bad"><?= e($error) ?></div><?php endif; ?>
 
 <div class="statstrip">
   <div class="stat glass"><span class="metric-icon"><i data-lucide="star"></i></span><div><small>Average rating</small><b><?= $stats['published'] ? number_format($stats['avg'], 1) : '—' ?></b><em><?= $stats['published'] ?> published reviews</em></div></div>

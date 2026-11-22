@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Your Order — Maa Sarada</title>
+<link rel="icon" href="assets/logo.webp">
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,300;9..144,400;9..144,500&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.tailwindcss.com/3.4.16"></script>
+<script src="assets/store.js"></script>
+<script src="https://unpkg.com/lucide@0.544.0/dist/umd/lucide.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+</head>
+<body class="font-sans text-[15px]">
+<main id="main" class="w-full max-w-[1500px] mx-auto px-4 sm:px-6 lg:px-10 pt-8">
+  <div id="thanks"></div>
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div><p class="eyebrow">Order</p><h1 id="oNo" class="font-display text-[40px] sm:text-[46px] leading-tight tracking-tight mt-1"></h1><p id="oMeta" class="text-ink-500 text-[14px]"></p></div>
+    <div class="flex gap-2"><a href="https://wa.me/910000000000" class="btn btn-line !h-11"><i data-lucide="message-circle"></i> Help</a><button onclick="print()" class="btn btn-line !h-11"><i data-lucide="printer"></i> Print</button></div>
+  </div>
+
+  <div class="mt-8 grid lg:grid-cols-[minmax(0,1fr),420px] gap-6 items-start">
+    <div class="space-y-6">
+      <section id="statusBox" class="bg-white rounded-[24px] border border-ink/5 p-6 sm:p-8" data-map="orders.status + order_status_history (pending→accepted→processing→packed→dispatched→delivered | rejected)"></section>
+      <section class="bg-white rounded-[24px] border border-ink/5 p-6 sm:p-8" data-map="order_items (snapshot: name, variant title, sku, unit, price, qty)">
+        <h2 class="font-display text-[24px]">Items</h2>
+        <ul id="items" class="mt-4 divide-y divide-ink/5"></ul>
+      </section>
+      <section class="grid sm:grid-cols-2 gap-6">
+        <div class="bg-white rounded-[24px] border border-ink/5 p-6" data-map="order shipping address snapshot"><h2 class="font-semibold flex items-center gap-2"><i data-lucide="map-pin" class="text-teal"></i> Delivering to</h2><address id="addr" class="not-italic text-[14px] text-ink-500 mt-3 leading-relaxed"></address></div>
+        <div class="bg-white rounded-[24px] border border-ink/5 p-6" data-map="order_invoices.public_token · packing slip"><h2 class="font-semibold flex items-center gap-2"><i data-lucide="file-text" class="text-teal"></i> Documents</h2><ul id="docs" class="mt-3 space-y-2 text-[14px]"></ul></div>
+      </section>
+    </div>
+
+    <aside class="space-y-6 lg:sticky lg:top-[92px]">
+      <section id="payBox" class="bg-white rounded-[28px] border border-ink/5 p-6 sm:p-7" data-map="orders.paid / due / pending_verification ← payments (verified | pending | rejected)"></section>
+      <section id="retBox"></section>
+    </aside>
+  </div>
+
+  <!-- design aid -->
+  <div class="mt-12 rounded-2xl border border-dashed border-teal/40 p-4 flex flex-wrap items-center gap-2 text-[13px]"><span class="font-semibold text-teal mr-2">Preview order state:</span><span id="states" class="flex flex-wrap gap-1.5"></span></div>
+</main>
+
+<!-- return / replacement request -->
+<dialog id="retDlg" class="rounded-[28px] p-0 w-[min(560px,94vw)] backdrop:bg-ink/60">
+  <form method="dialog" class="p-6 sm:p-7" data-map="return_requests + return_request_items (partial qty) — admin must approve">
+    <div class="flex items-center justify-between"><h2 class="font-display text-[26px]">Return or replace</h2><button value="x" class="p-2 rounded-full hover:bg-cream" aria-label="Close"><i data-lucide="x"></i></button></div>
+    <p class="text-[13.5px] text-ink-500 mt-1">We review every request. Once you submit, it can’t be cancelled.</p>
+    <div class="mt-5 grid grid-cols-2 gap-2"><label class="cursor-pointer"><input type="radio" name="kind" value="replace" checked class="peer sr-only"><span class="block rounded-2xl border border-ink/15 p-3 peer-checked:border-ink peer-checked:ring-1 peer-checked:ring-ink"><b class="block">Replacement</b><span class="text-[12.5px] text-ink-500">Broken or damaged pieces</span></span></label><label class="cursor-pointer"><input type="radio" name="kind" value="return" class="peer sr-only"><span class="block rounded-2xl border border-ink/15 p-3 peer-checked:border-ink peer-checked:ring-1 peer-checked:ring-ink"><b class="block">Return</b><span class="text-[12.5px] text-ink-500">Uncut full slabs only</span></span></label></div>
+    <div id="retItems" class="mt-5 space-y-3"></div>
+    <label class="block mt-4"><span class="lbl">What happened?</span><select class="field"><option>Broken in transit</option><option>Chipped edge</option><option>Wrong stone or size</option><option>Colour very different from sample</option><option>Other</option></select></label>
+    <label class="block mt-4"><span class="lbl">Photos <span class="text-copper">*</span></span><span class="field !h-20 !flex items-center justify-center gap-2 text-ink-500 cursor-pointer border-dashed"><i data-lucide="image-plus"></i> Add photos of the damage<input type="file" accept="image/*" class="sr-only"></span></label>
+    <label class="block mt-4"><span class="lbl">Details</span><textarea rows="2" class="field"></textarea></label>
+    <button value="ok" class="btn btn-dark w-full mt-5" onclick="setTimeout(()=>toast('Request sent — we’ll call you within a working day'),50)">Submit request</button>
+  </form>
+</dialog>
+
+<script>
+renderChrome();
+const STATES = ['pending', 'accepted', 'processing', 'packed', 'dispatched', 'delivered', 'rejected'];
+const state = STATES.includes(qs('state')) ? qs('state') : 'accepted', plan = qs('plan') || 'advance';
+const o = JSON.parse(JSON.stringify(DEMO_ORDER));
+const base = orderTotals({ ...o, payments: [] }), adv = plan === 'full' ? base.total : ceil2(base.total * .2);
+o.payments = [{ ref: 'MSM-PA-0043', amount: adv, status: state === 'pending' ? 'pending' : 'verified', method: 'UPI', utr: '43210987XXXX', at: '22 Nov, 4:16 PM' }];
+if (state === 'delivered' && plan !== 'full') o.payments.push({ ref: 'MSM-PA-0051', amount: round2(base.total - adv), status: 'verified', method: 'UPI', utr: '55120934XXXX', at: '27 Nov, 11:02 AM' });
+const t = orderTotals(o), idx = STATES.indexOf(state);
+
+$('#oNo').textContent = o.order_no;
+$('#oMeta').textContent = `Placed ${o.created_at} · ${o.customer.name} · ${o.customer.phone}`;
+if (qs('just')) $('#thanks').innerHTML = `<div class="mb-8 rounded-[28px] bg-ink text-cream p-6 sm:p-8 flex flex-col sm:flex-row gap-5 sm:items-center"><span class="w-14 h-14 rounded-full bg-teal grid place-items-center shrink-0"><i data-lucide="check" class="!w-7 !h-7"></i></span><div class="flex-1"><h2 class="font-display text-[30px] leading-tight">Thank you — your order is placed</h2><p class="text-cream/75 mt-1">We’re checking your payment of ${inr(adv, true)}. You’ll get a WhatsApp message when it’s confirmed. Keep this page’s link to check your order any time.</p></div><button class="btn bg-cream text-ink !h-11 shrink-0" onclick="navigator.clipboard?.writeText(location.href.split('&')[0]);toast('Link copied')"><i data-lucide="link"></i> Copy link</button></div>`;
+
+/* status timeline */
+const STEPS = [['pending', 'Order placed', 'We’re checking your payment', 'receipt'], ['accepted', 'Confirmed', 'Your stone is reserved for you', 'badge-check'], ['processing', 'Preparing', 'Cutting and polishing to size', 'hammer'], ['packed', 'Packed', 'Crated and ready to load', 'package'], ['dispatched', 'On the way', 'Truck has left our yard', 'truck'], ['delivered', 'Delivered', 'Checked and signed with OTP', 'house']];
+const dates = ['22 Nov, 4:12 PM', '22 Nov, 6:40 PM', '23 Nov, 10:05 AM', '25 Nov, 3:30 PM', '26 Nov, 9:15 AM', '27 Nov, 1:20 PM'];
+if (state === 'rejected') {
+  $('#statusBox').innerHTML = `<div class="flex items-start gap-4"><span class="w-12 h-12 rounded-full bg-copper-50 text-copper grid place-items-center shrink-0"><i data-lucide="circle-x" class="!w-6 !h-6"></i></span><div><p class="text-[12px] uppercase tracking-[.16em] text-copper font-semibold">Order not accepted</p><h2 class="font-display text-[28px] leading-tight mt-1">We couldn’t take this order</h2>
+    <div class="mt-4 rounded-2xl bg-cream p-4 text-[14.5px] border-l-2 border-copper" data-map="orders.customer_note (shown on reject)"><b class="text-[12.5px] block mb-1">Note from Maa Sarada</b>${esc(o.customer_note)}</div>
+    <p class="text-[13.5px] text-ink-500 mt-3">Questions? <a href="https://wa.me/910000000000" class="text-teal font-semibold">Message us on WhatsApp</a>.</p></div></div>`;
+} else {
+  const cur = STEPS[idx];
+  $('#statusBox').innerHTML = `<div class="flex flex-wrap items-center justify-between gap-3"><div><p class="eyebrow">Status</p><h2 class="font-display text-[30px] leading-tight mt-1">${cur[1]}</h2><p class="text-ink-500 text-[14px]">${cur[2]}</p></div>
+    ${state === 'dispatched' ? `<div class="rounded-2xl bg-teal text-white px-5 py-3 text-center" data-map="order_deliveries.otp"><p class="text-[11.5px] uppercase tracking-[.14em] text-white/70">Delivery OTP</p><p class="font-display text-[30px] tracking-[.3em] leading-tight">4821</p><p class="text-[11.5px] text-white/70">Share only when the stone is unloaded</p></div>` : ''}</div>
+    <ol class="mt-8 grid grid-cols-6 gap-1 relative">${STEPS.map((s, i) => `<li class="text-center relative">${i ? `<span class="absolute top-5 right-1/2 w-full h-0.5 ${i <= idx ? 'bg-teal' : 'bg-ink/10'}"></span>` : ''}
+      <span class="relative mx-auto w-10 h-10 rounded-full grid place-items-center ${i < idx ? 'bg-teal text-white' : i === idx ? 'bg-ink text-cream ring-4 ring-teal/20' : 'bg-cream text-ink-300'}"><i data-lucide="${i < idx ? 'check' : s[3]}"></i></span>
+      <p class="mt-2 text-[12px] sm:text-[13px] font-semibold ${i > idx ? 'text-ink-300' : ''}">${s[1]}</p><p class="hidden sm:block text-[11.5px] text-ink-400">${i <= idx ? dates[i] : ''}</p></li>`).join('')}</ol>
+    ${state === 'dispatched' ? `<div class="mt-6 rounded-2xl bg-cream p-4 grid sm:grid-cols-3 gap-3 text-[13.5px]" data-map="order_deliveries (courier, vehicle, tracking, dispatched_at)"><div><p class="text-ink-400 text-[12px]">Vehicle</p><b>WB 67 A 4421 · Own truck</b></div><div><p class="text-ink-400 text-[12px]">Driver</p><b>Sujit · +91 90000 00000</b></div><div><p class="text-ink-400 text-[12px]">Expected</p><b>Today, by 6 PM</b></div></div>` : ''}`;
+}
+
+/* items */
+$('#items').innerHTML = t.items.map(i => `<li class="py-4 flex gap-4 items-center"><img src="${i.p.img}" alt="" class="w-16 h-16 rounded-xl object-cover"><div class="flex-1 min-w-0"><a href="${productUrl(i.p)}" class="font-semibold hover:text-teal">${esc(i.p.name)}</a><p class="text-[12.5px] text-ink-400">${i.v ? variantTitle(i.v) + ' · ' : ''}SKU ${i.v ? i.v.sku : i.p.sku}</p><p class="text-[13px] text-ink-500">${i.qty} ${i.unit} × ${inr(i.price)}</p></div><p class="font-semibold">${inr(i.line, true)}</p></li>`).join('');
+const a = o.address;
+$('#addr').innerHTML = `<b class="text-ink">${a.name}</b><br>${a.line1}<br>${a.line2}<br>${a.area}, ${a.district}<br>${a.state} ${a.pincode}<br>${a.phone}`;
+$('#docs').innerHTML = [['Order summary', true, 'file'], ['Payment receipt · MSM-PA-0043', state !== 'pending' && state !== 'rejected', 'receipt'], ['Packing slip', idx >= 3 && state !== 'rejected', 'package'], ['Tax invoice · MSM/26-27/0118', idx >= 4 && state !== 'rejected', 'file-text']]
+  .map(([l, on, ic]) => `<li class="flex items-center gap-2 ${on ? '' : 'text-ink-300'}"><i data-lucide="${ic}"></i>${on ? `<a href="#" class="font-semibold hover:text-teal">${l}</a>` : `${l} <span class="text-[11.5px] ml-auto">Later</span>`}</li>`).join('');
+
+/* payments */
+function renderPay() {
+  const tt = orderTotals(o);
+  $('#payBox').innerHTML = `<h2 class="font-display text-[24px]">Payment</h2>
+    <dl class="mt-4 space-y-2.5 text-[14.5px]"><div class="flex justify-between"><dt class="text-ink-500">Subtotal</dt><dd>${inr(tt.subtotal, true)}</dd></div><div class="flex justify-between"><dt class="text-ink-500">CGST + SGST ${o.gst_percent}%</dt><dd>${inr(tt.tax, true)}</dd></div><div class="flex justify-between"><dt class="text-ink-500">Delivery</dt><dd class="text-teal font-semibold">Included</dd></div>
+      <div class="flex justify-between pt-3 border-t border-ink/10 font-semibold"><dt>Order total</dt><dd>${inr(tt.total, true)}</dd></div>
+      <div class="flex justify-between text-teal"><dt>Paid &amp; confirmed</dt><dd class="font-semibold">${inr(tt.paid, true)}</dd></div>
+      ${tt.pending ? `<div class="flex justify-between text-[#8a6a35]"><dt>Under review</dt><dd class="font-semibold">${inr(tt.pending, true)}</dd></div>` : ''}
+      <div class="flex justify-between items-end pt-3 border-t border-ink/10"><dt class="font-semibold">Due</dt><dd class="font-display text-[30px] leading-none ${tt.due ? 'text-copper' : 'text-teal'}">${tt.due ? inr(tt.due, true) : 'Nothing'}</dd></div></dl>
+    ${tt.due && state !== 'rejected' ? `<button id="payRem" class="btn btn-copper w-full mt-5"><i data-lucide="smartphone"></i> Pay ${inr(tt.due, true)} by UPI</button><p class="text-[12px] text-ink-400 text-center mt-2">You can also pay at delivery. Delivery isn’t held up by the balance.</p>` : ''}
+    <h3 class="mt-6 text-[12px] uppercase tracking-[.14em] text-ink-400 font-semibold">Payments</h3>
+    <ul class="mt-2 space-y-2">${o.payments.map(p => `<li class="flex items-center gap-3 rounded-xl bg-cream-50 border border-ink/5 px-3.5 py-2.5 text-[13.5px]"><i data-lucide="${p.status === 'verified' ? 'circle-check' : p.status === 'pending' ? 'clock' : 'circle-x'}" class="${p.status === 'verified' ? 'text-teal' : p.status === 'pending' ? 'text-gold' : 'text-copper'}"></i><div class="flex-1 leading-tight"><b>${inr(p.amount, true)}</b> · ${p.method}<p class="text-[12px] text-ink-400">${p.ref} · UTR ${p.utr} · ${p.at}</p></div><span class="text-[11.5px] font-bold ${p.status === 'verified' ? 'text-teal' : p.status === 'pending' ? 'text-[#8a6a35]' : 'text-copper'}">${{ verified: 'Confirmed', pending: 'Under review', rejected: 'Not received' }[p.status]}</span></li>`).join('')}
+      ${state === 'rejected' ? `<li class="flex items-center gap-3 rounded-xl bg-copper-50 px-3.5 py-2.5 text-[13.5px]" data-map="payment_refunds"><i data-lucide="undo-2" class="text-copper"></i><div class="flex-1 leading-tight"><b>${inr(tt.paid, true)} refunded</b><p class="text-[12px] text-ink-500">UTR 5512XXXX · 23 Nov</p></div></li>` : ''}</ul>`;
+  const b = $('#payRem'); if (b) b.onclick = () => openPayWindow({ amount: tt.due, ref: 'MSM-PA-0052', title: 'Balance', onSubmit: () => { o.payments.push({ ref: 'MSM-PA-0052', amount: tt.due, status: 'pending', method: 'UPI', utr: 'submitted', at: 'just now' }); renderPay(); toast('Payment submitted — we’ll confirm it soon'); } });
+  icons();
+}
+renderPay();
+
+if (state === 'delivered') {
+  $('#retBox').innerHTML = `<div class="bg-white rounded-[24px] border border-ink/5 p-6" data-map="order_items.return_allowed / replacement_allowed + days (snapshot)"><h2 class="font-semibold flex items-center gap-2"><i data-lucide="package-check" class="text-teal"></i> Something wrong?</h2><p class="text-[13.5px] text-ink-500 mt-1">Report broken pieces within <b class="text-ink">7 days</b> of delivery (until 4 Dec).</p><button class="btn btn-line w-full mt-4 !h-11" onclick="$('#retDlg').showModal()">Request return or replacement</button><a href="review.html?slug=statuario-white" class="btn w-full !h-11 mt-2 text-teal"><i data-lucide="star"></i> Review your stone</a></div>`;
+  $('#retItems').innerHTML = t.items.map(i => `<label class="flex items-center gap-3 rounded-2xl border border-ink/10 p-3"><input type="checkbox" class="w-4 h-4 accent-[#1E6E74]"><img src="${i.p.img}" alt="" class="w-10 h-10 rounded-lg object-cover"><span class="flex-1 text-[13.5px] leading-tight"><b>${esc(i.p.name)}</b><br><span class="text-ink-400">${i.v ? variantTitle(i.v) : ''} · bought ${i.qty} ${i.unit}</span></span><input type="number" min="1" max="${i.qty}" value="1" class="field !w-20 !h-9" aria-label="Quantity"><span class="text-[12px] text-ink-400">${i.unit}</span></label>`).join('');
+}
+$('#states').innerHTML = STATES.map(s => `<a href="order.html?token=${o.public_token}&state=${s}" class="px-3 h-8 inline-flex items-center rounded-full border text-[12.5px] font-semibold ${s === state ? 'bg-teal text-white border-teal' : 'border-ink/15 hover:border-ink'}">${s}</a>`).join('');
+icons();
+</script>
+</body>
+</html>
