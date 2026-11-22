@@ -17,7 +17,6 @@ include __DIR__ . '/../partials/header.php';
   <form method="post" action="<?= route('admin.notifications.readAll') ?>"><?= csrf_field() ?><button class="btn gold" type="submit"><i data-lucide="check-check" style="width:16px"></i>Mark all as read</button></form>
   <?php endif; ?>
 </div>
-<?php if (!empty($success)): ?><div class="notice ok">✓ <?= e($success) ?></div><?php endif; ?>
 
 <div class="statstrip">
   <div class="stat glass"><span class="metric-icon"><i data-lucide="bell"></i></span><div><small>All notifications</small><b><?= $counts['all'] ?></b><em>Stock alerts, uploads &amp; checks</em></div></div>

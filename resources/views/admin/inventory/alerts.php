@@ -26,8 +26,6 @@ include __DIR__ . '/../partials/header.php';
     <form method="post" action="<?= route('admin.inventory.check') ?>"><?= csrf_field() ?><button class="btn gold" type="submit"><i data-lucide="refresh-cw" style="width:16px"></i>Run check now</button></form>
   </div>
 </div>
-<?php if (!empty($success)): ?><div class="notice ok">✓ <?= e($success) ?></div><?php endif; ?>
-<?php if (!empty($error)): ?><div class="notice bad"><?= e($error) ?></div><?php endif; ?>
 <?php if (empty($enabled)): ?><div class="notice">Alerts are switched off. Existing alerts stay as they are and no new ones are raised until you switch them back on below.</div><?php endif; ?>
 
 <?php $lc = $lastCheck ?? null; if ($lc): $agoTxt = static function (?int $s): string {

@@ -22,6 +22,17 @@ try {
     $nfUnread = \App\Services\NotificationService::unreadCount();
 } catch (\Throwable $e) {
 }
+// Topbar stock chips — only when inventory is actually tracked for some product.
+$stk = ['tracked' => 0, 'low' => 0, 'out' => 0];
+try {
+    foreach (\Vayu\Database\DB::select('SELECT status, COUNT(*) AS n FROM inventory_stock GROUP BY status') as $r) {
+        $stk['tracked'] += (int) $r['n'];
+        if (isset($stk[$r['status']])) {
+            $stk[$r['status']] = (int) $r['n'];
+        }
+    }
+} catch (\Throwable $e) {
+}
 ?><!doctype html>
 <html lang="en">
 <head>
@@ -109,6 +120,16 @@ try {
       <span class="tb-ic" style="background:#fbe1dc;color:#c2523c"><i data-lucide="clock"></i></span>
       <span><small>Coming soon</small><b><?= number_format($hdr['coming_soon']) ?></b></span>
     </a>
+    <?php if ($stk['tracked'] > 0): ?>
+    <a class="tb-chip" href="<?= route('admin.inventory.stock') ?>?status=low">
+      <span class="tb-ic" style="background:#fdeccb;color:#a66a09"><i data-lucide="trending-down"></i></span>
+      <span><small>Low stock</small><b><?= number_format($stk['low']) ?></b></span>
+    </a>
+    <a class="tb-chip" href="<?= route('admin.inventory.stock') ?>?status=out">
+      <span class="tb-ic" style="background:#f6dcd6;color:#b33b24"><i data-lucide="package-x"></i></span>
+      <span><small>Out of stock</small><b><?= number_format($stk['out']) ?></b></span>
+    </a>
+    <?php endif; ?>
   </div>
   <div class="tb-group glass tb-right">
     <div class="tb-pill tb-date"><i data-lucide="calendar"></i><b id="tbDate">Last 30 days</b><i data-lucide="chevron-down" class="chev"></i></div>

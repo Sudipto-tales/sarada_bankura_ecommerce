@@ -58,8 +58,6 @@ include __DIR__ . '/../partials/header.php';
     <?php endif; ?>
   </div>
 </div>
-<?php if (!empty($success)): ?><div class="notice ok">✓ <?= e($success) ?></div><?php endif; ?>
-<?php if (!empty($error)): ?><div class="notice bad"><?= e($error) ?></div><?php endif; ?>
 <?php if (empty($enabled)): ?><div class="notice">Inventory alerts are switched off — stock is still recorded, but no low / out-of-stock alerts are raised.</div><?php endif; ?>
 
 <div class="statstrip">

@@ -41,12 +41,14 @@ class ProductController
         }
         $sql = 'SELECT p.*, pt.name AS type_name, b.name AS brand_name,
                     pr.price, pr.currency, pr.unit AS selling_unit,
+                    s.id AS stock_id, s.quantity AS stock_qty, s.unit AS stock_unit, s.status AS stock_status,
                     (SELECT path FROM product_media m WHERE m.product_id = p.id AND m.is_cover = 1 LIMIT 1) AS cover,
                     (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id) AS variant_count
              FROM products p
              LEFT JOIN product_types pt ON pt.id = p.product_type_id
              LEFT JOIN brands b ON b.id = p.brand_id
-             LEFT JOIN product_pricing pr ON pr.product_id = p.id';
+             LEFT JOIN product_pricing pr ON pr.product_id = p.id
+             LEFT JOIN inventory_stock s ON s.product_id = p.id';
         if ($where) {
             $sql .= ' WHERE ' . implode(' AND ', $where);
         }
@@ -80,7 +82,9 @@ class ProductController
 
     public function create(): Response
     {
-        return view('admin.products.create', $this->formData());
+        return view('admin.products.create', $this->formData() + [
+            'stockEnabled' => \App\Services\Inventory\InventorySettings::enabled(),
+        ]);
     }
 
     public function store(StoreProductRequest $request): Response
@@ -92,6 +96,7 @@ class ProductController
         $this->saveRelations($id, $request);
         $this->saveVariants($id, $variants);
         $this->storeMedia($request, $id);
+        $this->applyStockTracking($id, $request);
 
         session()->flash('success', 'Product "' . $product->getAttribute('name') . '" created.');
 
@@ -123,6 +128,8 @@ class ProductController
             'tagString' => implode(', ', array_map(static fn($t) => $t['name'], $tags)),
             'media' => DB::select('SELECT id, path, type, is_cover FROM product_media WHERE product_id = ? ORDER BY sort', [$pid]),
             'variants' => $this->loadVariants($pid),
+            'stockRow' => \App\Services\Inventory\InventoryService::stockFor($pid),
+            'stockEnabled' => \App\Services\Inventory\InventorySettings::enabled(),
         ]);
     }
 
@@ -156,6 +163,7 @@ class ProductController
         $this->saveRelations($pid, $request, true);
         $this->saveVariants($pid, $variants);
         $this->storeMedia($request, $pid);
+        $this->applyStockTracking($pid, $request);
 
         session()->flash('success', 'Product "' . $request->input('name') . '" updated.');
 
@@ -197,6 +205,41 @@ class ProductController
             'meta_title' => $request->input('meta_title') ?: null,
             'meta_description' => $request->input('meta_description') ?: null,
         ];
+    }
+
+    /**
+     * Optional "Track stock" toggle from the product form. Only ever *starts* tracking —
+     * it never stops it or overwrites an existing stock count (those live on the Stock page),
+     * so re-saving a product keeps its stock intact.
+     */
+    private function applyStockTracking(int $id, Request $request): void
+    {
+        if (!(bool) $request->input('track_stock')) {
+            return;
+        }
+        if (!\App\Services\Inventory\InventorySettings::enabled()) {
+            return;
+        }
+        if (\App\Services\Inventory\InventoryService::isTracked($id)) {
+            return;
+        }
+        $unit = trim((string) ($request->input('stock_unit') ?: $request->input('selling_unit')));
+        if ($unit === '') {
+            session()->flash('error', 'Stock tracking was not started: choose a stock unit first.');
+            return;
+        }
+        $threshold = $request->input('low_stock_threshold');
+        try {
+            \App\Services\Inventory\InventoryService::startTracking(
+                $id,
+                $unit,
+                (float) ($request->input('opening_qty') ?: 0),
+                is_numeric($threshold) ? (float) $threshold : null,
+                ['source' => 'opening', 'notes' => 'Opening stock set from product form'],
+            );
+        } catch (\App\Services\Inventory\InventoryException $e) {
+            session()->flash('error', 'Stock tracking was not started: ' . $e->getMessage());
+        }
     }
 
     private function saveRelations(int $id, Request $request, bool $replace = false): void
