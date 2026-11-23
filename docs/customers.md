@@ -1,8 +1,9 @@
 # Customers, Segments & Pincode auto-fill
 
-**Status: planned (not yet built).** This is the agreed design for the customer-relationship
-module (online + offline) plus automatic address fill from an Indian pincode. It follows the
-same Vayu + Veylix conventions as the catalog and inventory modules.
+**Status: built (Stage 3, 2026-11-24) — phases 1–4.** Phase 5 (order stats) switches on with
+Stage 4. This is the design for the customer-relationship module (online + offline) plus
+automatic address fill from an Indian pincode. It follows the same Vayu + Veylix conventions as
+the catalog and inventory modules. "As built" notes are at the end of this file.
 
 | Page | Route |
 | --- | --- |
@@ -154,3 +155,44 @@ manually" fallback. Plain vanilla JS in the `footer.php` style, no new dependenc
 The Veylix mockups show Orders / AOV / Last-order columns and order numbers — all depend on an
 **Orders module that does not exist yet**. Until then those cells show `0` / "—". The
 `CustomerStats` service is stubbed so wiring Orders in later is a small change, not a refactor.
+
+## As built (2026-11-24)
+
+Differences from the plan above, and things worth knowing:
+
+- **Extra columns:** `customers.company` (firm name for trade buyers), `customers.source`
+  (admin|showroom|online|import — set once, never changed by an edit), `customer_addresses.label`
+  (Home / Site – Lalbazar…), `customer_addresses.district` (the pincode lookup returns a district,
+  not a city), `customer_tags.slug/description`, `customer_segments.slug/member_count/refreshed_at`,
+  `pincodes.state_code`. Status values: active|inactive|blocked.
+- **Single writer:** `Services/Customer/CustomerService` (validate → save in one transaction:
+  customer, addresses upserted by id, tag sync, online-account link, review attach). Phone is
+  normalised by `Phone::normalize()` (strips +91 / leading 0, must be a 6–9 mobile); a duplicate
+  phone is a validation error naming the existing customer.
+- **Online linking:** on every save, a `users` row with the same phone links the customer
+  (`is_online`, `user_id`). `CustomerService::linkUser($userId)` is the hook the storefront
+  registration will call (links an existing offline customer, or creates an `online` one).
+- **Reviews:** Stage 2 reviews with the same `customer_phone` get `customer_id` on save; deleting a
+  customer keeps their reviews, unlinked. The detail page lists them.
+- **SegmentMatcher:** whitelisted fields only; operators per type (number / text / select / bool /
+  date / tag). Address fields (city, district, state, pincode, country) match **any** of the
+  customer's addresses. Dates computed in PHP (IST) and bound; numbers compared with
+  `CAST(? AS DECIMAL(14,2))` so SQLite and MySQL agree. A dynamic segment with no rules matches
+  nobody. Extra fields beyond the plan: Joined via, Status, District, Pincode, Country, Has email.
+- **Member cache:** `customer_segment_members` is rebuilt on segment save / Refresh, and per
+  customer on every customer save (`refreshForCustomer`). The customer list's segment filter and
+  the segment page use the **live rules**, so they never disagree with the builder preview.
+- **Static segments:** members are added on the segment page (searchable checklist) and removed
+  per row. Switching a static segment to dynamic clears its hand-picked members.
+- **Tags:** a tag used in a segment rule can't be deleted until the rule is removed. Typing new
+  tags on the customer form creates them.
+- **Pincode:** `Services/Customer/PincodeLookup` (3 s timeout, cache 180 days, stale cache served
+  during an outage, misses not cached). The post-office field is an input with a datalist, so
+  staff can pick a lookup result or type freely. On edit, the lookup only refreshes the list and
+  never overwrites saved fields.
+- **Pages:** list (segment tabs, KPIs, server-side filters, 25/page, CSV export of the filtered
+  set), create/edit (shared view, "Save & add another"), detail (call / WhatsApp, addresses,
+  reviews, segments, online account), segments list / builder (live preview) / detail, tags.
+- **Seeder:** `php vayu db:seed CustomerSeeder` (5 tags + 6 default segments, idempotent).
+- **Tests:** `tests/customers_test.php`; verified on MariaDB 10.11 (strict) and SQLite, plus
+  Chromium at 1440 px and 390 px.

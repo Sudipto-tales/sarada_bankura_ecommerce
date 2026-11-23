@@ -9,10 +9,14 @@
 use App\Controllers\Admin\AttributeController;
 use App\Controllers\Admin\BrandController;
 use App\Controllers\Admin\CatalogController;
+use App\Controllers\Admin\CustomerController;
+use App\Controllers\Admin\CustomerSegmentController;
+use App\Controllers\Admin\CustomerTagController;
 use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\ImportController;
 use App\Controllers\Admin\MediaController;
 use App\Controllers\Admin\InventoryController;
+use App\Controllers\Admin\LookupController;
 use App\Controllers\Admin\NotificationController;
 use App\Controllers\Admin\ProductController;
 use App\Controllers\Admin\ReviewController;
@@ -112,6 +116,33 @@ $router->group(['prefix' => 'admin'], function ($router): void {
     $router->post('/inventory/stock/{id}/adjust', [InventoryController::class, 'adjust'])->name('admin.inventory.adjust');
     $router->post('/inventory/stock/{id}/threshold', [InventoryController::class, 'threshold'])->name('admin.inventory.threshold');
     $router->post('/inventory/stock/{id}/stop', [InventoryController::class, 'stop'])->name('admin.inventory.stop');
+
+    // Customers (Stage 3) — segments/tags/create are registered before /customers/{id}.
+    $router->get('/customers', [CustomerController::class, 'index'])->name('admin.customers');
+    $router->get('/customers/create', [CustomerController::class, 'create'])->name('admin.customers.create');
+    $router->post('/customers', [CustomerController::class, 'store'])->name('admin.customers.store');
+    $router->get('/customers/segments', [CustomerSegmentController::class, 'index'])->name('admin.customers.segments');
+    $router->get('/customers/segments/create', [CustomerSegmentController::class, 'create'])->name('admin.customers.segments.create');
+    $router->post('/customers/segments', [CustomerSegmentController::class, 'store'])->name('admin.customers.segments.store');
+    $router->post('/customers/segments/preview', [CustomerSegmentController::class, 'preview'])->name('admin.customers.segments.preview');
+    $router->get('/customers/segments/{id}', [CustomerSegmentController::class, 'show'])->name('admin.customers.segments.show');
+    $router->get('/customers/segments/{id}/edit', [CustomerSegmentController::class, 'edit'])->name('admin.customers.segments.edit');
+    $router->post('/customers/segments/{id}/update', [CustomerSegmentController::class, 'update'])->name('admin.customers.segments.update');
+    $router->post('/customers/segments/{id}/refresh', [CustomerSegmentController::class, 'refresh'])->name('admin.customers.segments.refresh');
+    $router->post('/customers/segments/{id}/members', [CustomerSegmentController::class, 'addMembers'])->name('admin.customers.segments.members.add');
+    $router->post('/customers/segments/{id}/members/{customerId}/delete', [CustomerSegmentController::class, 'removeMember'])->name('admin.customers.segments.members.delete');
+    $router->post('/customers/segments/{id}/delete', [CustomerSegmentController::class, 'destroy'])->name('admin.customers.segments.delete');
+    $router->get('/customers/tags', [CustomerTagController::class, 'index'])->name('admin.customers.tags');
+    $router->post('/customers/tags', [CustomerTagController::class, 'store'])->name('admin.customers.tags.store');
+    $router->post('/customers/tags/{id}/update', [CustomerTagController::class, 'update'])->name('admin.customers.tags.update');
+    $router->post('/customers/tags/{id}/delete', [CustomerTagController::class, 'destroy'])->name('admin.customers.tags.delete');
+    $router->get('/customers/{id}', [CustomerController::class, 'show'])->name('admin.customers.show');
+    $router->get('/customers/{id}/edit', [CustomerController::class, 'edit'])->name('admin.customers.edit');
+    $router->post('/customers/{id}/update', [CustomerController::class, 'update'])->name('admin.customers.update');
+    $router->post('/customers/{id}/delete', [CustomerController::class, 'destroy'])->name('admin.customers.delete');
+
+    // Internal JSON lookups (pincode → district/state/post offices, cached).
+    $router->get('/lookup/pincode/{code}', [LookupController::class, 'pincode'])->name('admin.lookup.pincode');
 
     $router->get('/products', [ProductController::class, 'index'])->name('admin.products.index');
     $router->get('/products/create', [ProductController::class, 'create'])->name('admin.products.create');

@@ -5,6 +5,7 @@ $nav = static fn(string ...$keys): string => in_array($active, $keys, true) ? ' 
 $productKeys = ['products', 'products.create', 'products.import', 'variants', 'categories', 'attributes', 'units', 'brands', 'tags', 'reviews'];
 $productsOpen = in_array($active, $productKeys, true);
 $inventoryOpen = str_starts_with($active, 'inventory');
+$customersOpen = str_starts_with($active, 'customers');
 
 // Topbar quick counts (cheap COUNT queries; never break the page if the DB is unavailable).
 $hdr = ['products' => 0, 'draft' => 0, 'coming_soon' => 0];
@@ -86,7 +87,15 @@ try {
       </div>
     </details>
     <a class="navitem" href="#" title="Enquiries"><i data-lucide="clipboard-list"></i><span>Enquiries</span><i data-lucide="chevron-down" class="chev"></i></a>
-    <a class="navitem" href="#" title="Customers"><i data-lucide="users"></i><span>Customers</span><i data-lucide="chevron-down" class="chev"></i></a>
+    <details class="navgroup"<?= $customersOpen ? ' open' : '' ?>>
+      <summary class="navitem<?= $customersOpen ? ' current' : '' ?>" title="Customers"><i data-lucide="users"></i><span>Customers</span><i data-lucide="chevron-down" class="chev"></i></summary>
+      <div class="subnav">
+        <a class="subitem<?= $nav('customers') ?>" href="<?= route('admin.customers') ?>">All customers</a>
+        <a class="subitem<?= $nav('customers.create') ?>" href="<?= route('admin.customers.create') ?>">Add customer</a>
+        <a class="subitem<?= $nav('customers.segments') ?>" href="<?= route('admin.customers.segments') ?>">Segments</a>
+        <a class="subitem<?= $nav('customers.tags') ?>" href="<?= route('admin.customers.tags') ?>">Customer tags</a>
+      </div>
+    </details>
 
     <div class="navlabel">Commerce</div>
     <a class="navitem" href="#" title="Pricing &amp; quotes"><i data-lucide="tag"></i><span>Pricing &amp; quotes</span><i data-lucide="chevron-down" class="chev"></i></a>
