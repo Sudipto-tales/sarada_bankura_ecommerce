@@ -173,7 +173,7 @@ include __DIR__ . '/../partials/header.php';
 
       <?php if ($isEdit): ?>
       <section class="card">
-        <div class="card-h"><div><div class="eyebrow">Purchases</div><h3>Order stats</h3></div><span class="text-xs muted">Live once orders start</span></div>
+        <div class="card-h"><div><div class="eyebrow">Purchases</div><h3>Order stats</h3></div><span class="text-xs muted">Delivered orders</span></div>
         <div class="cu-stats">
           <div><small>Orders</small><b><?= (int) $c['total_orders'] ?></b></div>
           <div><small>Spent</small><b><?= $cuMoney($c['total_spent']) ?></b></div>

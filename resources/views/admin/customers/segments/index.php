@@ -21,7 +21,7 @@ include __DIR__ . '/../../partials/header.php';
 </div>
 
 <p class="text-sm muted" style="margin:-8px 4px 18px;max-width:760px">Segments are saved groups of customers. <b>Dynamic</b> segments follow rules and update themselves as customers change;
-  <b>static</b> segments are lists you pick by hand. Spend, orders and last-order rules start matching once orders go live.</p>
+  <b>static</b> segments are lists you pick by hand. Orders and spend count delivered orders.</p>
 
 <?php if ($segments): ?>
 <div class="seg-grid">

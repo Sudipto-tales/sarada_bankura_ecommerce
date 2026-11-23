@@ -30,17 +30,33 @@ return [
     'pan' => env('BUSINESS_PAN', ''),
 
     // Path under public/ (use with base_url()).
-    'logo' => env('BUSINESS_LOGO', ''), // empty = text logo
+    'logo' => env('BUSINESS_LOGO', 'assets/image/logo.webp'), // empty = text logo
 
     'currency' => 'INR',
     'timezone' => 'Asia/Kolkata',
 
     'tax' => [
-        'prices_include_tax' => filter_var(env('BUSINESS_PRICES_INCLUDE_TAX', true), FILTER_VALIDATE_BOOLEAN),
+        // Owner decision 2026-11-24: GST is added on top (total = subtotal − discount + GST).
+        'prices_include_tax' => filter_var(env('BUSINESS_PRICES_INCLUDE_TAX', false), FILTER_VALIDATE_BOOLEAN),
         'gst_rate' => (float) env('BUSINESS_GST_RATE', 18),
         'hsn_default' => env('BUSINESS_HSN_DEFAULT', '6802'), // worked monumental/building stone
     ],
 
     // Indian financial year starts in April (used for invoice numbering).
     'fy_start_month' => 4,
+
+    // Document number series (document_counters): PREFIX/26-27/0001, gapless per financial year.
+    'numbering' => [
+        'order' => env('BUSINESS_ORDER_PREFIX', 'MSO'),
+        'invoice' => env('BUSINESS_INVOICE_PREFIX', 'MSM'),
+        'payment' => 'RCP',
+        'refund' => 'RFD',
+        'attempt' => 'PAT',
+        'return' => 'RET',
+    ],
+
+    'delivery' => [
+        'otp_days' => (int) env('BUSINESS_DELIVERY_OTP_DAYS', 7),   // a delivery OTP stays valid this long
+        'otp_attempts' => 5,                                         // wrong tries before a new OTP is needed
+    ],
 ];

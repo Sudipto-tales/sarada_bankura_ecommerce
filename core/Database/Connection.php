@@ -88,6 +88,12 @@ class Connection
 
     public function transaction(\Closure $callback): mixed
     {
+        // Nested call: join the open transaction (PDO has no nesting). An exception inside still
+        // propagates, so the outermost transaction rolls everything back.
+        if ($this->pdo->inTransaction()) {
+            return $callback($this);
+        }
+
         $this->pdo->beginTransaction();
 
         try {

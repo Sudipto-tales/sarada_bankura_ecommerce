@@ -102,7 +102,7 @@ final class CustomerService
      * @param  array<int|string,mixed> $rows
      * @return array{0: list<array<string,mixed>>, 1: array<string, list<string>>}
      */
-    private static function cleanAddresses(array $rows, mixed $defaultKey): array
+    public static function cleanAddresses(array $rows, mixed $defaultKey): array
     {
         $out = [];
         $err = [];

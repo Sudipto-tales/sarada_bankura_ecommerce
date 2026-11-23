@@ -23,8 +23,10 @@ final class InventoryService
         'adjust_in' => 'Adjustment in',
         'adjust_out' => 'Adjustment out',
         'import' => 'Bulk upload',
+        'sale' => 'Sale (order dispatched)',
+        'return_in' => 'Customer return',
     ];
-    public const SOURCES = ['manual', 'import', 'opening', 'system'];
+    public const SOURCES = ['manual', 'import', 'opening', 'system', 'order'];
     public const ADJUST_REASONS = [
         'count_correction' => 'Stock-count correction',
         'damaged' => 'Damaged / broken material',
@@ -218,6 +220,59 @@ final class InventoryService
     }
 
     /**
+     * Orders: take stock out when an order is dispatched. Untracked products are skipped (returns
+     * null). Stock MAY go negative — orders never check or reserve stock, so dispatch is never
+     * blocked; a low/negative result raises the normal stock alert. $unit is the order line's
+     * unit and is converted to the stock unit (InventoryException when it can't be converted).
+     *
+     * @param array<string,mixed> $meta  reference_no (order number), notes, created_by
+     * @return array<string,mixed>|null movement row
+     */
+    public static function consumeForOrder(int $productId, float $qty, ?string $unit, array $meta = []): ?array
+    {
+        $qty = self::validQty($qty, 'Order quantity');
+        if (!self::isTracked($productId)) {
+            return null;
+        }
+
+        return self::atomic(function () use ($productId, $qty, $unit, $meta): array {
+            $stock = self::lock($productId);
+            $from = trim((string) $unit) ?: (string) $stock['unit'];
+            $factor = self::conversionFactor($productId, $from, (string) $stock['unit']);
+            $change = -round($qty * $factor, self::SCALE);
+
+            return self::apply($stock, 'sale', $change, $meta + [
+                'source' => 'order', 'entered_qty' => $qty, 'entered_unit' => $from, 'conversion_factor' => $factor,
+            ], allowNegative: true);
+        });
+    }
+
+    /**
+     * Returns (Stage 6): put stock back only when a return is approved AND received.
+     * Untracked products are skipped (returns null).
+     *
+     * @param array<string,mixed> $meta
+     * @return array<string,mixed>|null movement row
+     */
+    public static function restockFromReturn(int $productId, float $qty, ?string $unit, array $meta = []): ?array
+    {
+        $qty = self::validQty($qty, 'Returned quantity');
+        if (!self::isTracked($productId)) {
+            return null;
+        }
+
+        return self::atomic(function () use ($productId, $qty, $unit, $meta): array {
+            $stock = self::lock($productId);
+            $from = trim((string) $unit) ?: (string) $stock['unit'];
+            $factor = self::conversionFactor($productId, $from, (string) $stock['unit']);
+
+            return self::apply($stock, 'return_in', round($qty * $factor, self::SCALE), $meta + [
+                'source' => 'order', 'entered_qty' => $qty, 'entered_unit' => $from, 'conversion_factor' => $factor,
+            ]);
+        });
+    }
+
+    /**
      * Bulk-upload path. Not tracked → start tracking (opening movement, source import).
      * Tracked and the count differs → "import" movement with IMPORT_REASON.
      * $unit (if given) must match the existing stock unit; $threshold null = keep.
@@ -329,12 +384,19 @@ final class InventoryService
      */
     private static function lock(int $productId): array
     {
-        $n = DB::table('inventory_stock')->where('product_id', $productId)->update(['updated_at' => date('Y-m-d H:i:s')]);
-        if ($n === 0) {
+        if (DB::connection()->driver() === 'mysql') {
+            // Row lock. (MySQL's UPDATE reports *changed* rows, so the SQLite trick below would
+            // return 0 when updated_at already holds this second and wrongly say "not tracked".)
+            $row = DB::selectOne('SELECT * FROM inventory_stock WHERE product_id = ? FOR UPDATE', [$productId]);
+        } else {
+            DB::table('inventory_stock')->where('product_id', $productId)->update(['updated_at' => date('Y-m-d H:i:s')]);
+            $row = self::stockFor($productId);
+        }
+        if ($row === null) {
             throw new InventoryException('Stock is not tracked for this product. Start tracking it first.');
         }
 
-        return self::stockFor($productId);
+        return $row;
     }
 
     /**
@@ -342,12 +404,12 @@ final class InventoryService
      * @param array<string,mixed> $meta
      * @return array<string,mixed> movement row
      */
-    private static function apply(array $stock, string $type, float $change, array $meta): array
+    private static function apply(array $stock, string $type, float $change, array $meta, bool $allowNegative = false): array
     {
         $now = date('Y-m-d H:i:s');
         $before = round((float) $stock['quantity'], self::SCALE);
         $after = round($before + $change, self::SCALE);
-        if ($after < 0) {
+        if ($after < 0 && !$allowNegative) {
             throw new InventoryException('Stock cannot go below zero (' . self::qty($before) . ' ' . $stock['unit'] . ' in stock).');
         }
         DB::table('inventory_stock')->where('id', (int) $stock['id'])->update(['quantity' => $after, 'last_movement_at' => $now, 'updated_at' => $now]);
