@@ -43,6 +43,11 @@ Thumbs.db
 /node_modules/
 /public/assets/uploads/products/*
 !/public/assets/uploads/products/.gitkeep
+# Media library (Stage 1): public files and private files (payment proofs, documents)
+/public/assets/uploads/media/*
+!/public/assets/uploads/media/.gitkeep
+/storage/media/*
+!/storage/media/.gitkeep
 
 # Ignore generated test reports
 /phpunit.xml

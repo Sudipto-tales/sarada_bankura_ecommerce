@@ -274,6 +274,15 @@ class Application
                 $value = substr($value, 1, -1);
             }
 
+            // Immutable, like Dotenv::createImmutable(): a variable already set in the real
+            // environment (server/hosting panel, CI, `DB_TYPE=mysql php vayu …`) wins over .env.
+            $real = getenv($key);
+            if ($real !== false) {
+                $_ENV[$key] = $real;
+                $_SERVER[$key] = $real;
+                continue;
+            }
+
             $_ENV[$key] = $value;
             $_SERVER[$key] = $value;
             putenv("{$key}={$value}");

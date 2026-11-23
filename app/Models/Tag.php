@@ -8,5 +8,5 @@ class Tag extends Model
 {
     protected string $table = 'tags';
     public bool $timestamps = false;
-    protected array $fillable = ['name', 'slug'];
+    protected array $fillable = ['name', 'slug', 'purpose', 'description', 'status'];
 }

@@ -84,6 +84,13 @@ Goal: what's already built runs correctly on **production MySQL**, and the code 
 
 Done when: every admin page loads on MySQL, the tests pass, and the dev DB is back to seed data.
 
+**Status: done (2026-11-22).** Verified on MariaDB 10.11 (strict mode) in a throwaway `maa_sarada_test` DB:
+7 migrations + 4 seeders, 291 test assertions, all 17 admin GET pages, create/edit/delete product,
+case-insensitive duplicate SKU, CSV import (blank cells → NULL, duplicate-case row flagged), stock
+receive. Connection runs `+05:30` / utf8mb4. Extra fixes found during the run: the fallback `.env`
+loader is now immutable (real env vars win, like phpdotenv), and the validator treats whitespace-only
+input as empty.
+
 ### Stage 1: Media library + product images & gallery
 
 **One central media system** instead of per-module file columns. Every uploaded file gets one
@@ -128,6 +135,17 @@ Screens:
   file per request (Vayu parses single files only) with a progress bar per file, and supports
   drag & drop of many files.
 
+**Status: done (2026-11-23).** Migrations 000008 (media + media_links, copies product_media and
+brand logos) and 000008a (drops product_media after a copy-count safety check; down() rebuilds it).
+`App\Services\Media\MediaService` is the single writer (GD resize to 2400 px, WebP thumbnails, sha1
+dedupe, deferred purge inside transactions). Screens: `/admin/media` library (search, kind/usage
+filters, details drawer with "Used in", alt text, bulk delete of unused files), `/admin/products/{id}`
+detail page (drag reorder, cover, alt text, per-variant image, pick from library), shared uploader
+(`partials/uploader.php` + `public/assets/js/media.js`, one file per request with progress) used by
+the gallery, the library and wizard step 2. Products, variants, inventory, dashboard, importer and
+brand logos all read media through the service. Verified on MariaDB and SQLite plus a Chromium run.
+Local PHP limit is upload_max_filesize=2M; production needs the php.ini values in docs/usage.md.
+
 ### Stage 2: Public review form
 **Migration `2026_11_23_000009_extend_product_reviews.php`:** add `customer_id(nullable)`,
 `order_id(nullable)`, `is_verified_purchase(false)`, `ip`, `user_agent`.
@@ -139,6 +157,17 @@ Screens:
 - Spam guard: honeypot field + per-IP rate limit (core `RateLimiting`) + CSRF. No captcha service.
 - `is_verified_purchase` gets set automatically later, once orders exist (matching customer phone
   or email to a delivered order item).
+
+**Status: done (2026-11-23).** Migration 000009 (adds `customer_phone` too, because the form asks for
+"mobile or email" and phone is what later matches orders). `App\Services\Reviews\ReviewSubmission`
+holds the rules: honeypot + signed time trap (≥3 s, ≤2 days) answer "ok" and store nothing; 5 reviews
+per hour per socket IP (not X-Forwarded-For, which clients can fake); same-text resubmits within 24 h
+are folded into the first. Page `resources/views/review.php` works without JS (radio stars, three file
+inputs) and with JS (star labels, one photo picker with previews, client checks). Photos (≤3, private
+disk, no dedupe) are media links `review/photo`; admins see them in the review drawer with mobile,
+IP and verified flag; deleting a review purges its photos. Notification `review.submitted` (2★ or
+less → warning) links to `/admin/reviews?status=pending`. Publishing does not yet move photos to the
+public disk: do that when the storefront shows reviews.
 
 ### Stage 3: Customers (`docs/customers.md`)
 **Migration `2026_11_24_000010_create_customer_tables.php`:** ALTER `users` (phone, status,

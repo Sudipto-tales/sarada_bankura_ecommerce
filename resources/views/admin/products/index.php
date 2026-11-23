@@ -70,7 +70,7 @@ include __DIR__ . '/../partials/header.php';
                   <?php if ($cover): ?><img src="<?= base_url($cover) ?>" style="width:100%;height:100%;object-fit:cover"><?php endif; ?>
                 </div>
                 <div>
-                  <div style="font-weight:700;display:flex;align-items:center;gap:6px"><?= e((string) $row($p, 'name')) ?>
+                  <div style="font-weight:700;display:flex;align-items:center;gap:6px"><a href="<?= route('admin.products.show', ['id' => $pid]) ?>" style="color:inherit;text-decoration:none"><?= e((string) $row($p, 'name')) ?></a>
                     <?php if ((int) $row($p, 'is_featured', 0)): ?><i data-lucide="star" style="width:13px;color:#e9aa13" title="Featured"></i><?php endif; ?>
                   </div>
                   <div class="muted" style="font-size:11px"><?= e((string) $row($p, 'sku')) ?></div>
@@ -106,6 +106,7 @@ include __DIR__ . '/../partials/header.php';
             </td>
             <td><span class="badge <?= e($status) ?>"><?= e(str_replace('_', ' ', $status)) ?></span></td>
             <td style="text-align:right;white-space:nowrap">
+              <a class="btn ghost" title="Images &amp; details" style="padding:7px 9px" href="<?= route('admin.products.show', ['id' => $pid]) ?>"><i data-lucide="images" style="width:15px"></i></a>
               <a class="btn ghost" title="Edit" style="padding:7px 9px" href="<?= route('admin.products.edit', ['id' => $pid]) ?>"><i data-lucide="pencil" style="width:15px"></i></a>
               <form method="post" action="<?= route('admin.products.destroy', ['id' => $pid]) ?>" onsubmit="return confirm('Delete this product? This cannot be undone.')" style="display:inline">
                 <?= csrf_field() ?>

@@ -102,7 +102,18 @@ class ConnectionManager
             $config['charset'] ?? 'utf8mb4'
         );
 
-        return new \PDO($dsn, $config['username'] ?? 'root', $config['password'] ?? '');
+        $pdo = new \PDO($dsn, $config['username'] ?? 'root', $config['password'] ?? '');
+
+        $charset = preg_replace('/[^A-Za-z0-9_]/', '', (string) ($config['charset'] ?? 'utf8mb4'));
+        $collation = preg_replace('/[^A-Za-z0-9_]/', '', (string) ($config['collation'] ?? ''));
+        $pdo->exec('SET NAMES ' . $charset . ($collation !== '' ? ' COLLATE ' . $collation : ''));
+
+        // Session time zone matches PHP's (APP_TIMEZONE, IST for this project), so NOW(),
+        // CURRENT_TIMESTAMP defaults and PHP's date() agree. An offset works even when the
+        // server has no time-zone tables loaded.
+        $pdo->exec("SET time_zone = '" . (new \DateTimeImmutable('now'))->format('P') . "'");
+
+        return $pdo;
     }
 
     protected function isAbsolute(string $path): bool

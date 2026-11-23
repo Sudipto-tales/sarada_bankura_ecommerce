@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Services\Media\MediaService;
 use Vayu\Database\DB;
 use Vayu\Http\Request;
 use Vayu\Http\Response;
@@ -20,6 +21,16 @@ class ReviewController
              FROM product_reviews r LEFT JOIN products p ON p.id = r.product_id
              ORDER BY r.created_at DESC, r.id DESC'
         );
+        // Customer photos (media links owner_type=review, role=photo), one query for the page.
+        $photos = [];
+        if ($rows) {
+            $ids = implode(',', array_map(static fn($r) => (int) $r['id'], $rows));
+            foreach (DB::select("SELECT l.owner_id, m.* FROM media_links l JOIN media m ON m.id = l.media_id
+                                 WHERE l.owner_type = 'review' AND l.role = 'photo' AND l.owner_id IN ({$ids}) ORDER BY l.sort, l.id") as $m) {
+                $pm = MediaService::present($m);
+                $photos[(int) $m['owner_id']][] = ['thumb' => $pm['thumb_url'], 'url' => $pm['url'], 'no' => $pm['media_no']];
+            }
+        }
         $published = array_values(array_filter($rows, static fn($r) => $r['status'] === 'published'));
         $dist = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
         foreach ($published as $r) {
@@ -30,6 +41,7 @@ class ReviewController
         return view('admin.catalog.reviews', [
             'active' => 'reviews',
             'rows' => $rows,
+            'photos' => $photos,
             'dist' => $dist,
             'products' => DB::select('SELECT id, name, sku FROM products ORDER BY name'),
             'stats' => [
@@ -122,6 +134,7 @@ class ReviewController
         $rid = (int) $id;
         $name = DB::table('product_reviews')->where('id', $rid)->value('customer_name');
         if ($name !== null) {
+            MediaService::detachAll('review', $rid);
             DB::table('product_reviews')->where('id', $rid)->delete();
             session()->flash('success', 'Review from ' . $name . ' deleted.');
         }

@@ -2,6 +2,8 @@
 
 namespace App\Controllers\Admin;
 
+use App\Services\Media\MediaException;
+use App\Services\Media\MediaService as Media;
 use Vayu\Database\DB;
 use Vayu\Http\Request;
 use Vayu\Http\Response;
@@ -16,7 +18,7 @@ class BrandController
     public function index(): Response
     {
         $rows = DB::select(
-            "SELECT b.*,
+            "SELECT b.*, " . Media::coverSql('brand', 'b.id', "'logo'") . " AS logo,
                     (SELECT COUNT(*) FROM products p WHERE p.brand_id = b.id) AS product_count,
                     (SELECT COUNT(*) FROM products p WHERE p.brand_id = b.id AND p.status = 'active') AS active_count,
                     (SELECT COUNT(*) FROM product_reviews r JOIN products p ON p.id = r.product_id
@@ -84,9 +86,7 @@ class BrandController
 
             return redirect(route('admin.brands'));
         }
-        if (!empty($brand['logo']) && is_file(app()->publicPath($brand['logo']))) {
-            @unlink(app()->publicPath($brand['logo']));
-        }
+        Media::detachAll('brand', $bid);
         DB::table('brands')->where('id', $bid)->delete();
         session()->flash('success', 'Brand "' . $brand['name'] . '" deleted.');
 
@@ -120,30 +120,21 @@ class BrandController
         ];
     }
 
+    /** Logo upload → media library, linked as the brand's single `logo`. */
     private function storeLogo(Request $request, int $id): void
     {
         $file = $request->file('logo');
-        if (!$file || !$file->isValid()) {
+        if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE) {
             return;
         }
-        $ext = strtolower($file->getClientExtension());
-        if (!in_array($ext, ['png', 'jpg', 'jpeg', 'webp'], true) || $file->getSize() > 2 * 1024 * 1024) {
-            session()->flash('error', 'Logo must be a PNG, JPG or WEBP under 2 MB.');
-
-            return;
+        try {
+            if ($file->getSize() > 2 * 1024 * 1024) {
+                throw new MediaException('Logo must be under 2 MB.');
+            }
+            $m = Media::storeUpload($file, ['kinds' => ['image']]);
+            Media::replaceRole('brand', $id, (int) $m['id'], 'logo');
+        } catch (MediaException $e) {
+            session()->flash('error', $e->getMessage());
         }
-        $dir = app()->publicPath('assets/uploads/brands');
-        if (!is_dir($dir)) {
-            mkdir($dir, 0775, true);
-        }
-        $name = 'brand-' . $id . '-' . bin2hex(random_bytes(4)) . '.' . $ext;
-        if (!@move_uploaded_file($file->getPathname(), $dir . '/' . $name)) {
-            return;
-        }
-        $old = DB::table('brands')->where('id', $id)->value('logo');
-        if ($old && is_file(app()->publicPath($old))) {
-            @unlink(app()->publicPath($old));
-        }
-        DB::table('brands')->where('id', $id)->update(['logo' => 'assets/uploads/brands/' . $name]);
     }
 }

@@ -5,6 +5,8 @@ namespace App\Services\Import;
 use App\Controllers\Admin\CatalogController;
 use App\Services\Inventory\InventoryException;
 use App\Services\Inventory\InventoryService as Inv;
+use App\Services\Media\MediaException;
+use App\Services\Media\MediaService as Media;
 use Vayu\Database\DB;
 
 /**
@@ -779,7 +781,10 @@ final class ProductImporter
                     }
                 }
             });
+            // Files whose last link went away during the import are removed only now, after commit.
+            Media::flushPending();
         } catch (\Throwable $e) {
+            Media::discardPending();
             foreach ($newFiles as $f) {
                 @unlink($f);
             }
@@ -930,34 +935,21 @@ final class ProductImporter
 
     private function writeMedia(int $pid, array $media, ?\ZipArchive $zip, string $sku, array &$newFiles, array &$result): void
     {
-        $dir = app()->publicPath('assets/uploads/products');
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0775, true);
-        }
         // Filling any image column replaces the product's images; the video column replaces its video.
+        // Only the links go; a file is deleted (after commit) when nothing else uses it.
         $replace = [];
         foreach ($media as $m) {
             $replace[$m['type']] = true;
         }
         foreach (array_keys($replace) as $type) {
-            foreach (DB::select('SELECT id, path FROM product_media WHERE product_id = ? AND type = ?', [$pid, $type]) as $old) {
-                $full = app()->publicPath($old['path']);
-                if (is_file($full) && str_contains($old['path'], 'assets/uploads/')) {
-                    // Deleted only after a successful commit would be ideal; keep it simple: remove now.
-                    @unlink($full);
-                }
-                DB::table('product_media')->where('id', (int) $old['id'])->delete();
-            }
+            Media::detachAll('product', $pid, $type === 'video' ? ['video'] : ['cover', 'gallery']);
         }
-        $sort = (int) DB::table('product_media')->where('product_id', $pid)->max('sort');
         $hasCover = false;
         foreach ($media as $m) {
             if (!empty($m['clear'])) {
                 continue;
             }
-            $allowed = $m['type'] === 'video' ? self::VIDEO_EXT : self::IMAGE_EXT;
             $bytes = null;
-            $ext = '';
             $source = '';
             if (isset($m['zip'])) {
                 $source = $m['zip'];
@@ -967,7 +959,6 @@ final class ProductImporter
                     continue;
                 }
                 $bytes = $zip->getFromName($m['zip']);
-                $ext = strtolower(pathinfo($m['zip'], PATHINFO_EXTENSION));
             } elseif (isset($m['url'])) {
                 $source = $m['url'];
                 [$bytes, $ext, $err] = self::download($m['url'], $m['type']);
@@ -975,37 +966,31 @@ final class ProductImporter
                     $result['warnings'][] = $sku . ': ' . $m['slot'] . ' link failed — ' . $err;
                     continue;
                 }
+                $path = (string) parse_url($m['url'], PHP_URL_PATH);
+                $source = basename($path) !== '' && str_contains(basename($path), '.') ? basename($path) : $m['slot'] . '.' . $ext;
             }
             if ($bytes === null || $bytes === false || $bytes === '') {
                 continue;
             }
-            if ($m['type'] === 'image' && @getimagesizefromstring($bytes) === false && $ext !== 'avif') {
-                $result['warnings'][] = $sku . ': ' . $m['slot'] . ' "' . basename($source) . '" is not a valid image.';
+            try {
+                $stored = Media::storeBytes($bytes, basename($source) ?: ($m['slot'] . '.bin'), ['kinds' => [$m['type'] === 'video' ? 'video' : 'image']]);
+            } catch (MediaException $e) {
+                $result['warnings'][] = $sku . ': ' . $m['slot'] . ' — ' . $e->getMessage();
                 continue;
             }
-            if (!in_array($ext, $allowed, true)) {
-                $ext = $m['type'] === 'video' ? 'mp4' : 'jpg';
+            if (empty($stored['duplicate'])) {
+                array_push($newFiles, ...($stored['new_files'] ?? []));
             }
-            $name = bin2hex(random_bytes(8)) . '.' . $ext;
-            if (@file_put_contents($dir . '/' . $name, $bytes) === false) {
-                $result['warnings'][] = $sku . ': could not save ' . $m['slot'] . '.';
-                continue;
+            $mid = (int) $stored['id'];
+            Media::attach('product', $pid, $mid, $m['type'] === 'video' ? 'video' : 'gallery');
+            if ($m['type'] !== 'video' && $m['cover'] && !$hasCover) {
+                Media::setCover('product', $pid, $mid);
+                $hasCover = true;
             }
-            $newFiles[] = $dir . '/' . $name;
-            $isCover = $m['cover'] && !$hasCover ? 1 : 0;
-            $hasCover = $hasCover || $isCover;
-            DB::table('product_media')->insert([
-                'product_id' => $pid, 'path' => 'assets/uploads/products/' . $name, 'type' => $m['type'], 'is_cover' => $isCover, 'sort' => ++$sort,
-            ]);
             $result['media']++;
         }
         // No cover given but images exist → first image becomes the cover.
-        if (!DB::table('product_media')->where('product_id', $pid)->where('is_cover', 1)->exists()) {
-            $first = DB::select("SELECT id FROM product_media WHERE product_id = ? AND type = 'image' ORDER BY sort LIMIT 1", [$pid]);
-            if ($first) {
-                DB::table('product_media')->where('id', (int) $first[0]['id'])->update(['is_cover' => 1]);
-            }
-        }
+        Media::ensureCover('product', $pid);
     }
 
     private function writeVariants(int $pid, array $variants, array &$cache, array &$result): void

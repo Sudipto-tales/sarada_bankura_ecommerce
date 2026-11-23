@@ -157,3 +157,31 @@ php vayu optimize          # compile config cache
 
 Serve with the document root at `public/`. Re-run `optimize` (or `config:clear`)
 after editing `.env`, since cached config freezes env values.
+
+### Production checklist (Maa Sarada)
+
+Production runs on **MySQL** and **Indian time only (IST)**.
+
+1. **`.env`**: `APP_ENV=production`, `APP_DEBUG=false`, real `APP_URL`, a fresh `APP_KEY`,
+   `APP_TIMEZONE=Asia/Kolkata`, `DB_TYPE=mysql` + `DB_*`, `MAIL_*`, `BUSINESS_*`.
+2. **MySQL**: create the database as `utf8mb4` / `utf8mb4_unicode_ci`. Each connection runs
+   `SET NAMES utf8mb4` and `SET time_zone = '+05:30'` (offset of `APP_TIMEZONE`), so the
+   server's own time zone doesn't matter and no tz tables are needed. Keep strict mode on.
+   Blank numeric input is saved as NULL (`num_or_null()`), and uniqueness checks are case-insensitive.
+3. **Migrate + seed**: `php vayu migrate`, then `php vayu db:seed`.
+4. **PHP limits** (php.ini or `.user.ini` in `public/`) for product media and sheet imports:
+   ```ini
+   upload_max_filesize = 20M
+   post_max_size = 64M
+   max_file_uploads = 30
+   memory_limit = 256M
+   max_execution_time = 120
+   date.timezone = Asia/Kolkata
+   ```
+5. **Writable**: `storage/` and `public/assets/uploads/` by the web-server user.
+6. **Cron** (inventory check, every 15 min): `bin/install-cron.sh` adds it idempotently.
+   Manual line:
+   ```
+   */15 * * * * cd /path/to/app && php vayu inventory:check >> storage/logs/cron.log 2>&1
+   ```
+7. **Optimise**: `composer install --no-dev && php vayu optimize`. Re-run after every `.env` change.

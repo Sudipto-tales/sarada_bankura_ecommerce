@@ -23,7 +23,7 @@ class InventoryController
             "SELECT p.id, p.sku, p.name, p.status AS product_status,
                     s.id AS stock_id, s.unit, s.quantity, s.low_stock_threshold, s.status, s.last_movement_at,
                     pr.unit AS selling_unit, pr.pack_qty, pr.pack_unit,
-                    (SELECT path FROM product_media m WHERE m.product_id = p.id AND m.is_cover = 1 LIMIT 1) AS cover,
+                    " . \App\Services\Media\MediaService::coverSql('product', 'p.id') . " AS cover,
                     (SELECT c.name FROM product_category_map cm JOIN product_categories c ON c.id = cm.category_id
                       WHERE cm.product_id = p.id ORDER BY cm.is_primary DESC LIMIT 1) AS category,
                     (SELECT cm.category_id FROM product_category_map cm WHERE cm.product_id = p.id ORDER BY cm.is_primary DESC LIMIT 1) AS category_id
@@ -262,7 +262,7 @@ class InventoryController
         }
         $rows = DB::select(
             "SELECT p.id, p.sku, p.name, s.unit, s.quantity, s.low_stock_threshold, s.status, s.last_movement_at,
-                    (SELECT path FROM product_media m WHERE m.product_id = p.id AND m.is_cover = 1 LIMIT 1) AS cover,
+                    " . \App\Services\Media\MediaService::coverSql('product', 'p.id') . " AS cover,
                     (SELECT c.name FROM product_category_map cm JOIN product_categories c ON c.id = cm.category_id
                       WHERE cm.product_id = p.id ORDER BY cm.is_primary DESC LIMIT 1) AS category
              FROM inventory_stock s JOIN products p ON p.id = s.product_id
