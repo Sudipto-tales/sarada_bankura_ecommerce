@@ -150,6 +150,16 @@ class Blueprint
         $this->indexes[] = ['type' => 'unique', 'columns' => (array) $columns];
     }
 
+    /**
+     * Plain (non-unique) index over one or more columns, e.g. addIndex(['owner_type', 'owner_id']).
+     *
+     * @param string|list<string> $columns
+     */
+    public function addIndex(string|array $columns): void
+    {
+        $this->indexes[] = ['type' => 'index', 'columns' => (array) $columns];
+    }
+
     /* ---- Compilation ---- */
 
     /**

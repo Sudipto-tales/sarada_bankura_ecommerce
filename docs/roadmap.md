@@ -135,6 +135,17 @@ Screens:
   file per request (Vayu parses single files only) with a progress bar per file, and supports
   drag & drop of many files.
 
+**Status: done (2026-11-23).** Migrations 000008 (media + media_links, copies product_media and
+brand logos) and 000008a (drops product_media after a copy-count safety check; down() rebuilds it).
+`App\Services\Media\MediaService` is the single writer (GD resize to 2400 px, WebP thumbnails, sha1
+dedupe, deferred purge inside transactions). Screens: `/admin/media` library (search, kind/usage
+filters, details drawer with "Used in", alt text, bulk delete of unused files), `/admin/products/{id}`
+detail page (drag reorder, cover, alt text, per-variant image, pick from library), shared uploader
+(`partials/uploader.php` + `public/assets/js/media.js`, one file per request with progress) used by
+the gallery, the library and wizard step 2. Products, variants, inventory, dashboard, importer and
+brand logos all read media through the service. Verified on MariaDB and SQLite plus a Chromium run.
+Local PHP limit is upload_max_filesize=2M; production needs the php.ini values in docs/usage.md.
+
 ### Stage 2: Public review form
 **Migration `2026_11_23_000009_extend_product_reviews.php`:** add `customer_id(nullable)`,
 `order_id(nullable)`, `is_verified_purchase(false)`, `ip`, `user_agent`.

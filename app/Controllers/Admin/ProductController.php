@@ -4,6 +4,8 @@ namespace App\Controllers\Admin;
 
 use App\Models\Product;
 use App\Requests\StoreProductRequest;
+use App\Services\Media\MediaException;
+use App\Services\Media\MediaService as Media;
 use Vayu\Database\DB;
 use Vayu\Http\Request;
 use Vayu\Http\Response;
@@ -42,7 +44,8 @@ class ProductController
         $sql = 'SELECT p.*, pt.name AS type_name, b.name AS brand_name,
                     pr.price, pr.currency, pr.unit AS selling_unit,
                     s.id AS stock_id, s.quantity AS stock_qty, s.unit AS stock_unit, s.status AS stock_status,
-                    (SELECT path FROM product_media m WHERE m.product_id = p.id AND m.is_cover = 1 LIMIT 1) AS cover,
+                    ' . Media::coverSql('product', 'p.id') . ' AS cover,
+                    (SELECT COUNT(*) FROM media_links ml WHERE ml.owner_type = \'product\' AND ml.owner_id = p.id) AS media_count,
                     (SELECT COUNT(*) FROM product_variants v WHERE v.product_id = p.id) AS variant_count
              FROM products p
              LEFT JOIN product_types pt ON pt.id = p.product_type_id
@@ -67,10 +70,15 @@ class ProductController
         $pid = (int) $id;
         $name = DB::table('products')->where('id', $pid)->value('name');
         if ($name !== null) {
+            // Links go first; files are removed only when nothing else uses them.
+            foreach (DB::select('SELECT id FROM product_variants WHERE product_id = ?', [$pid]) as $v) {
+                Media::detachAll('variant', (int) $v['id']);
+            }
+            Media::detachAll('product', $pid);
             $this->deleteVariants($pid);
             // Close its stock alerts (clears their unread notifications), then drop inventory rows with the product.
             \App\Services\Inventory\AlertService::resolveAllFor($pid);
-            foreach (['product_pricing', 'product_attribute_values', 'product_category_map', 'product_tags', 'product_media', 'product_reviews', 'inventory_stock', 'inventory_alerts', 'inventory_movements'] as $t) {
+            foreach (['product_pricing', 'product_attribute_values', 'product_category_map', 'product_tags', 'product_reviews', 'inventory_stock', 'inventory_alerts', 'inventory_movements'] as $t) {
                 DB::table($t)->where('product_id', $pid)->delete();
             }
             DB::table('products')->where('id', $pid)->delete();
@@ -126,7 +134,7 @@ class ProductController
             'selectedCats' => array_map(static fn($c) => (int) $c['category_id'], $cats),
             'primaryCat' => (int) (array_values(array_filter($cats, static fn($c) => (int) $c['is_primary'] === 1))[0]['category_id'] ?? 0),
             'tagString' => implode(', ', array_map(static fn($t) => $t['name'], $tags)),
-            'media' => DB::select('SELECT id, path, type, is_cover FROM product_media WHERE product_id = ? ORDER BY sort', [$pid]),
+            'media' => Media::linksFor('product', $pid, ['cover', 'gallery', 'video']),
             'variants' => $this->loadVariants($pid),
             'stockRow' => \App\Services\Inventory\InventoryService::stockFor($pid),
             'stockEnabled' => \App\Services\Inventory\InventorySettings::enabled(),
@@ -170,19 +178,157 @@ class ProductController
         return redirect(route('admin.products.index'));
     }
 
+    /** Remove an image/video from this product (and its variants). The file stays in the library if used elsewhere. */
     public function deleteMedia(Request $request, string $id, string $mediaId): Response
     {
         $pid = (int) $id;
-        $row = DB::table('product_media')->where('id', (int) $mediaId)->where('product_id', $pid)->first();
-        if ($row !== null) {
-            $full = app()->publicPath($row['path']);
-            if (is_file($full)) {
-                @unlink($full);
+        $mid = (int) $mediaId;
+        foreach ($this->variantIds($pid) as $vid) {
+            Media::detach('variant', $vid, $mid);
+        }
+        Media::detach('product', $pid, $mid);
+        Media::ensureCover('product', $pid);
+
+        return $this->galleryReply($request, $pid, 'Removed from this product.');
+    }
+
+    /** Attach files already in the library ("pick from library"). */
+    public function attachMedia(Request $request, string $id): Response
+    {
+        $pid = (int) $id;
+        if (!DB::table('products')->where('id', $pid)->exists()) {
+            return $this->galleryReply($request, $pid, 'Product not found.', false);
+        }
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $request->input('media_ids', [])))));
+        try {
+            foreach ($ids as $mid) {
+                $m = Media::find($mid);
+                if ($m === null || !in_array($m['kind'], ['image', 'video'], true) || $m['disk'] !== 'public') {
+                    continue;
+                }
+                Media::attach('product', $pid, $mid, $m['kind'] === 'video' ? 'video' : 'gallery');
             }
-            DB::table('product_media')->where('id', (int) $mediaId)->delete();
+            Media::ensureCover('product', $pid);
+        } catch (MediaException $e) {
+            return $this->galleryReply($request, $pid, $e->getMessage(), false);
         }
 
-        return redirect(route('admin.products.edit', ['id' => $pid]));
+        return $this->galleryReply($request, $pid, count($ids) . ' file' . (count($ids) === 1 ? '' : 's') . ' added.');
+    }
+
+    public function reorderMedia(Request $request, string $id): Response
+    {
+        $pid = (int) $id;
+        $order = array_filter(array_map('intval', explode(',', (string) $request->input('order', ''))));
+        Media::reorder('product', $pid, $order);
+
+        return $this->galleryReply($request, $pid, 'Order saved.');
+    }
+
+    public function coverMedia(Request $request, string $id, string $mediaId): Response
+    {
+        $pid = (int) $id;
+        try {
+            Media::setCover('product', $pid, (int) $mediaId);
+        } catch (MediaException $e) {
+            return $this->galleryReply($request, $pid, $e->getMessage(), false);
+        }
+
+        return $this->galleryReply($request, $pid, 'Cover updated.');
+    }
+
+    /** Show an image for one variant (variant_id = 0 → none). An image belongs to at most one variant. */
+    public function variantMedia(Request $request, string $id, string $mediaId): Response
+    {
+        $pid = (int) $id;
+        $mid = (int) $mediaId;
+        $vid = (int) $request->input('variant_id', 0);
+        $variants = $this->variantIds($pid);
+        if ($vid && !in_array($vid, $variants, true)) {
+            return $this->galleryReply($request, $pid, 'That variant is not part of this product.', false);
+        }
+        if (!DB::table('media_links')->where('owner_type', 'product')->where('owner_id', $pid)->where('media_id', $mid)->exists()) {
+            return $this->galleryReply($request, $pid, 'That file is not attached to this product.', false);
+        }
+        foreach ($variants as $v) {
+            if ($v !== $vid) {
+                DB::table('media_links')->where('owner_type', 'variant')->where('owner_id', $v)->where('media_id', $mid)->delete();
+            }
+        }
+        if ($vid) {
+            Media::attach('variant', $vid, $mid, 'gallery');
+        }
+
+        return $this->galleryReply($request, $pid, $vid ? 'Assigned to the variant.' : 'Variant assignment cleared.');
+    }
+
+    /** Detail page: gallery management + read-only summary. Editing stays on the wizard. */
+    public function show(Request $request, string $id): Response
+    {
+        $pid = (int) $id;
+        $product = DB::selectOne(
+            'SELECT p.*, pt.name AS type_name, b.name AS brand_name FROM products p
+             LEFT JOIN product_types pt ON pt.id = p.product_type_id LEFT JOIN brands b ON b.id = p.brand_id WHERE p.id = ?',
+            [$pid]
+        );
+        if ($product === null) {
+            session()->flash('error', 'Product not found.');
+
+            return redirect(route('admin.products.index'));
+        }
+        $variants = DB::select('SELECT id, sku, title, price, status, is_default FROM product_variants WHERE product_id = ? ORDER BY sort, id', [$pid]);
+        $variantOf = [];
+        if ($variants) {
+            $vids = array_map(static fn($v) => (int) $v['id'], $variants);
+            foreach (DB::select("SELECT owner_id, media_id FROM media_links WHERE owner_type = 'variant' AND owner_id IN (" . implode(',', $vids) . ')') as $l) {
+                $variantOf[(int) $l['media_id']] = (int) $l['owner_id'];
+            }
+        }
+        $reviews = DB::selectOne(
+            "SELECT COUNT(*) AS n, AVG(rating) AS avg,
+                    SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) AS pending
+             FROM product_reviews WHERE product_id = ?",
+            [$pid]
+        ) ?? ['n' => 0, 'avg' => null, 'pending' => 0];
+
+        return view('admin.products.show', [
+            'active' => 'products',
+            'product' => $product,
+            'pricing' => DB::table('product_pricing')->where('product_id', $pid)->first(),
+            'media' => Media::linksFor('product', $pid, ['cover', 'gallery', 'video']),
+            'variantOf' => $variantOf,
+            'variants' => $variants,
+            'categories' => DB::select('SELECT c.name, m.is_primary FROM product_category_map m JOIN product_categories c ON c.id = m.category_id WHERE m.product_id = ? ORDER BY m.is_primary DESC, c.name', [$pid]),
+            'tags' => DB::select('SELECT t.name FROM tags t JOIN product_tags pt ON pt.tag_id = t.id WHERE pt.product_id = ? ORDER BY t.name', [$pid]),
+            'attributes' => DB::select('SELECT a.name, a.unit, v.value FROM product_attribute_values v JOIN attributes a ON a.id = v.attribute_id WHERE v.product_id = ? ORDER BY a.sort, a.name', [$pid]),
+            'stock' => \App\Services\Inventory\InventoryService::stockFor($pid),
+            'reviews' => $reviews,
+            'limits' => ['image' => Media::uploadLimit('image'), 'video' => Media::uploadLimit('video')],
+            'success' => session()->get('success'),
+            'error' => session()->get('error'),
+        ]);
+    }
+
+    /** @return list<int> */
+    private function variantIds(int $pid): array
+    {
+        return array_map(static fn($r) => (int) $r['id'], DB::select('SELECT id FROM product_variants WHERE product_id = ?', [$pid]));
+    }
+
+    private function galleryReply(Request $request, int $pid, string $message, bool $ok = true): Response
+    {
+        if ($request->wantsJson()) {
+            return json([
+                'ok' => $ok, $ok ? 'message' : 'error' => $message,
+                'media' => $ok ? array_map(static fn($m) => [
+                    'id' => (int) $m['id'], 'role' => $m['role'], 'kind' => $m['kind'], 'thumb_url' => $m['thumb_url'], 'url' => $m['url'],
+                ], Media::linksFor('product', $pid, ['cover', 'gallery', 'video'])) : null,
+            ], $ok ? 200 : 422);
+        }
+        session()->flash($ok ? 'success' : 'error', $message);
+        $back = (string) ($request->header('Referer') ?? '');
+
+        return redirect(str_contains($back, '/admin/products/') ? $back : route('admin.products.show', ['id' => $pid]));
     }
 
     /** @return array<string,mixed> */
@@ -233,7 +379,7 @@ class ProductController
             \App\Services\Inventory\InventoryService::startTracking(
                 $id,
                 $unit,
-                (float) ($request->input('opening_qty') ?: 0),
+                (float) (num_or_null($request->input('opening_qty')) ?? 0),
                 is_numeric($threshold) ? (float) $threshold : null,
                 ['source' => 'opening', 'notes' => 'Opening stock set from product form'],
             );
@@ -252,13 +398,13 @@ class ProductController
 
         DB::table('product_pricing')->insert([
             'product_id' => $id,
-            'price' => $request->input('price') !== '' ? $request->input('price') : null,
-            'compare_at_price' => $request->input('compare_at_price') !== '' ? $request->input('compare_at_price') : null,
-            'cost_price' => $request->input('cost_price') !== '' ? $request->input('cost_price') : null,
+            'price' => num_or_null($request->input('price')),
+            'compare_at_price' => num_or_null($request->input('compare_at_price')),
+            'cost_price' => num_or_null($request->input('cost_price')),
             'currency' => $request->input('currency', 'INR'),
             'unit' => $request->input('selling_unit') ?: null,
-            'pack_qty' => is_numeric($request->input('pack_qty')) ? $request->input('pack_qty') : null,
-            'pack_unit' => is_numeric($request->input('pack_qty')) ? ($request->input('pack_unit') ?: null) : null,
+            'pack_qty' => num_or_null($request->input('pack_qty')),
+            'pack_unit' => num_or_null($request->input('pack_qty')) !== null ? blank_to_null($request->input('pack_unit')) : null,
         ]);
 
         foreach ((array) $request->input('attr', []) as $attributeId => $value) {
@@ -409,7 +555,6 @@ class ProductController
             return [];
         }
         $default = (string) $request->input('default_variant', '');
-        $num = static fn($v) => ($v === null || $v === '' || !is_numeric($v)) ? null : $v;
         $rows = [];
         $errors = [];
         $seen = [];
@@ -432,7 +577,7 @@ class ProductController
                 continue;
             }
             $seen[strtolower($sku)] = true;
-            $taken = DB::select('SELECT product_id FROM product_variants WHERE sku = ?', [$sku]);
+            $taken = DB::select('SELECT product_id FROM product_variants WHERE LOWER(sku) = ?', [mb_strtolower($sku)]);
             if ($taken && (int) $taken[0]['product_id'] !== $productId) {
                 $errors['variants'][] = 'Variant SKU "' . $sku . '" already belongs to another product.';
                 continue;
@@ -443,8 +588,8 @@ class ProductController
                 'sku' => $sku,
                 'title' => $title,
                 'values' => $values,
-                'price' => $num($v['price'] ?? null),
-                'compare_at_price' => $num($v['compare_at_price'] ?? null),
+                'price' => num_or_null($v['price'] ?? null),
+                'compare_at_price' => num_or_null($v['compare_at_price'] ?? null),
                 'unit' => trim((string) ($v['unit'] ?? '')) ?: null,
                 'status' => isset(VariantController::STATUSES[$status]) ? $status : 'active',
                 'is_default' => (string) $key === $default ? 1 : 0,
@@ -468,6 +613,7 @@ class ProductController
         // Free SKUs of variants that will be removed first, so a re-generated row can reuse them.
         $postedIds = array_filter(array_map(static fn($r) => $r['id'], $rows));
         foreach (array_diff($existing, $postedIds) as $gone) {
+            DB::table('media_links')->where('owner_type', 'variant')->where('owner_id', $gone)->delete();
             DB::table('product_variant_values')->where('variant_id', $gone)->delete();
             DB::table('product_variants')->where('id', $gone)->delete();
         }
@@ -493,36 +639,55 @@ class ProductController
     {
         foreach (DB::select('SELECT id FROM product_variants WHERE product_id = ?', [$pid]) as $v) {
             DB::table('product_variant_values')->where('variant_id', (int) $v['id'])->delete();
+            DB::table('media_links')->where('owner_type', 'variant')->where('owner_id', (int) $v['id'])->delete();
         }
         DB::table('product_variants')->where('product_id', $pid)->delete();
     }
 
+    /**
+     * Wizard step 2. The shared uploader puts files in the library first and posts their ids
+     * (media_ids[] in display order, cover_media_id). Plain file inputs still work without JS.
+     */
     private function storeMedia(Request $request, int $productId): void
     {
-        $dir = app()->publicPath('assets/uploads/products');
-        if (!is_dir($dir)) {
-            @mkdir($dir, 0775, true);
-        }
-
-        $slots = [['cover', 'image', 1], ['gallery1', 'image', 0], ['gallery2', 'image', 0], ['gallery3', 'image', 0], ['video', 'video', 0]];
-        $sort = 0;
-        foreach ($slots as [$field, $type, $isCover]) {
+        $errors = [];
+        $ids = array_values(array_unique(array_filter(array_map('intval', (array) $request->input('media_ids', [])))));
+        foreach (['cover' => 'cover', 'gallery1' => 'gallery', 'gallery2' => 'gallery', 'gallery3' => 'gallery', 'video' => 'video'] as $field => $role) {
             $file = $request->file($field);
-            if (!$file || !$file->isValid()) {
+            if (!$file || $file->getError() === UPLOAD_ERR_NO_FILE) {
                 continue;
             }
-            $ext = preg_replace('/[^a-z0-9]/i', '', $file->getClientExtension()) ?: 'bin';
-            $name = bin2hex(random_bytes(8)) . '.' . strtolower($ext);
-            if (!@move_uploaded_file($file->getPathname(), $dir . '/' . $name)) {
+            try {
+                $m = Media::storeUpload($file, ['kinds' => $role === 'video' ? ['video'] : ['image']]);
+                Media::attach('product', $productId, (int) $m['id'], $role === 'cover' ? 'gallery' : $role);
+                if ($role === 'cover') {
+                    Media::setCover('product', $productId, (int) $m['id']);
+                }
+            } catch (MediaException $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+        $sort = (int) (DB::selectOne("SELECT MAX(sort) AS s FROM media_links WHERE owner_type = 'product' AND owner_id = ?", [$productId])['s'] ?? 0);
+        foreach ($ids as $mid) {
+            $m = Media::find($mid);
+            if ($m === null || $m['disk'] !== 'public' || !in_array($m['kind'], ['image', 'video'], true)) {
                 continue;
             }
-            DB::table('product_media')->insert([
-                'product_id' => $productId,
-                'path' => 'assets/uploads/products/' . $name,
-                'type' => $type,
-                'is_cover' => $isCover,
-                'sort' => $sort++,
-            ]);
+            Media::attach('product', $productId, $mid, $m['kind'] === 'video' ? 'video' : 'gallery', ++$sort);
+        }
+        // Cover radio can point at a new file or one already attached (setCover checks the link).
+        $cover = (int) $request->input('cover_media_id', 0);
+        $currentCover = (int) (DB::table('media_links')->where('owner_type', 'product')->where('owner_id', $productId)->where('role', 'cover')->value('media_id') ?? 0);
+        if ($cover && $cover !== $currentCover) {
+            try {
+                Media::setCover('product', $productId, $cover);
+            } catch (MediaException $e) {
+                $errors[] = $e->getMessage();
+            }
+        }
+        Media::ensureCover('product', $productId);
+        if ($errors) {
+            session()->flash('error', implode(' ', $errors));
         }
     }
 
@@ -539,7 +704,7 @@ class ProductController
         $base = $this->slugify($source) ?: 'product';
         $slug = $base;
         $i = 2;
-        while (DB::table('products')->where('slug', $slug)->where('id', '!=', $ignoreId)->exists()) {
+        while (DB::table('products')->whereRaw('LOWER(slug) = ?', [$slug])->where('id', '!=', $ignoreId)->exists()) {
             $slug = $base . '-' . $i++;
         }
 

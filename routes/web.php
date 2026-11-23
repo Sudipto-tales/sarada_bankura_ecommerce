@@ -11,6 +11,7 @@ use App\Controllers\Admin\BrandController;
 use App\Controllers\Admin\CatalogController;
 use App\Controllers\Admin\DashboardController;
 use App\Controllers\Admin\ImportController;
+use App\Controllers\Admin\MediaController;
 use App\Controllers\Admin\InventoryController;
 use App\Controllers\Admin\NotificationController;
 use App\Controllers\Admin\ProductController;
@@ -74,6 +75,15 @@ $router->group(['prefix' => 'admin'], function ($router): void {
     $router->post('/products/import/{token}/commit', [ImportController::class, 'commit'])->name('admin.products.import.commit');
     $router->get('/products/import/{token}/report', [ImportController::class, 'report'])->name('admin.products.import.report');
 
+    // Media library: one record per file, shared by products, variants, brands… (MediaService).
+    $router->get('/media', [MediaController::class, 'index'])->name('admin.media');
+    $router->post('/media/upload', [MediaController::class, 'upload'])->name('admin.media.upload');
+    $router->post('/media/bulk-delete', [MediaController::class, 'bulkDelete'])->name('admin.media.bulkDelete');
+    $router->get('/media/{id}', [MediaController::class, 'show'])->name('admin.media.show');
+    $router->get('/media/{id}/file', [MediaController::class, 'file'])->name('admin.media.file');
+    $router->post('/media/{id}/update', [MediaController::class, 'update'])->name('admin.media.update');
+    $router->post('/media/{id}/delete', [MediaController::class, 'destroy'])->name('admin.media.delete');
+
     // Notifications — topbar bell panel + full page.
     $router->get('/notifications', [NotificationController::class, 'index'])->name('admin.notifications');
     $router->get('/notifications/feed', [NotificationController::class, 'feed'])->name('admin.notifications.feed');
@@ -101,8 +111,13 @@ $router->group(['prefix' => 'admin'], function ($router): void {
     $router->get('/products', [ProductController::class, 'index'])->name('admin.products.index');
     $router->get('/products/create', [ProductController::class, 'create'])->name('admin.products.create');
     $router->post('/products', [ProductController::class, 'store'])->name('admin.products.store');
+    $router->get('/products/{id}', [ProductController::class, 'show'])->name('admin.products.show');
     $router->get('/products/{id}/edit', [ProductController::class, 'edit'])->name('admin.products.edit');
     $router->post('/products/{id}/update', [ProductController::class, 'update'])->name('admin.products.update');
+    $router->post('/products/{id}/media/attach', [ProductController::class, 'attachMedia'])->name('admin.products.media.attach');
+    $router->post('/products/{id}/media/reorder', [ProductController::class, 'reorderMedia'])->name('admin.products.media.reorder');
+    $router->post('/products/{id}/media/{mediaId}/cover', [ProductController::class, 'coverMedia'])->name('admin.products.media.cover');
+    $router->post('/products/{id}/media/{mediaId}/variant', [ProductController::class, 'variantMedia'])->name('admin.products.media.variant');
     $router->post('/products/{id}/media/{mediaId}/delete', [ProductController::class, 'deleteMedia'])->name('admin.products.media.delete');
     $router->post('/products/{id}/delete', [ProductController::class, 'destroy'])->name('admin.products.destroy');
 });

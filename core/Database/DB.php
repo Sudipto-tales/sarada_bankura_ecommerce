@@ -36,6 +36,17 @@ class DB
     }
 
     /**
+     * First row of a query, or null.
+     *
+     * @param array<int|string, mixed> $bindings
+     * @return array<string, mixed>|null
+     */
+    public static function selectOne(string $sql, array $bindings = []): ?array
+    {
+        return static::connection()->selectOne($sql, $bindings);
+    }
+
+    /**
      * @param array<int|string, mixed> $bindings
      */
     public static function insert(string $sql, array $bindings = []): bool

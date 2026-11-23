@@ -39,6 +39,7 @@ try {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
+<meta name="ms-base" content="<?= e(rtrim((string) (parse_url(base_url(''), PHP_URL_PATH) ?? ''), '/')) ?>">
 <title><?= htmlspecialchars($title) ?> · Maa Sarada</title>
 <link rel="icon" type="image/png" href="<?= base_url('assets/image/favicon.png') ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -95,7 +96,7 @@ try {
     <div class="navlabel">Grow &amp; connect</div>
     <a class="navitem" href="#" title="Reports"><i data-lucide="chart-no-axes-column"></i><span>Reports</span><i data-lucide="chevron-down" class="chev"></i></a>
     <a class="navitem" href="#" title="Communication"><i data-lucide="messages-square"></i><span>Communication</span><i data-lucide="chevron-down" class="chev"></i></a>
-    <a class="navitem" href="#" title="Media &amp; files"><i data-lucide="images"></i><span>Media &amp; files</span><i data-lucide="chevron-down" class="chev"></i></a>
+    <a class="navitem<?= $nav('media') ?>" href="<?= route('admin.media') ?>" title="Media &amp; files"><i data-lucide="images"></i><span>Media &amp; files</span></a>
     <a class="navitem" href="#" title="Settings"><i data-lucide="settings"></i><span>Settings</span></a>
   </nav>
 </aside>

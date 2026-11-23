@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Services\Media\MediaService;
 use Vayu\Database\DB;
 use Vayu\Http\Request;
 use Vayu\Http\Response;
@@ -36,7 +37,7 @@ class VariantController
         $variants = DB::select(
             'SELECT v.*, p.name AS product_name, p.sku AS product_sku, p.id AS pid, b.name AS brand_name,
                     pr.unit AS product_unit, pr.currency,
-                    (SELECT path FROM product_media m WHERE m.product_id = p.id AND m.is_cover = 1 LIMIT 1) AS cover
+                    COALESCE(' . MediaService::coverSql('variant', 'v.id', "'cover','gallery'") . ', ' . MediaService::coverSql('product', 'p.id') . ') AS cover
              FROM product_variants v
              JOIN products p ON p.id = v.product_id
              LEFT JOIN brands b ON b.id = p.brand_id
@@ -156,18 +157,17 @@ class VariantController
 
             return redirect(route('admin.variants'));
         }
-        if (DB::table('product_variants')->where('sku', $sku)->where('id', '!=', $vid)->exists()) {
+        if (DB::table('product_variants')->whereRaw('LOWER(sku) = ?', [mb_strtolower($sku)])->where('id', '!=', $vid)->exists()) {
             session()->flash('error', 'SKU "' . $sku . '" is already used by another variant.');
 
             return redirect(route('admin.variants'));
         }
 
         $status = (string) $request->input('status', 'active');
-        $num = static fn($v) => ($v === null || $v === '' || !is_numeric($v)) ? null : $v;
         DB::table('product_variants')->where('id', $vid)->update([
             'sku' => $sku,
-            'price' => $num($request->input('price')),
-            'compare_at_price' => $num($request->input('compare_at_price')),
+            'price' => num_or_null($request->input('price')),
+            'compare_at_price' => num_or_null($request->input('compare_at_price')),
             'unit' => $request->input('unit') ?: null,
             'status' => isset(self::STATUSES[$status]) ? $status : 'active',
             'updated_at' => date('Y-m-d H:i:s'),
@@ -183,6 +183,7 @@ class VariantController
         $sku = DB::table('product_variants')->where('id', $vid)->value('sku');
         if ($sku !== null) {
             DB::table('product_variant_values')->where('variant_id', $vid)->delete();
+            MediaService::detachAll('variant', $vid);
             DB::table('product_variants')->where('id', $vid)->delete();
             session()->flash('success', 'Variant "' . $sku . '" deleted.');
         }

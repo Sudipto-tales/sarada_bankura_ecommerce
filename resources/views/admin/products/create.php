@@ -119,38 +119,32 @@ include __DIR__ . '/../partials/header.php';
 
     <!-- Step 2: Media -->
     <div class="wizstep hidden" data-step="1">
-      <div class="sectionhead"><div class="sectionicon"><i data-lucide="image"></i></div><div><h2>Product media</h2><p class="text-xs muted mt-1">Cover image, gallery and an optional video.</p></div></div>
+      <div class="sectionhead"><div class="sectionicon"><i data-lucide="image"></i></div><div><h2>Product media</h2><p class="text-xs muted mt-1">Photos and an optional video. Files go to the media library and are attached when you save.</p></div></div>
       <div class="stack">
         <?php if ($isEdit && $media): ?>
         <div class="subbox">
-          <b class="text-sm">Current media</b>
-          <div class="thumbs" style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><b class="text-sm">Current media</b>
+            <a class="btn ghost" style="padding:6px 10px" href="<?= route('admin.products.show', ['id' => $productId]) ?>"><i data-lucide="images" style="width:14px"></i>Reorder, alt text &amp; variants</a></div>
+          <div class="wiz-media" style="margin-top:12px">
             <?php foreach ($media as $md): ?>
-            <div class="thumb">
-              <?php if (($md['type'] ?? 'image') === 'video'): ?><div style="display:grid;place-items:center;height:100%" class="muted"><i data-lucide="video"></i></div>
-              <?php else: ?><img src="<?= base_url($md['path']) ?>"><?php endif; ?>
-              <button type="button" title="Remove" data-del-media="<?= e(route('admin.products.media.delete', ['id' => $productId, 'mediaId' => $md['id']])) ?>">×</button>
-              <?php if ((int) ($md['is_cover'] ?? 0)): ?><span>Cover</span><?php endif; ?>
+            <div class="gal-item<?= $md['role'] === 'cover' ? ' cover' : '' ?>">
+              <?php if ($md['role'] === 'cover'): ?><span class="gal-badge">Cover</span><?php elseif ($md['kind'] === 'video'): ?><span class="gal-badge video">Video</span><?php endif; ?>
+              <div class="gal-img"><?php if ($md['thumb_url']): ?><img src="<?= e($md['thumb_url']) ?>" alt="<?= e((string) $md['alt_text']) ?>"><?php else: ?><i data-lucide="film"></i><?php endif; ?></div>
+              <div class="gal-foot">
+                <?php if ($md['kind'] === 'image'): ?><label><input type="radio" name="cover_media_id" value="<?= (int) $md['id'] ?>"<?= $md['role'] === 'cover' ? ' checked' : '' ?>>Cover</label><?php endif; ?>
+                <button type="button" class="iconbtn danger" title="Remove" data-del-media="<?= e(route('admin.products.media.delete', ['id' => $productId, 'mediaId' => $md['id']])) ?>" style="margin-left:auto"><i data-lucide="x"></i></button>
+              </div>
             </div>
             <?php endforeach; ?>
           </div>
-          <p class="hint">Uploading a new cover below adds another image; existing ones stay unless removed.</p>
         </div>
         <?php endif; ?>
-        <label class="upload" for="cover">
-          <i data-lucide="upload" style="margin:0 auto 10px"></i>
-          <b class="text-sm">Cover image</b>
-          <p class="text-xs muted mt-2">PNG, JPEG or WebP. Shown on cards and search.</p>
-          <input id="cover" name="cover" type="file" accept="image/png,image/jpeg,image/webp" data-preview="prevCover">
-        </label>
-        <div class="thumbs" id="prevCover"></div>
-        <div class="grid3">
-          <label class="upload" for="g1"><i data-lucide="plus"></i><div class="text-xs mt-1">Gallery 1</div><input id="g1" name="gallery1" type="file" accept="image/*" data-preview="pg1"></label>
-          <label class="upload" for="g2"><i data-lucide="plus"></i><div class="text-xs mt-1">Gallery 2</div><input id="g2" name="gallery2" type="file" accept="image/*" data-preview="pg2"></label>
-          <label class="upload" for="g3"><i data-lucide="plus"></i><div class="text-xs mt-1">Gallery 3</div><input id="g3" name="gallery3" type="file" accept="image/*" data-preview="pg3"></label>
-        </div>
-        <div class="grid3"><div class="thumbs" id="pg1"></div><div class="thumbs" id="pg2"></div><div class="thumbs" id="pg3"></div></div>
-        <div class="field"><label>Product video (optional)</label><input name="video" type="file" accept="video/mp4,video/webm"></div>
+        <?php $up = ['id' => 'wizUploader', 'kinds' => ['image', 'video'], 'title' => 'Drop product photos or a video here, or click to choose'];
+        include __DIR__ . '/../partials/uploader.php'; ?>
+        <div class="wiz-media" id="wizNew"></div>
+        <div><button type="button" class="btn" id="wizPick"><i data-lucide="library" style="width:15px"></i>Pick from library</button>
+          <span class="hint" style="margin-left:8px">Reuse a photo already uploaded, e.g. the same slab on two products.</span></div>
+        <noscript><div class="field"><label>Cover image</label><input name="cover" type="file" accept="image/png,image/jpeg,image/webp"></div></noscript>
       </div>
     </div>
 
@@ -366,7 +360,7 @@ include __DIR__ . '/../partials/header.php';
 </form>
 
 <?php
-$scripts = <<<'JS'
+$scripts = ($scripts ?? '') . <<<'JS'
 <script>
 (function(){
   const steps=[
@@ -394,14 +388,22 @@ $scripts = <<<'JS'
   }
   $('#prevStep').onclick=()=>{if(active>0){active--;sync()}};
   $('#nextStep').onclick=()=>{if(active<steps.length-1){active++;sync()}};
-  document.querySelectorAll('input[type=file][data-preview]').forEach(inp=>{
-    inp.addEventListener('change',e=>{
-      const box=document.getElementById(inp.dataset.preview);if(!box)return;box.innerHTML='';
-      const f=e.target.files[0];if(!f)return;
-      const img=document.createElement('img');img.src=URL.createObjectURL(f);
-      const t=document.createElement('div');t.className='thumb';t.appendChild(img);box.appendChild(t);
-    });
-  });
+  // New media (wizard step 2): each uploaded/picked file becomes a hidden media_ids[] + a tile with a cover radio.
+  const wizNew=document.getElementById('wizNew'), added=new Set();
+  const hasCover=()=>!!document.querySelector('input[name=cover_media_id]:checked');
+  function addMedia(m){
+    if(added.has(m.id))return;added.add(m.id);
+    const esc=window.msMedia.esc, tile=document.createElement('div');tile.className='gal-item';
+    const first=m.kind==='image'&&!hasCover();
+    tile.innerHTML='<input type="hidden" name="media_ids[]" value="'+m.id+'">'+(m.kind==='video'?'<span class="gal-badge video">Video</span>':'')+
+      '<div class="gal-img">'+(m.thumb_url?'<img src="'+esc(m.thumb_url)+'" alt="">':'<i data-lucide="film"></i>')+'</div>'+
+      '<div class="gal-foot">'+(m.kind==='image'?'<label><input type="radio" name="cover_media_id" value="'+m.id+'"'+(first?' checked':'')+'>Cover</label>':'<span class="text-xs muted">'+esc(m.media_no)+'</span>')+
+      '<button type="button" class="iconbtn danger" title="Don\'t attach" style="margin-left:auto" data-unadd><i data-lucide="x"></i></button></div>';
+    tile.querySelector('[data-unadd]').onclick=()=>{added.delete(m.id);tile.remove();};
+    wizNew.appendChild(tile);if(window.lucide)lucide.createIcons();
+  }
+  document.getElementById('wizUploader')?.addEventListener('ms:uploaded',e=>addMedia(e.detail));
+  document.getElementById('wizPick')?.addEventListener('click',()=>window.msMedia.pick({kinds:['image','video'],multiple:true}).then(list=>list.forEach(addMedia)));
   document.querySelector('button[name=save_as]')?.addEventListener('click',()=>{const s=document.querySelector('select[name=status]');if(s)s.value='draft';});
   const token=document.querySelector('input[name=_token]')?.value||'';
   document.querySelectorAll('[data-del-media]').forEach(btn=>{

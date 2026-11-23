@@ -14,8 +14,15 @@ class DashboardController
             $byStatus[$r['status']] = (int) $r['n'];
         }
 
-        $count = static fn(string $sql): int => (int) (DB::select($sql)[0]['n'] ?? 0);
+        $count = static fn(string $sql, array $bind = []): int => (int) (DB::select($sql, $bind)[0]['n'] ?? 0);
         $total = (int) DB::table('products')->count();
+
+        // Date boundaries are computed in PHP (app timezone = IST) and bound as params, so the
+        // SQL is portable across SQLite and MySQL (no datetime('now') / julianday / NOW()).
+        $today = new \DateTimeImmutable('today');
+        $now = new \DateTimeImmutable('now');
+        $ago30 = $now->modify('-30 days')->format('Y-m-d H:i:s');
+        $ago60 = $now->modify('-60 days')->format('Y-m-d H:i:s');
 
         $stats = [
             'products' => $total,
@@ -30,14 +37,14 @@ class DashboardController
             'categories' => (int) DB::table('product_categories')->count(),
             'tags' => (int) DB::table('tags')->count(),
             'types' => (int) DB::table('product_types')->count(),
-            'media' => (int) DB::table('product_media')->count(),
-            'added30' => $count("SELECT COUNT(*) AS n FROM products WHERE created_at >= datetime('now','-30 days')"),
-            'addedPrev30' => $count("SELECT COUNT(*) AS n FROM products WHERE created_at < datetime('now','-30 days') AND created_at >= datetime('now','-60 days')"),
+            'media' => (int) DB::table('media')->count(),
+            'added30' => $count('SELECT COUNT(*) AS n FROM products WHERE created_at >= ?', [$ago30]),
+            'addedPrev30' => $count('SELECT COUNT(*) AS n FROM products WHERE created_at < ? AND created_at >= ?', [$ago30, $ago60]),
         ];
 
         // Readiness: share of products that have each piece filled in.
         $coverage = [
-            'media' => $count('SELECT COUNT(DISTINCT product_id) AS n FROM product_media'),
+            'media' => $count("SELECT COUNT(DISTINCT owner_id) AS n FROM media_links WHERE owner_type = 'product'"),
             'pricing' => $count('SELECT COUNT(DISTINCT product_id) AS n FROM product_pricing WHERE price IS NOT NULL'),
             'category' => $count('SELECT COUNT(DISTINCT product_id) AS n FROM product_category_map'),
             'seo' => $count("SELECT COUNT(*) AS n FROM products WHERE COALESCE(meta_title,'') <> '' AND COALESCE(meta_description,'') <> ''"),
@@ -45,21 +52,27 @@ class DashboardController
 
         // Products added per day: this 30-day window vs the previous one.
         $daily = ['this' => array_fill(0, 30, 0), 'last' => array_fill(0, 30, 0)];
+        // Group by calendar day (DATE() works in both engines); days with no rows stay 0.
         $rows = DB::select(
-            "SELECT CAST(julianday(date('now')) - julianday(date(created_at)) AS INTEGER) AS ago, COUNT(*) AS n
-             FROM products WHERE created_at >= date('now','-59 days') GROUP BY ago"
+            'SELECT DATE(created_at) AS d, COUNT(*) AS n FROM products
+             WHERE created_at >= ? GROUP BY DATE(created_at)',
+            [$today->modify('-59 days')->format('Y-m-d 00:00:00')]
         );
         foreach ($rows as $r) {
-            $ago = (int) $r['ago'];
-            if ($ago < 30) {
+            $day = \DateTimeImmutable::createFromFormat('!Y-m-d', (string) $r['d']);
+            if (!$day) {
+                continue;
+            }
+            $ago = (int) $day->diff($today)->format('%r%a');
+            if ($ago >= 0 && $ago < 30) {
                 $daily['this'][29 - $ago] = (int) $r['n'];
-            } elseif ($ago < 60) {
+            } elseif ($ago >= 30 && $ago < 60) {
                 $daily['last'][59 - $ago] = (int) $r['n'];
             }
         }
         $labels = [];
         for ($i = 29; $i >= 0; $i--) {
-            $labels[] = date('M j', strtotime("-{$i} days"));
+            $labels[] = $today->modify("-{$i} days")->format('M j');
         }
         $daily['labels'] = $labels;
 
@@ -88,7 +101,7 @@ class DashboardController
 
         $recent = DB::select(
             'SELECT p.id, p.name, p.sku, p.status, p.created_at, p.updated_at, pt.name AS type_name, b.name AS brand_name,
-                    (SELECT path FROM product_media m WHERE m.product_id = p.id AND m.is_cover = 1 LIMIT 1) AS cover,
+                    ' . \App\Services\Media\MediaService::coverSql('product', 'p.id') . ' AS cover,
                     (SELECT price FROM product_pricing pp WHERE pp.product_id = p.id LIMIT 1) AS price,
                     (SELECT unit FROM product_pricing pp WHERE pp.product_id = p.id LIMIT 1) AS unit
              FROM products p
