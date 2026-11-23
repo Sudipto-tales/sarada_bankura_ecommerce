@@ -158,6 +158,17 @@ Local PHP limit is upload_max_filesize=2M; production needs the php.ini values i
 - `is_verified_purchase` gets set automatically later, once orders exist (matching customer phone
   or email to a delivered order item).
 
+**Status: done (2026-11-23).** Migration 000009 (adds `customer_phone` too, because the form asks for
+"mobile or email" and phone is what later matches orders). `App\Services\Reviews\ReviewSubmission`
+holds the rules: honeypot + signed time trap (≥3 s, ≤2 days) answer "ok" and store nothing; 5 reviews
+per hour per socket IP (not X-Forwarded-For, which clients can fake); same-text resubmits within 24 h
+are folded into the first. Page `resources/views/review.php` works without JS (radio stars, three file
+inputs) and with JS (star labels, one photo picker with previews, client checks). Photos (≤3, private
+disk, no dedupe) are media links `review/photo`; admins see them in the review drawer with mobile,
+IP and verified flag; deleting a review purges its photos. Notification `review.submitted` (2★ or
+less → warning) links to `/admin/reviews?status=pending`. Publishing does not yet move photos to the
+public disk: do that when the storefront shows reviews.
+
 ### Stage 3: Customers (`docs/customers.md`)
 **Migration `2026_11_24_000010_create_customer_tables.php`:** ALTER `users` (phone, status,
 verified/last-login), `customers`, `customer_addresses`, `customer_tags`, `customer_tag_map`,

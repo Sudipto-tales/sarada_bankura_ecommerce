@@ -19,6 +19,7 @@ use App\Controllers\Admin\ReviewController;
 use App\Controllers\Admin\TagController;
 use App\Controllers\Admin\VariantController;
 use App\Controllers\ContactController;
+use App\Controllers\ReviewFormController;
 use App\Controllers\WelcomeController;
 
 $router->get('/', [WelcomeController::class, 'index'])->name('home');
@@ -28,6 +29,10 @@ $router->get('/hello/{name?}', [WelcomeController::class, 'hello'])->name('hello
 // CSRF + FormRequest validation + flash demo.
 $router->get('/contact', [ContactController::class, 'show'])->name('contact.show');
 $router->post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
+
+// Public "write a review" form (Stage 2). Rate limiting + spam guards live in ReviewSubmission.
+$router->get('/review/{slug}', [ReviewFormController::class, 'show'])->name('review.show');
+$router->post('/review/{slug}', [ReviewFormController::class, 'submit'])->name('review.submit');
 
 // Admin — product catalog.
 $router->group(['prefix' => 'admin'], function ($router): void {

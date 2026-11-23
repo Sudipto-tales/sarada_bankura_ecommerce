@@ -20,6 +20,7 @@ final class NotificationService
         'stock.low' => ['Low stock', 'triangle-alert', 'stock'],
         'stock.recovered' => ['Back in stock', 'package-check', 'stock'],
         'import.completed' => ['Bulk upload', 'file-spreadsheet', 'system'],
+        'review.submitted' => ['New review', 'message-square-text', 'system'],
         'system.check_failed' => ['System check failed', 'octagon-alert', 'system'],
     ];
     public const TABS = ['all', 'unread', 'stock', 'system'];

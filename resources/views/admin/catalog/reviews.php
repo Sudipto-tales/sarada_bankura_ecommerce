@@ -56,7 +56,7 @@ include __DIR__ . '/../partials/header.php';
 <div class="card toolbar-card glass">
   <select class="btn" id="fSource"><option value="">All sources</option><?php foreach (ReviewController::SOURCES as $k => $l): ?><option value="<?= $k ?>"><?= e($l) ?></option><?php endforeach; ?></select>
   <select class="btn" id="fRating"><option value="">All ratings</option><?php for ($s = 5; $s >= 1; $s--): ?><option value="<?= $s ?>"><?= $s ?> star<?= $s > 1 ? 's' : '' ?></option><?php endfor; ?></select>
-  <select class="btn" id="fStatus"><option value="">All statuses</option><?php foreach (ReviewController::STATUSES as $k => $l): ?><option value="<?= $k ?>"><?= $l ?></option><?php endforeach; ?></select>
+  <select class="btn" id="fStatus"><option value="">All statuses</option><?php foreach (ReviewController::STATUSES as $k => $l): ?><option value="<?= $k ?>"<?= (string) request()->query('status', '') === $k ? ' selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
   <label class="checkline"><input type="checkbox" id="fArchived"> Archived reviews</label>
   <label class="search-in"><i data-lucide="search"></i><input id="fSearch" placeholder="Search customer, product, review…"></label>
 </div>
@@ -85,6 +85,8 @@ include __DIR__ . '/../partials/header.php';
                 'product' => ($r['product_name'] ?? 'Deleted product') . ($r['product_sku'] ? ' · ' . $r['product_sku'] : ''),
                 'source' => ReviewController::SOURCES[$r['source']] ?? $r['source'], 'date' => date('M j, Y', strtotime((string) $r['created_at'])),
                 'response' => $r['response'] ?? '', 'responded' => $r['responded_at'] ? date('M j, Y', strtotime((string) $r['responded_at'])) : '',
+                'phone' => $r['customer_phone'] ?? '', 'ip' => $r['ip'] ?? '', 'verified' => (int) ($r['is_verified_purchase'] ?? 0),
+                'photos' => $photos[(int) $r['id']] ?? [],
                 'action' => route('admin.reviews.update', ['id' => $r['id']]), 'delete' => route('admin.reviews.delete', ['id' => $r['id']]),
             ]));
         ?>
@@ -95,6 +97,8 @@ include __DIR__ . '/../partials/header.php';
             <b>“<?= e((string) ($r['title'] ?: mb_strimwidth((string) $r['body'], 0, 50, '…'))) ?>”</b>
             <small class="block muted text-xs"><?= e((string) ($r['product_name'] ?? 'Deleted product')) ?><?= $r['product_sku'] ? ' · ' . e((string) $r['product_sku']) : '' ?><?= $r['application'] ? ' · ' . e((string) $r['application']) : '' ?></small>
             <?php if ($r['response']): ?><small class="replied"><i data-lucide="corner-down-right"></i>Replied</small><?php endif; ?>
+            <?php if (!empty($photos[(int) $r['id']])): ?><small class="replied"><i data-lucide="image"></i><?= count($photos[(int) $r['id']]) ?> photo<?= count($photos[(int) $r['id']]) === 1 ? '' : 's' ?></small><?php endif; ?>
+            <?php if ((int) ($r['is_verified_purchase'] ?? 0)): ?><small class="replied"><i data-lucide="badge-check"></i>Verified buyer</small><?php endif; ?>
           </td>
           <td><b><?= e((string) $r['customer_name']) ?></b><small class="block muted text-xs"><?= e((string) ($r['customer_email'] ?: ($r['city'] ?? ''))) ?></small></td>
           <td><?= $stars($rating) ?> <b class="text-sm"><?= number_format($rating, 1) ?></b></td>
@@ -158,6 +162,8 @@ include __DIR__ . '/../partials/header.php';
       <div class="flex items-center justify-between gap-2"><span id="dStars" class="stars" style="font-size:17px"></span><span id="dStatus" class="status-dot"></span></div>
       <p id="dBody" class="text-sm" style="margin:12px 0;white-space:pre-line"></p>
       <div class="text-xs muted" id="dMeta"></div>
+      <div class="thumbs" id="dPhotos"></div>
+      <div class="text-xs muted" id="dPrivate" style="margin-top:8px"></div>
     </div>
     <div class="field" style="margin-top:16px"><label>Merchant response <span class="muted" style="font-weight:600" id="dResponded"></span></label><textarea name="response" rows="4" placeholder="Thank the customer, explain natural variation in the stone, or share next steps…"></textarea></div>
     <input type="hidden" name="status" id="dStatusInput">
@@ -190,6 +196,10 @@ $scripts = <<<'JS'
     document.getElementById('dBody').textContent=d.body||'No written review.';
     document.getElementById('dMeta').textContent=[d.customer,d.email,d.city,d.application&&('Installed as '+d.application),d.source,d.date].filter(Boolean).join(' · ');
     document.getElementById('dResponded').textContent=d.responded?'· replied '+d.responded:'';
+    const ph=document.getElementById('dPhotos');ph.innerHTML='';
+    (d.photos||[]).forEach(p=>{const a=document.createElement('a');a.className='thumb';a.href=p.url;a.target='_blank';a.rel='noopener';a.title=p.no;
+      const img=document.createElement('img');img.src=p.thumb||p.url;img.alt='Customer photo '+p.no;a.appendChild(img);ph.appendChild(a);});
+    document.getElementById('dPrivate').textContent=[d.verified?'✓ Verified buyer':'',d.phone&&('Mobile '+d.phone),d.ip&&('Sent from '+d.ip)].filter(Boolean).join(' · ');
     df.elements.response.value=d.response;
     document.getElementById('dStatusInput').value=d.status;
     document.getElementById('dDelete').onclick=()=>{if(!confirm('Delete this review? This cannot be undone.'))return;const f=document.getElementById('msDelForm');f.action=d.delete;f.submit();};
