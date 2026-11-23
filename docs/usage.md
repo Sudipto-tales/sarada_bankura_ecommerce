@@ -168,7 +168,10 @@ Production runs on **MySQL** and **Indian time only (IST)**.
    `SET NAMES utf8mb4` and `SET time_zone = '+05:30'` (offset of `APP_TIMEZONE`), so the
    server's own time zone doesn't matter and no tz tables are needed. Keep strict mode on.
    Blank numeric input is saved as NULL (`num_or_null()`), and uniqueness checks are case-insensitive.
-3. **Migrate + seed**: `php vayu migrate`, then `php vayu db:seed`.
+3. **Migrate + seed**: `php vayu migrate`, then `php vayu db:seed`, then
+   `php vayu db:seed CustomerSeeder` (default customer tags + the six default segments; idempotent).
+   The pincode auto-fill on customer addresses needs outbound HTTPS to `api.dharun.dev`; if it is
+   blocked the form falls back to manual entry (results are cached in the `pincodes` table).
 4. **PHP limits** (php.ini or `.user.ini` in `public/`) for product media and sheet imports:
    ```ini
    upload_max_filesize = 20M

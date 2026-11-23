@@ -176,6 +176,15 @@ verified/last-login), `customers`, `customer_addresses`, `customer_tags`, `custo
 **Models:** Customer, CustomerAddress, CustomerTag, CustomerSegment, CustomerSegmentCondition.
 Phases 1–4 from the doc. `CustomerStats` is stubbed, and Stage 4 switches it on.
 
+**Status: done (2026-11-24).** Migration 000010 (plus `company`, `source`, address `label`/`district`).
+`App\Services\Customer\{CustomerService, SegmentMatcher, CustomerStats (dormant), PincodeLookup,
+Phone}`. Screens: `/admin/customers` (segment tabs, filters, export), create/edit with pincode
+auto-fill, detail, `/admin/customers/segments` (rule builder + live preview, static lists),
+`/admin/customers/tags`, JSON `/admin/lookup/pincode/{code}`. Phone links customers to `users`
+rows and to Stage 2 reviews. `CustomerSeeder` adds the default tags and segments. Verified on
+MariaDB and SQLite plus a Chromium run (desktop + phone width). Stage 4 must call
+`CustomerStats::recalculate()` and flip `CustomerStats::enabled()`.
+
 ### Stage 4: Orders + documents (`docs/orders.md`)
 **Migration `2026_11_24_000011_create_order_tables.php`:** orders (with the payment cache
 columns from payments.md), order_items, order_status_history, order_invoices, order_deliveries,
