@@ -18,11 +18,14 @@ use App\Controllers\Admin\MediaController;
 use App\Controllers\Admin\InventoryController;
 use App\Controllers\Admin\LookupController;
 use App\Controllers\Admin\NotificationController;
+use App\Controllers\Admin\OrderController;
+use App\Controllers\Admin\OrderDocumentController;
 use App\Controllers\Admin\ProductController;
 use App\Controllers\Admin\ReviewController;
 use App\Controllers\Admin\TagController;
 use App\Controllers\Admin\VariantController;
 use App\Controllers\ContactController;
+use App\Controllers\PublicOrderController;
 use App\Controllers\ReviewFormController;
 use App\Controllers\WelcomeController;
 
@@ -37,6 +40,10 @@ $router->post('/contact', [ContactController::class, 'submit'])->name('contact.s
 // Public "write a review" form (Stage 2). Rate limiting + spam guards live in ReviewSubmission.
 $router->get('/review/{slug}', [ReviewFormController::class, 'show'])->name('review.show');
 $router->post('/review/{slug}', [ReviewFormController::class, 'submit'])->name('review.submit');
+
+// Public order pages (no login; unguessable tokens from QR codes / links sent to the customer).
+$router->get('/invoice/{token}', [PublicOrderController::class, 'invoice'])->name('invoice.public');
+$router->get('/order/{token}', [PublicOrderController::class, 'order'])->name('order.public');
 
 // Admin — product catalog.
 $router->group(['prefix' => 'admin'], function ($router): void {
@@ -140,6 +147,20 @@ $router->group(['prefix' => 'admin'], function ($router): void {
     $router->get('/customers/{id}/edit', [CustomerController::class, 'edit'])->name('admin.customers.edit');
     $router->post('/customers/{id}/update', [CustomerController::class, 'update'])->name('admin.customers.update');
     $router->post('/customers/{id}/delete', [CustomerController::class, 'destroy'])->name('admin.customers.delete');
+
+    // Orders (Stage 4) — fixed paths before /orders/{id}.
+    $router->get('/orders', [OrderController::class, 'index'])->name('admin.orders');
+    $router->get('/orders/create', [OrderController::class, 'create'])->name('admin.orders.create');
+    $router->post('/orders', [OrderController::class, 'store'])->name('admin.orders.store');
+    $router->post('/orders/bulk', [OrderController::class, 'bulk'])->name('admin.orders.bulk');
+    $router->get('/orders/lookup/customers', [OrderController::class, 'lookupCustomers'])->name('admin.orders.lookup.customers');
+    $router->get('/orders/lookup/customers/{id}/addresses', [OrderController::class, 'lookupAddresses'])->name('admin.orders.lookup.addresses');
+    $router->get('/orders/lookup/products', [OrderController::class, 'lookupProducts'])->name('admin.orders.lookup.products');
+    $router->get('/orders/{id}', [OrderController::class, 'show'])->name('admin.orders.show');
+    $router->post('/orders/{id}/status', [OrderController::class, 'transition'])->name('admin.orders.transition');
+    $router->post('/orders/{id}/otp', [OrderController::class, 'resendOtp'])->name('admin.orders.otp');
+    $router->get('/orders/{id}/invoice', [OrderDocumentController::class, 'invoice'])->name('admin.orders.invoice');
+    $router->get('/orders/{id}/packing-slip', [OrderDocumentController::class, 'packingSlip'])->name('admin.orders.slip');
 
     // Internal JSON lookups (pincode → district/state/post offices, cached).
     $router->get('/lookup/pincode/{code}', [LookupController::class, 'pincode'])->name('admin.lookup.pincode');

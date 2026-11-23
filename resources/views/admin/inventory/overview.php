@@ -11,7 +11,7 @@ $flow = $flow ?? [];
 $recent = $recent ?? [];
 $tracked = $tracked ?? 0;
 $labels = ['healthy' => 'Healthy', 'low' => 'Low stock', 'out' => 'Out of stock'];
-$typeIcon = ['opening' => ['flag', '#efe7f6', '#6f4a92'], 'stock_in' => ['package-plus', '#dff3e9', '#1f7a53'], 'adjust_in' => ['trending-up', '#e3eef8', '#3d6a92'], 'adjust_out' => ['trending-down', '#fbe1dc', '#b4452f'], 'import' => ['file-spreadsheet', '#fff0bf', '#91670a']];
+$typeIcon = ['opening' => ['flag', '#efe7f6', '#6f4a92'], 'stock_in' => ['package-plus', '#dff3e9', '#1f7a53'], 'adjust_in' => ['trending-up', '#e3eef8', '#3d6a92'], 'adjust_out' => ['trending-down', '#fbe1dc', '#b4452f'], 'import' => ['file-spreadsheet', '#fff0bf', '#91670a'], 'sale' => ['truck', '#fbe1dc', '#b4452f'], 'return_in' => ['undo-2', '#dff3e9', '#1f7a53']];
 $pct = static fn(int $n) => $tracked ? round($n / $tracked * 100, 1) : 0;
 $stockUrl = route('admin.inventory.stock');
 include __DIR__ . '/../partials/header.php';

@@ -158,7 +158,7 @@ return function (Assert $assert): void {
     $assert->equals('static: forSegment uses members', 1, (int) DB::selectOne("SELECT COUNT(*) AS n FROM customers c WHERE $sql", $bind)['n']);
 
     // Stats stub
-    $assert->that('stats: dormant until orders', !CustomerStats::enabled());
+    $assert->that('stats: live since Stage 4', CustomerStats::enabled());
     $assert->equals('stats: lifecycle vip', 'vip', CustomerStats::lifecycle(3, 200000));
     $assert->equals('stats: lifecycle returning', 'returning', CustomerStats::lifecycle(2, 5000));
     $assert->equals('stats: aov', 2500.0, CustomerStats::aov(2, 5000));

@@ -95,7 +95,7 @@ include __DIR__ . '/../../partials/header.php';
       <section class="rightcard">
         <div class="eyebrow">Good to know</div>
         <ul class="seg-tips">
-          <li>Orders, spend and last-order rules start matching when the orders module goes live.</li>
+          <li>Orders and spend count delivered orders; “last order” is the latest order placed (not declined).</li>
           <li>City, district, state and pincode match <em>any</em> of the customer’s addresses.</li>
           <li>Dates use Indian time (IST).</li>
         </ul>

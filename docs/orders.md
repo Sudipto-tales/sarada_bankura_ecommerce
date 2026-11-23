@@ -1,6 +1,8 @@
 # Orders, Payments, Invoices & Returns
 
-**Status: planned (not yet built).** Status-driven order management for Maa Sarada Marble &
+**Status: Stage 4 built (2026-11-24)** — orders, workflow, stock-out, packing slip, invoice, public pages, delivery OTP. Payments = Stage 5, returns UI = Stage 6 (tables exist). See "As built" at the end.
+
+Status-driven order management for Maa Sarada Marble &
 Stone, aligned to the existing inventory, customers and notifications modules. Order status,
 payment status, invoice/document status, delivery status and return status are kept
 **independent** of each other.
@@ -312,3 +314,41 @@ carry their **own scoped print CSS** (DM Sans/Playfair, monochrome, A4) — not 
   tax rate/rules → Payment settings.
 - **Seller GST registration + GSTIN** decides "Tax Invoice" vs "Bill of Supply" (see compliance
   flag). Confirm with the accountant.
+
+## As built (Stage 4, 2026-11-24)
+
+- **GST is added on top** (owner, 2026-11-24): total = subtotal − order discount + GST. One optional
+  rate per order. **GST is refused when `BUSINESS_GSTIN` is empty** (an unregistered seller issues a
+  Bill of Supply and may not charge GST). Title: "Tax Invoice" only with GSTIN + GST, else
+  "Invoice / Bill of Supply". CGST+SGST when place of supply = seller state, else IGST.
+- **Numbers:** `DocumentNumber::next()` (document_counters, FY Apr–Mar IST, `FOR UPDATE` on MySQL,
+  must run inside the document's transaction → gapless). Orders `MSO/26-27/0001`, invoices
+  `MSM/26-27/0001` (prefixes in `config/business.php` → `numbering`).
+- **Services** (`app/Services/Order/`): `OrderService` (create + snapshots, `transition()` with a
+  guarded `UPDATE … WHERE order_status = ?`, `bulk()`, `stockWarnings()`, OTP), `DocumentService`,
+  `DocumentNumber`, `Money` (Indian grouping + amount in words), `PaymentService::syncOrder()`
+  (Stage 4: unpaid / full due; reads payments tables once Stage 5 creates them).
+- **Create order** (admin): existing customer (search) or new (a known mobile reuses that customer);
+  delivery address = saved or new (saved to the customer, pincode lookup), or "customer collects"
+  (no address, place of supply = seller state, billing optional); lines with variant, qty, price
+  (catalogue default, editable), line discount; order discount; GST toggle. Submits via fetch →
+  inline errors. Channel = offline + detail (showroom / walk-in / phone / WhatsApp).
+- **Workflow:** one next-step button (list + detail); dialogs only for accept (optional note + stock
+  warning), reject (customer note, required), dispatch (courier / tracking / link; shows money due),
+  delivered (OTP, or manual with a written reason — logged). Bulk: accept / start processing / mark
+  packed for orders all in the same status.
+- **Dispatch** issues the invoice, deducts tracked stock via `InventoryService::consumeForOrder()`
+  (may go negative; untracked skipped; a unit that can't be converted is skipped with a warning +
+  `order.stock_issue` notification, never blocking), and creates a 6-digit delivery OTP (HMAC hash
+  stored, 7-day expiry, 5 tries). The OTP is shown **once** to the admin with a WhatsApp send link;
+  "New OTP" replaces it.
+- **Customer stats live:** total_orders / total_spent = delivered orders; last_order_at = latest
+  non-rejected order placed. A customer with orders can't be deleted.
+- **Documents:** `/admin/orders/{id}/invoice`, `/admin/orders/{id}/packing-slip` (A4, scoped
+  `public/assets/css/documents.css`, QR via vendored `public/assets/vendor/qrcode.min.js`); public
+  `/invoice/{token}` and `/order/{token}` (noindex; Pay button present but hidden until Stage 5).
+- **Fixed along the way:** core `Connection::transaction()` joins an open transaction (nesting);
+  `InventoryService::lock()` uses `SELECT … FOR UPDATE` on MySQL (MySQL's UPDATE reports changed rows,
+  so same-second writes were wrongly treated as "not tracked").
+- **Not in Stage 4:** dashboard order cards / Online-vs-Offline section, order list on the customer
+  page, editing an order after creation (create a new one / decline while pending).

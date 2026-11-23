@@ -6,6 +6,7 @@ $productKeys = ['products', 'products.create', 'products.import', 'variants', 'c
 $productsOpen = in_array($active, $productKeys, true);
 $inventoryOpen = str_starts_with($active, 'inventory');
 $customersOpen = str_starts_with($active, 'customers');
+$ordersOpen = str_starts_with($active, 'orders');
 
 // Topbar quick counts (cheap COUNT queries; never break the page if the DB is unavailable).
 $hdr = ['products' => 0, 'draft' => 0, 'coming_soon' => 0];
@@ -21,6 +22,11 @@ try {
 $nfUnread = 0;
 try {
     $nfUnread = \App\Services\NotificationService::unreadCount();
+} catch (\Throwable $e) {
+}
+$ordPending = 0;
+try {
+    $ordPending = (int) \Vayu\Database\DB::table('orders')->where('order_status', 'pending')->count();
 } catch (\Throwable $e) {
 }
 // Topbar stock chips — only when inventory is actually tracked for some product.
@@ -86,6 +92,13 @@ try {
         <a class="subitem<?= $nav('inventory.alerts') ?>" href="<?= route('admin.inventory.alerts') ?>">Stock alerts</a>
       </div>
     </details>
+    <details class="navgroup"<?= $ordersOpen ? ' open' : '' ?>>
+      <summary class="navitem<?= $ordersOpen ? ' current' : '' ?>" title="Orders"><i data-lucide="receipt-text"></i><span>Orders</span><?php if ($ordPending): ?><em class="nav-badge"><?= $ordPending > 99 ? '99+' : $ordPending ?></em><?php endif; ?><i data-lucide="chevron-down" class="chev"></i></summary>
+      <div class="subnav">
+        <a class="subitem<?= $nav('orders') ?>" href="<?= route('admin.orders') ?>">All orders</a>
+        <a class="subitem<?= $nav('orders.create') ?>" href="<?= route('admin.orders.create') ?>">Create order</a>
+      </div>
+    </details>
     <a class="navitem" href="#" title="Enquiries"><i data-lucide="clipboard-list"></i><span>Enquiries</span><i data-lucide="chevron-down" class="chev"></i></a>
     <details class="navgroup"<?= $customersOpen ? ' open' : '' ?>>
       <summary class="navitem<?= $customersOpen ? ' current' : '' ?>" title="Customers"><i data-lucide="users"></i><span>Customers</span><i data-lucide="chevron-down" class="chev"></i></summary>
@@ -130,6 +143,12 @@ try {
       <span class="tb-ic" style="background:#fbe1dc;color:#c2523c"><i data-lucide="clock"></i></span>
       <span><small>Coming soon</small><b><?= number_format($hdr['coming_soon']) ?></b></span>
     </a>
+    <?php if ($ordPending > 0): ?>
+    <a class="tb-chip" href="<?= route('admin.orders') ?>?status=pending">
+      <span class="tb-ic" style="background:#fff0bf;color:#91670a"><i data-lucide="receipt-text"></i></span>
+      <span><small>Pending orders</small><b><?= number_format($ordPending) ?></b></span>
+    </a>
+    <?php endif; ?>
     <?php if ($stk['tracked'] > 0): ?>
     <a class="tb-chip" href="<?= route('admin.inventory.stock') ?>?status=low">
       <span class="tb-ic" style="background:#fdeccb;color:#a66a09"><i data-lucide="trending-down"></i></span>

@@ -37,7 +37,7 @@ include __DIR__ . '/../partials/header.php';
 <div class="cu-detail">
   <div class="stack" style="gap:18px">
     <section class="card">
-      <div class="card-h"><div><div class="eyebrow">Purchases</div><h3>Order summary</h3></div><span class="text-xs muted">Fills in automatically once orders go live</span></div>
+      <div class="card-h"><div><div class="eyebrow">Purchases</div><h3>Order summary</h3></div><span class="text-xs muted">Delivered orders only</span></div>
       <div class="cu-stats four">
         <div class="t-gold"><small>Orders</small><b><?= (int) $c['total_orders'] ?></b></div>
         <div class="t-green"><small>Total spent</small><b><?= $cuMoney($c['total_spent']) ?></b></div>

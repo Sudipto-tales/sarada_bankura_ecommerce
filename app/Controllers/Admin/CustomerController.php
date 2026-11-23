@@ -131,6 +131,12 @@ class CustomerController
 
     public function destroy(Request $request, string $id): Response
     {
+        $n = (int) DB::table('orders')->where('customer_id', (int) $id)->count();
+        if ($n > 0) {
+            session()->flash('error', 'This customer has ' . $n . ' order' . ($n === 1 ? '' : 's') . ' and can’t be deleted. Set their status to Inactive instead.');
+
+            return redirect(route('admin.customers.show', ['id' => (int) $id]));
+        }
         $name = Customers::delete((int) $id);
         if ($name !== null) {
             session()->flash('success', 'Customer "' . $name . '" deleted. Their reviews were kept.');

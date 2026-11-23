@@ -199,6 +199,10 @@ return_request_items (created now, UI in Stage 6).
   delivery OTP. The floating Pay button is **placed but hidden** until Stage 5 turns it on.
 - `CustomerStats` goes live (delivered → totals).
 
+**Status: done (2026-11-24).** See "As built" in `docs/orders.md`. Verified: 497 test assertions, HTTP flow
+(create → deliver, documents, public pages), Chromium create form, and the full service flow on MariaDB.
+Deferred: dashboard order/channel cards and the customer-page order list.
+
 ### Stage 5: Payments (`docs/payments.md`)
 **Migration `2026_11_25_000012_create_payment_tables.php`:** payment_accounts,
 payment_attempts, payments, payment_refunds, payment_request_logs.
