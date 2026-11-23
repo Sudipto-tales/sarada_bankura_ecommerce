@@ -84,6 +84,13 @@ Goal: what's already built runs correctly on **production MySQL**, and the code 
 
 Done when: every admin page loads on MySQL, the tests pass, and the dev DB is back to seed data.
 
+**Status: done (2026-11-22).** Verified on MariaDB 10.11 (strict mode) in a throwaway `maa_sarada_test` DB:
+7 migrations + 4 seeders, 291 test assertions, all 17 admin GET pages, create/edit/delete product,
+case-insensitive duplicate SKU, CSV import (blank cells → NULL, duplicate-case row flagged), stock
+receive. Connection runs `+05:30` / utf8mb4. Extra fixes found during the run: the fallback `.env`
+loader is now immutable (real env vars win, like phpdotenv), and the validator treats whitespace-only
+input as empty.
+
 ### Stage 1: Media library + product images & gallery
 
 **One central media system** instead of per-module file columns. Every uploaded file gets one

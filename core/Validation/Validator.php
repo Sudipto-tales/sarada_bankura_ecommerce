@@ -122,7 +122,9 @@ class Validator
             }
 
             $value = $this->data[$field] ?? null;
-            $isEmpty = $value === null || $value === '' || $value === [];
+            // Whitespace-only counts as empty, so `nullable` fields saved via num_or_null() /
+            // blank_to_null() validate the same way they are stored, and `required` rejects "   ".
+            $isEmpty = $value === null || $value === [] || (is_string($value) && trim($value) === '');
 
             if ($isEmpty) {
                 if (in_array('required', $names, true)) {
@@ -297,7 +299,14 @@ class Validator
             return true;
         }
 
-        $query = DB::table($table)->where($column, $v);
+        // Case-insensitive on purpose: MySQL's default collation treats 'MSM-a' and 'msm-A'
+        // as equal while SQLite doesn't, so compare lower-cased to behave the same on both
+        // (otherwise a value passes validation locally and hits a raw duplicate-key error on prod).
+        if (is_string($v) && preg_match('/^[A-Za-z0-9_]+$/', $column)) {
+            $query = DB::table($table)->whereRaw("LOWER({$column}) = ?", [mb_strtolower(trim($v))]);
+        } else {
+            $query = DB::table($table)->where($column, $v);
+        }
         if ($ignoreId !== null && $ignoreId !== '') {
             $query->where('id', '!=', $ignoreId);
         }

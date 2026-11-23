@@ -136,7 +136,7 @@ class CatalogController
             $kind = 'count';
         }
         if ($name !== '' && $symbol !== '') {
-            if (DB::table('units')->where('symbol', $symbol)->exists()) {
+            if (DB::table('units')->whereRaw('LOWER(symbol) = ?', [mb_strtolower($symbol)])->exists()) {
                 session()->flash('error', 'A unit with symbol "' . $symbol . '" already exists.');
             } else {
                 $now = date('Y-m-d H:i:s');
@@ -175,7 +175,7 @@ class CatalogController
         $base = self::slugify($source) ?: 'item';
         $slug = $base;
         $i = 2;
-        while (DB::table($table)->where('slug', $slug)->exists()) {
+        while (DB::table($table)->whereRaw('LOWER(slug) = ?', [$slug])->exists()) {
             $slug = $base . '-' . $i++;
         }
 

@@ -300,3 +300,47 @@ if (!function_exists('back')) {
         return redirect($to, $status);
     }
 }
+
+if (!function_exists('num_or_null')) {
+    /**
+     * Normalise a numeric form/import value for a DECIMAL/INT column: blank, whitespace,
+     * null or non-numeric become NULL. MySQL strict mode rejects '' in numeric columns
+     * (SQLite silently accepted it), so every numeric write goes through this.
+     */
+    function num_or_null(mixed $value): int|float|string|null
+    {
+        if (is_int($value) || is_float($value)) {
+            return $value;
+        }
+        if (!is_string($value)) {
+            return null;
+        }
+        $value = trim($value);
+
+        return $value !== '' && is_numeric($value) ? $value : null;
+    }
+}
+
+if (!function_exists('blank_to_null')) {
+    /** Trim a string; empty → NULL (use for DATE/DATETIME and optional text columns). */
+    function blank_to_null(mixed $value): ?string
+    {
+        if ($value === null || is_array($value)) {
+            return null;
+        }
+        $value = trim((string) $value);
+
+        return $value === '' ? null : $value;
+    }
+}
+
+if (!function_exists('business')) {
+    /**
+     * Business identity (config/business.php), e.g. business('name'), business('tax.gst_rate').
+     * Placeholder until System / Payment settings get their own admin page.
+     */
+    function business(?string $key = null, mixed $default = null): mixed
+    {
+        return config($key === null ? 'business' : 'business.' . $key, $default);
+    }
+}
