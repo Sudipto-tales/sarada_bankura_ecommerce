@@ -28,10 +28,18 @@ $lastReq = $requests[0] ?? null;
 $lastReqText = $lastReq ? 'Last sent: ' . (\App\Services\Payment\PaymentRequests::CHANNELS[$lastReq['channel']] ?? $lastReq['channel']) . ' · ' . \App\Services\Payment\PaymentRequests::maskRecipient((string) $lastReq['channel'], (string) $lastReq['recipient']) . ' · ' . $when($lastReq['created_at']) : '';
 $reqAttrs = 'data-pm-request data-url="' . e(route('admin.orders.payment-request', ['id' => $oid])) . '" data-number="' . e((string) $o['order_number']) . '" data-due="' . e((string) $dueNow) . '"'
     . ' data-email="' . e((string) $o['customer_email']) . '" data-phone="' . e($phone) . '" data-message="' . e($requestMsg) . '" data-cooldown="' . (int) $cooldown . '" data-last="' . e($lastReqText) . '"';
-// One timeline: status changes + money events.
+// Returns (Stage 6)
+$RS = \App\Services\Order\ReturnService::class;
+$canReturn = array_filter($returnLines, static fn($l) => $l['available'] > 0.0005) !== [];
+// One timeline: status changes + money events + return events.
 $events = [];
 foreach ($history as $h) {
     $same = $h['old_status'] === $h['new_status'];
+    $retEv = $same ? $RS::parseEvent($h['note']) : null;
+    if ($retEv) {
+        $events[] = ['at' => $h['created_at'], 'tone' => 'violet', 'icon' => 'undo-2', 'title' => $retEv[0], 'note' => $retEv[1]];
+        continue;
+    }
     $events[] = ['at' => $h['created_at'], 'tone' => OS::TONES[$h['new_status']] ?? 'grey', 'icon' => $same ? 'key-round' : ($histIcon[$h['new_status']] ?? 'circle'),
         'title' => $same ? 'Updated' : (OS::STATUSES[$h['new_status']] ?? $h['new_status']), 'note' => $h['note']];
 }
@@ -68,6 +76,7 @@ include __DIR__ . '/../partials/header.php';
   <div><div class="crumbs"><a href="<?= route('admin.orders') ?>">Orders</a> <i data-lucide="chevron-right"></i> <?= e((string) $o['order_number']) ?></div>
     <h1 class="ord-h1"><?= e((string) $o['order_number']) ?> <?= $ordStatus($st) ?></h1></div>
   <div class="flex gap-2 flex-wrap">
+    <?php if ($canReturn): ?><button class="btn" type="button" data-dialog="return"><i data-lucide="undo-2" style="width:16px"></i>Return / replace</button><?php endif; ?>
     <?php if ($st === 'pending'): ?><button class="btn danger-text" type="button" data-dialog="rejected"><i data-lucide="x" style="width:16px"></i>Reject</button><?php endif; ?>
     <?php if ($next && $next !== 'rejected'): ?>
       <?php if (in_array($next, OS::NEEDS_DIALOG, true) || $next === 'accepted'): ?>
@@ -185,10 +194,11 @@ include __DIR__ . '/../partials/header.php';
       <div class="ord-paynums">
         <div><small>Total</small><b><?= $inr($o['grand_total']) ?></b></div>
         <div><small>Paid</small><b><?= $inr($o['paid_amount']) ?></b></div>
+        <?php if ($returnCredit > 0): ?><div><small>Returned</small><b>−<?= $inr($returnCredit) ?></b></div><?php endif; ?>
         <?php if ((float) $o['pending_verification_amount'] > 0): ?><div><small>To verify</small><b class="pm-amber"><?= $inr($o['pending_verification_amount']) ?></b></div><?php endif; ?>
         <div><small>Due</small><b class="<?= (float) $o['due_amount'] > 0 ? 'ord-due' : '' ?>"><?= $inr($o['due_amount']) ?></b></div>
       </div>
-      <?php if ((float) $o['refund_due'] > 0): ?><div class="pm-refundbar"><i data-lucide="undo-2"></i><span><b>Refund <?= $inr($o['refund_due']) ?> due</b><?= $st === 'rejected' ? ' — the order was declined' : ' — paid more than the total' ?></span>
+      <?php if ((float) $o['refund_due'] > 0): ?><div class="pm-refundbar"><i data-lucide="undo-2"></i><span><b>Refund <?= $inr($o['refund_due']) ?> due</b><?= $st === 'rejected' ? ' — the order was declined' : ($returnCredit > 0 ? ' — goods were returned' : ' — paid more than the total') ?></span>
         <button type="button" class="btn sm" data-pm-refund data-url="<?= e(route('admin.orders.refunds.store', ['id' => $oid])) ?>" data-number="<?= e((string) $o['order_number']) ?>" data-max="<?= e((string) $o['paid_amount']) ?>" data-suggest="<?= e((string) $o['refund_due']) ?>" data-reason="<?= $st === 'rejected' ? 'Order declined' : 'Overpaid' ?>">Record refund</button></div><?php endif; ?>
 
       <?php foreach ($toVerify as $a): ?>
@@ -222,6 +232,27 @@ include __DIR__ . '/../partials/header.php';
       <?php endif; ?>
       <p class="text-xs muted" style="margin:12px 0 0">Payment never moves the order status — dispatch is allowed with money due.</p>
     </section>
+
+    <?php if ($returns || $st === 'delivered'): ?>
+    <section class="card" id="returns">
+      <div class="card-h"><div><div class="eyebrow">After delivery</div><h3>Returns &amp; replacements</h3></div>
+        <?php if ($canReturn): ?><button type="button" class="linkbtn" data-dialog="return"><i data-lucide="plus"></i>New</button><?php endif; ?></div>
+      <?php if ($returns): ?>
+      <ul class="ret-panel">
+        <?php foreach ($returns as $rq): ?>
+        <li><a href="<?= route('admin.returns.show', ['id' => $rq['id']]) ?>">
+          <i data-lucide="<?= $rq['request_type'] === 'return' ? 'undo-2' : 'repeat' ?>"></i>
+          <span><b><?= e((string) $rq['request_number']) ?></b><small><?= e($RS::TYPES[$rq['request_type']] ?? '') ?> · <?= e(implode(', ', array_map(static fn($it) => $it['product_name'] . ' × ' . $qtyFmt($it['received_quantity'] ?? $it['approved_quantity'] ?? $it['requested_quantity']), $rq['items']))) ?></small></span>
+          <span class="ord-st ord-<?= e($RS::TONES[$rq['status']] ?? 'grey') ?>"><?= e($RS::SHORT[$rq['status']] ?? $rq['status']) ?></span></a></li>
+        <?php endforeach; ?>
+      </ul>
+      <?php elseif ($canReturn): ?>
+      <p class="text-sm muted" style="margin:0">If the customer wants to return or replace something, raise it here. You decide on every request.</p>
+      <?php else: ?>
+      <p class="text-sm muted" style="margin:0">Nothing on this order can be returned any more.</p>
+      <?php endif; ?>
+    </section>
+    <?php endif; ?>
 
     <section class="card">
       <div class="card-h"><h3>Customer</h3><?php if ($customer): ?><a class="linkbtn" href="<?= route('admin.customers.show', ['id' => $customer['id']]) ?>">Profile <i data-lucide="arrow-right"></i></a><?php endif; ?></div>
@@ -292,6 +323,40 @@ include __DIR__ . '/../partials/header.php';
   </div>
   <div class="modal-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold" type="submit"><i data-lucide="package-check" style="width:16px"></i>Mark delivered</button></div>
 </form></div>
+<?php if ($canReturn): ?>
+<div class="modal-backdrop" id="dlg-return"><form class="modal ret-modal" method="post" action="<?= route('admin.orders.returns.store', ['id' => $oid]) ?>"><?= csrf_field() ?>
+  <div class="modal-h"><div><div class="eyebrow"><?= e((string) $o['order_number']) ?> · delivered <?= $when($o['delivered_at'], 'j M Y') ?></div><h3>Return or replace</h3></div><button type="button" class="iconbtn" data-close aria-label="Close"><i data-lucide="x"></i></button></div>
+  <div class="stack">
+    <div class="field"><label>The customer wants</label>
+      <div class="pm-channels">
+        <label><input type="radio" name="request_type" value="return" checked><span><i data-lucide="undo-2"></i>Return &amp; refund</span></label>
+        <label><input type="radio" name="request_type" value="replacement"><span><i data-lucide="repeat"></i>Replacement</span></label>
+      </div></div>
+    <div class="ret-lines">
+      <?php foreach ($returnLines as $l): $u = (string) $l['unit']; ?>
+      <div class="ret-line<?= $l['available'] <= 0.0005 ? ' off' : '' ?>" data-ret="<?= (int) $l['return_ok'] ?>" data-rep="<?= (int) $l['replacement_ok'] ?>">
+        <span><b><?= e((string) $l['product_name']) ?></b>
+          <small><?= $qtyFmt($l['quantity']) ?> <?= e($u) ?> delivered<?= $l['claimed'] > 0 ? ' · ' . $qtyFmt($l['claimed']) . ' already in returns' : '' ?></small>
+          <small class="ret-pols"><em class="<?= $l['return_ok'] ? 'yes' : 'no' ?>">Return <?= $l['return_ok'] ? ($l['return_until'] ? 'until ' . date('j M', (int) strtotime((string) $l['return_until'])) : 'allowed') : ((int) $l['return_allowed'] ? 'window over' : 'not allowed') ?></em>
+            <em class="<?= $l['replacement_ok'] ? 'yes' : 'no' ?>">Replace <?= $l['replacement_ok'] ? ($l['replacement_until'] ? 'until ' . date('j M', (int) strtotime((string) $l['replacement_until'])) : 'allowed') : ((int) $l['replacement_allowed'] ? 'window over' : 'not allowed') ?></em></small></span>
+        <?php if ($l['available'] > 0.0005): ?>
+        <label class="ret-line-in">Qty <span class="ret-qty"><input name="items[<?= (int) $l['id'] ?>]" inputmode="decimal" placeholder="0" data-max="<?= e((string) $l['available']) ?>" aria-label="Quantity for <?= e((string) $l['product_name']) ?>"><em>of <?= $qtyFmt($l['available']) ?> <?= e($u) ?></em></span></label>
+        <?php else: ?><span class="text-xs muted">All in returns</span><?php endif; ?>
+      </div>
+      <?php endforeach; ?>
+    </div>
+    <div class="grid2">
+      <div class="field"><label>Reason *</label><select name="reason" required><option value="">Choose…</option><?php foreach ($RS::REASONS as $k => $lbl): ?><option value="<?= $k ?>"><?= e($lbl) ?></option><?php endforeach; ?></select></div>
+      <div class="field"><label>Details</label><input name="description" maxlength="500" placeholder="What the customer said, photos received…"></div>
+    </div>
+    <div class="ord-warnbox sm" id="retPolicyWarn" hidden><i data-lucide="triangle-alert"></i><div><b>Outside the return policy</b> for a line you entered.
+      <label class="checkline" style="margin-top:6px"><input type="checkbox" name="outside_policy" value="1" id="retOverride"> Accept outside policy anyway</label>
+      <input name="override_reason" maxlength="255" placeholder="Why? e.g. Goodwill — regular contractor" style="margin-top:6px;width:100%" id="retOverrideWhy"></div></div>
+    <p class="text-xs muted" style="margin:0">Once raised, a request can’t be cancelled — you accept or decline it on the next screen.</p>
+  </div>
+  <div class="modal-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold" type="submit"><i data-lucide="undo-2" style="width:16px"></i>Raise request</button></div>
+</form></div>
+<?php endif; ?>
 <?php
 include __DIR__ . '/../payments/_modals.php';
 $scripts .= '<script>window.ORD_DO=' . json_encode($do) . ';</script>' . <<<'JS'
@@ -310,6 +375,19 @@ $scripts .= '<script>window.ORD_DO=' . json_encode($do) . ';</script>' . <<<'JS'
   document.querySelectorAll('[data-copy]').forEach(function(b){b.addEventListener('click',function(){
     (navigator.clipboard?navigator.clipboard.writeText(b.dataset.copy):Promise.reject()).then(function(){msToast('Copied')},function(){prompt('Copy:',b.dataset.copy)});
   })});
+  var rm=document.getElementById('dlg-return');
+  if(rm){var rf=rm.querySelector('form');
+    function chk(){var t=rf.querySelector('[name=request_type]:checked').value,out=false;
+      rf.querySelectorAll('.ret-line').forEach(function(l){var i=l.querySelector('input[data-max]');if(!i)return;var v=parseFloat(i.value);var ok=t==='return'?l.dataset.ret==='1':l.dataset.rep==='1';l.classList.toggle('warn',v>0&&!ok);if(v>0&&!ok)out=true;});
+      document.getElementById('retPolicyWarn').hidden=!out;}
+    rf.addEventListener('input',chk);rf.addEventListener('change',chk);
+    rf.addEventListener('submit',function(e){
+      var bad=[].slice.call(rf.querySelectorAll('input[data-max]')).find(function(i){var v=i.value.trim()===''?0:parseFloat(i.value);return isNaN(v)||v<0||v>parseFloat(i.dataset.max)+0.0005});
+      if(bad){e.preventDefault();bad.focus();msToast.error('Enter 0 to '+bad.dataset.max+' for that item.');setTimeout(function(){rf.querySelector('button[type=submit]').disabled=false},10);return;}
+      var any=[].slice.call(rf.querySelectorAll('input[data-max]')).some(function(i){return parseFloat(i.value)>0});
+      if(!any){e.preventDefault();msToast.error('Enter a quantity for at least one item.');setTimeout(function(){rf.querySelector('button[type=submit]').disabled=false},10);}
+    });
+  }
   if(window.ORD_DO)open(window.ORD_DO);
 })();
 </script>

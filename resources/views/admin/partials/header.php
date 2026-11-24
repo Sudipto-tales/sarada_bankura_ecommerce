@@ -105,6 +105,9 @@ try {
       <div class="subnav">
         <a class="subitem<?= $nav('orders') ?>" href="<?= route('admin.orders') ?>">All orders</a>
         <a class="subitem<?= $nav('orders.create') ?>" href="<?= route('admin.orders.create') ?>">Create order</a>
+        <?php /* Stage 6: returns */ $retOpen = 0; try { $retOpen = (int) \Vayu\Database\DB::table('return_requests')->where('status', 'submitted')->count(); } catch (\Throwable $e) { } ?>
+        <a class="subitem<?= $nav('orders.returns') ?>" href="<?= route('admin.returns') ?>">Returns &amp; replacements<?= $retOpen ? ' (' . $retOpen . ')' : '' ?></a>
+        <a class="subitem<?= $nav('orders.policies') ?>" href="<?= route('admin.return-policies') ?>">Return policies</a>
       </div>
     </details>
     <details class="navgroup"<?= $paymentsOpen ? ' open' : '' ?>>

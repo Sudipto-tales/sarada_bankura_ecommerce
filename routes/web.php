@@ -190,6 +190,18 @@ $router->group(['prefix' => 'admin'], function ($router): void {
     $router->post('/orders/{id}/refunds', [PaymentController::class, 'refund'])->name('admin.orders.refunds.store');
     $router->post('/orders/{id}/payment-request', [PaymentController::class, 'request'])->name('admin.orders.payment-request');
 
+    // Stage 6: returns — returns & replacements (ReturnService) + product return policies.
+    $router->get('/returns', [\App\Controllers\Admin\ReturnController::class, 'index'])->name('admin.returns');
+    $router->get('/returns/{id}', [\App\Controllers\Admin\ReturnController::class, 'show'])->name('admin.returns.show');
+    $router->post('/returns/{id}/approve', [\App\Controllers\Admin\ReturnController::class, 'approve'])->name('admin.returns.approve');
+    $router->post('/returns/{id}/reject', [\App\Controllers\Admin\ReturnController::class, 'reject'])->name('admin.returns.reject');
+    $router->post('/returns/{id}/receive', [\App\Controllers\Admin\ReturnController::class, 'receive'])->name('admin.returns.receive');
+    $router->post('/returns/{id}/resolve', [\App\Controllers\Admin\ReturnController::class, 'resolve'])->name('admin.returns.resolve');
+    $router->post('/returns/{id}/refund', [\App\Controllers\Admin\ReturnController::class, 'refund'])->name('admin.returns.refund');
+    $router->post('/orders/{id}/returns', [\App\Controllers\Admin\ReturnController::class, 'store'])->name('admin.orders.returns.store');
+    $router->get('/return-policies', [\App\Controllers\Admin\ReturnPolicyController::class, 'index'])->name('admin.return-policies');
+    $router->post('/return-policies', [\App\Controllers\Admin\ReturnPolicyController::class, 'save'])->name('admin.return-policies.save');
+
     // Internal JSON lookups (pincode → district/state/post offices, cached).
     $router->get('/lookup/pincode/{code}', [LookupController::class, 'pincode'])->name('admin.lookup.pincode');
 

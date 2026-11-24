@@ -8,6 +8,7 @@ use App\Services\Order\DocumentService;
 use App\Services\Order\OrderException;
 use App\Services\Order\OrderService as Orders;
 use App\Services\Order\PaymentService;
+use App\Services\Order\ReturnService;
 use App\Services\Media\MediaService;
 use App\Services\Payment\Accounts;
 use App\Services\Payment\PaymentRequests;
@@ -153,6 +154,10 @@ class OrderController
             'hasUpi' => Accounts::defaultUpi() !== null,
             'requestMsg' => PaymentRequests::defaultMessage($o),
             'cooldown' => PaymentRequests::cooldownLeft($o),
+            // Stage 6 — returns panel + "Return / replace" dialog
+            'returns' => ReturnService::forOrder($oid),
+            'returnLines' => $o['order_status'] === 'delivered' ? ReturnService::lines($oid) : [],
+            'returnCredit' => ReturnService::creditCents($oid) / 100,
         ]);
     }
 
