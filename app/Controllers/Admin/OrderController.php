@@ -9,6 +9,9 @@ use App\Services\Order\OrderException;
 use App\Services\Order\OrderService as Orders;
 use App\Services\Order\PaymentService;
 use App\Services\Media\MediaService;
+use App\Services\Payment\Accounts;
+use App\Services\Payment\PaymentRequests;
+use App\Services\Payment\PayWindow;
 use Vayu\Database\DB;
 use Vayu\Http\Request;
 use Vayu\Http\Response;
@@ -36,6 +39,10 @@ class OrderController
         }
         if ($f['payment'] === 'due') {
             $where[] = "o.due_amount > 0 AND o.order_status <> 'rejected'";
+        } elseif ($f['payment'] === 'verify') {
+            $where[] = 'o.pending_verification_amount > 0';
+        } elseif ($f['payment'] === 'refund') {
+            $where[] = 'o.refund_due > 0';
         } elseif (isset(PaymentService::STATUSES[$f['payment']])) {
             $where[] = 'o.payment_status = ?';
             $bind[] = $f['payment'];
@@ -81,6 +88,7 @@ class OrderController
             FROM orders", [$today, $today]) ?? [];
 
         return view('admin.orders.index', [
+            'payAccounts' => Accounts::all(true),
             'rows' => $rows, 'warn' => $warn, 'filters' => $f, 'counts' => $counts, 'kpi' => $kpi,
             'page' => $page, 'pages' => $pages, 'total' => $total,
         ]);
@@ -121,6 +129,7 @@ class OrderController
 
             return redirect(route('admin.orders'));
         }
+        PayWindow::expireStale();
         $items = DB::select('SELECT i.*, ' . MediaService::coverSql('product', 'i.product_id') . ' AS cover FROM order_items i WHERE i.order_id = ? ORDER BY i.sort, i.id', [$oid]);
 
         return view('admin.orders.show', [
@@ -135,6 +144,15 @@ class OrderController
             'otp' => session()->get('order_otp'),
             'orderUrl' => self::absolute((string) route('order.public', ['token' => $o['public_token']])),
             'do' => (string) $request->query('do', ''),
+            // Stage 5 — payment card + timeline
+            'attempts' => DB::select("SELECT * FROM payment_attempts WHERE order_id = ? AND status <> 'open' ORDER BY id DESC", [$oid]),
+            'payments' => DB::select('SELECT p.*, pa.name AS account_name FROM payments p LEFT JOIN payment_accounts pa ON pa.id = p.payment_account_id WHERE p.order_id = ? ORDER BY p.received_at DESC, p.id DESC', [$oid]),
+            'refunds' => DB::select('SELECT r.*, pa.name AS account_name FROM payment_refunds r LEFT JOIN payment_accounts pa ON pa.id = r.payment_account_id WHERE r.order_id = ? ORDER BY r.refunded_at DESC, r.id DESC', [$oid]),
+            'requests' => DB::select('SELECT * FROM payment_request_logs WHERE order_id = ? ORDER BY id DESC LIMIT 30', [$oid]),
+            'payAccounts' => Accounts::all(true),
+            'hasUpi' => Accounts::defaultUpi() !== null,
+            'requestMsg' => PaymentRequests::defaultMessage($o),
+            'cooldown' => PaymentRequests::cooldownLeft($o),
         ]);
     }
 

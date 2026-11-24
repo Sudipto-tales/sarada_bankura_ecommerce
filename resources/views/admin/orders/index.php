@@ -36,7 +36,7 @@ include __DIR__ . '/../partials/header.php';
 
 <form class="card toolbar-card glass" method="get" action="<?= route('admin.orders') ?>" id="ordFilters">
   <?php if ($f['status'] !== ''): ?><input type="hidden" name="status" value="<?= e($f['status']) ?>"><?php endif; ?>
-  <select class="btn" name="payment" aria-label="Payment"><option value="">Any payment</option><?php foreach (['due' => 'Money due', 'unpaid' => 'Unpaid', 'partially_paid' => 'Partly paid', 'paid' => 'Paid'] as $k => $l): ?><option value="<?= $k ?>"<?= $f['payment'] === $k ? ' selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
+  <select class="btn" name="payment" aria-label="Payment"><option value="">Any payment</option><?php foreach (['due' => 'Money due', 'verify' => 'To verify', 'unpaid' => 'Unpaid', 'partially_paid' => 'Partly paid', 'paid' => 'Paid', 'overpaid' => 'Overpaid', 'refund' => 'Refund due', 'refunded' => 'Refunded'] as $k => $l): ?><option value="<?= $k ?>"<?= $f['payment'] === $k ? ' selected' : '' ?>><?= $l ?></option><?php endforeach; ?></select>
   <select class="btn" name="channel" aria-label="Channel"><option value="">Online &amp; offline</option><option value="offline"<?= $f['channel'] === 'offline' ? ' selected' : '' ?>>Offline store</option><option value="online"<?= $f['channel'] === 'online' ? ' selected' : '' ?>>Online store</option></select>
   <?php if ($hasFilters): ?><a class="linkbtn" href="<?= route('admin.orders') ?>"><i data-lucide="x"></i>Clear</a><?php endif; ?>
   <label class="search-in"><i data-lucide="search"></i><input name="q" value="<?= e($f['q']) ?>" placeholder="Order no., customer or mobile…" autocomplete="off"></label>
@@ -59,7 +59,11 @@ include __DIR__ . '/../partials/header.php';
             <td><a href="<?= route('admin.customers.show', ['id' => $o['customer_id']]) ?>"><b><?= e((string) $o['customer_name']) ?></b></a><small class="block muted text-xs"><?= e(\App\Services\Customer\Phone::format((string) $o['customer_phone'])) ?></small></td>
             <td><?= (int) $o['item_count'] ?> line<?= (int) $o['item_count'] === 1 ? '' : 's' ?></td>
             <td class="whitespace-nowrap"><b><?= $inr($o['grand_total']) ?></b><?php if ($o['gst_rate'] !== null): ?><small class="block muted text-xs">incl. GST <?= e(\App\Services\Order\DocumentService::pct((float) $o['gst_rate'])) ?></small><?php endif; ?></td>
-            <td><?= $payBadge($o) ?><?php if ((float) $o['due_amount'] > 0 && $st !== 'rejected'): ?><small class="block text-xs ord-due"><?= $inr($o['due_amount']) ?> due</small><?php endif; ?></td>
+            <td><div class="pm-cell"><?= $payBadge($o) ?>
+              <?php $rowDue = \App\Services\Order\PaymentService::dueNow($o); if ($rowDue > 0): ?><button type="button" class="iconbtn pm-req" title="Request <?= e($inr($rowDue)) ?>" data-pm-request data-url="<?= e(route('admin.orders.payment-request', ['id' => $oid])) ?>" data-number="<?= e((string) $o['order_number']) ?>" data-due="<?= e((string) $rowDue) ?>" data-email="<?= e((string) $o['customer_email']) ?>" data-phone="<?= e((string) $o['customer_phone']) ?>" data-message="<?= e(\App\Services\Payment\PaymentRequests::defaultMessage($o, $rowDue)) ?>" data-cooldown="<?= \App\Services\Payment\PaymentRequests::cooldownLeft($o) ?>"><i data-lucide="send"></i></button><?php endif; ?></div>
+              <?php if ((float) $o['pending_verification_amount'] > 0 && $st !== 'rejected'): ?><a class="pm-chip" href="<?= e($show) ?>#payment">Verify <?= $inr0($o['pending_verification_amount']) ?></a><?php endif; ?>
+              <?php if ((float) $o['due_amount'] > 0 && $st !== 'rejected'): ?><small class="block text-xs ord-due"><?= $inr($o['due_amount']) ?> due</small><?php endif; ?>
+              <?php if ((float) $o['refund_due'] > 0): ?><small class="block text-xs pm-violet">Refund <?= $inr($o['refund_due']) ?> due</small><?php endif; ?></td>
             <td><?= $ordStatus($st) ?><?php if (!empty($warn[$oid])): ?> <i data-lucide="triangle-alert" class="ord-warn" title="<?= e(implode("\n", $warn[$oid])) ?>"></i><?php endif; ?></td>
             <td>
               <?php if ($next && !in_array($next, OS::NEEDS_DIALOG, true)): ?>
@@ -98,8 +102,9 @@ include __DIR__ . '/../partials/header.php';
 </div>
 <?php endif; ?>
 <?php
+include __DIR__ . '/../payments/_modals.php';
 $labels = json_encode(['next' => array_map(static fn($n) => $n[0], OS::ALLOWED), 'actions' => OS::ACTIONS, 'statuses' => OS::STATUSES]);
-$scripts = '<script>window.ORD=' . $labels . ';</script>' . <<<'JS'
+$scripts .= '<script>window.ORD=' . $labels . ';</script>' . <<<'JS'
 <script>
 (function(){
   var f=document.getElementById('ordFilters');

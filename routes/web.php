@@ -20,11 +20,14 @@ use App\Controllers\Admin\LookupController;
 use App\Controllers\Admin\NotificationController;
 use App\Controllers\Admin\OrderController;
 use App\Controllers\Admin\OrderDocumentController;
+use App\Controllers\Admin\PaymentAccountController;
+use App\Controllers\Admin\PaymentController;
 use App\Controllers\Admin\ProductController;
 use App\Controllers\Admin\ReviewController;
 use App\Controllers\Admin\TagController;
 use App\Controllers\Admin\VariantController;
 use App\Controllers\ContactController;
+use App\Controllers\PayController;
 use App\Controllers\PublicOrderController;
 use App\Controllers\ReviewFormController;
 use App\Controllers\WelcomeController;
@@ -44,6 +47,13 @@ $router->post('/review/{slug}', [ReviewFormController::class, 'submit'])->name('
 // Public order pages (no login; unguessable tokens from QR codes / links sent to the customer).
 $router->get('/invoice/{token}', [PublicOrderController::class, 'invoice'])->name('invoice.public');
 $router->get('/order/{token}', [PublicOrderController::class, 'order'])->name('order.public');
+
+// Payment window (Stage 5): /pay/{order token} is the link sent by a payment request.
+$router->get('/pay/attempt/{token}', [PayController::class, 'status'])->name('pay.status');
+$router->post('/pay/attempt/{token}/submit', [PayController::class, 'submit'])->name('pay.submit');
+$router->post('/pay/attempt/{token}/close', [PayController::class, 'close'])->name('pay.close');
+$router->get('/pay/{token}', [PayController::class, 'show'])->name('pay.show');
+$router->post('/pay/{token}/start', [PayController::class, 'start'])->name('pay.start');
 
 // Admin — product catalog.
 $router->group(['prefix' => 'admin'], function ($router): void {
@@ -161,6 +171,24 @@ $router->group(['prefix' => 'admin'], function ($router): void {
     $router->post('/orders/{id}/otp', [OrderController::class, 'resendOtp'])->name('admin.orders.otp');
     $router->get('/orders/{id}/invoice', [OrderDocumentController::class, 'invoice'])->name('admin.orders.invoice');
     $router->get('/orders/{id}/packing-slip', [OrderDocumentController::class, 'packingSlip'])->name('admin.orders.slip');
+
+    // Payments (Stage 5) — fixed paths before /payments/{id}.
+    $router->get('/payments', [PaymentController::class, 'index'])->name('admin.payments');
+    $router->get('/payments/accounts', [PaymentAccountController::class, 'index'])->name('admin.payments.accounts');
+    $router->post('/payments/accounts/unlock', [PaymentAccountController::class, 'unlock'])->name('admin.payments.accounts.unlock');
+    $router->post('/payments/accounts', [PaymentAccountController::class, 'store'])->name('admin.payments.accounts.store');
+    $router->post('/payments/accounts/{id}/update', [PaymentAccountController::class, 'update'])->name('admin.payments.accounts.update');
+    $router->post('/payments/accounts/{id}/default', [PaymentAccountController::class, 'makeDefault'])->name('admin.payments.accounts.default');
+    $router->post('/payments/accounts/{id}/delete', [PaymentAccountController::class, 'destroy'])->name('admin.payments.accounts.delete');
+    $router->get('/payments/attempts/{id}', [PaymentController::class, 'attempt'])->name('admin.payments.attempts.show');
+    $router->post('/payments/attempts/{id}/verify', [PaymentController::class, 'verify'])->name('admin.payments.attempts.verify');
+    $router->post('/payments/attempts/{id}/reject', [PaymentController::class, 'reject'])->name('admin.payments.attempts.reject');
+    $router->post('/payments/refunds/{id}/void', [PaymentController::class, 'voidRefund'])->name('admin.payments.refunds.void');
+    $router->get('/payments/{id}/receipt', [PaymentController::class, 'receipt'])->name('admin.payments.receipt');
+    $router->post('/payments/{id}/void', [PaymentController::class, 'void'])->name('admin.payments.void');
+    $router->post('/orders/{id}/payments', [PaymentController::class, 'record'])->name('admin.orders.payments.store');
+    $router->post('/orders/{id}/refunds', [PaymentController::class, 'refund'])->name('admin.orders.refunds.store');
+    $router->post('/orders/{id}/payment-request', [PaymentController::class, 'request'])->name('admin.orders.payment-request');
 
     // Internal JSON lookups (pincode → district/state/post offices, cached).
     $router->get('/lookup/pincode/{code}', [LookupController::class, 'pincode'])->name('admin.lookup.pincode');

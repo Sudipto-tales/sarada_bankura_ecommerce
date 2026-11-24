@@ -1,6 +1,6 @@
 # Payments: Direct UPI, Payment Window & Manual Verification
 
-**Status: planned (not yet built).** This replaces the `order_payments` table from `docs/orders.md`.
+**Status: built (Stage 5, 2026-11-24)** — see “As built” at the end. This replaces the `order_payments` table from `docs/orders.md`.
 It depends on the Customers and Orders modules. Production database is **MySQL** (SQLite is
 local dev only, so nothing here is SQLite-specific). Vayu conventions apply: string statuses,
 indexed `bigInteger` instead of FKs, POST-for-mutations, `admin.payments.*` names, and nullable
@@ -281,3 +281,50 @@ that is not rejected and has **due > 0**.
 - **Dispatch is allowed with money still due.** It's the admin's call, with no block and no override
   step. The dispatch dialog only *shows* "₹X still due" as information, and the due amount stays on
   the order, the invoice (floating Pay button) and the order page until paid.
+
+## As built (Stage 5, 2026-11-24)
+
+- **Migration** `2026_11_25_000012_create_payment_tables.php`: payment_accounts, payment_attempts,
+  payments (+ `collected_via` window|shop, `status` received|void), payment_refunds (+ `status`
+  paid|void), payment_request_logs, audit_logs. Models are thin read-only classes.
+- **Services** (`app/Services/Payment/`): `Accounts` (only writer of payment_accounts; OTP re-checked
+  on the server, masked audit), `PayWindow` (open / resume / submit / close / expire; only writer of
+  attempts up to *submitted*), `Ledger` (verify / reject / record at shop / refund / void — only
+  writer of payments + refunds), `PaymentRequests` (email / WhatsApp / SMS, 30 s guarded cooldown),
+  `Audit`. `Order\PaymentService` keeps `syncOrder()` (now integer-paise maths), `advance()`,
+  `dueNow()`. `App\Services\Mail\Mail` sends through PHPMailer (the legacy `core/Mailer.php` needs
+  the old bootstrap).
+- **Numbers** via `DocumentNumber`: attempts `PAT/26-27/0001` (shown to customers as
+  `PAT-2627-0001`), receipts `RCP/…`, refunds `RFD/…`.
+- **UPI link:** `upi://pay?pa&pn&am&cu=INR&tn=<order + ref>`. `tr` is left out on purpose — it is
+  meant for merchant VPAs and some apps refuse personal / current-account VPAs that carry it.
+- **Public:** `/pay/{order token}` (timer starts on Pay now), the window on `/order/{token}` and the
+  floating button on `/invoice/{token}` (shown only while something is due now *and* a UPI account
+  exists). JS `public/assets/js/pay-window.js`, partial `documents/_pay-window.php`. Closing the
+  window sends a beacon → attempt expired. Submit accepts UTR and/or screenshot (private media,
+  image or PDF). Rejected submissions and refunds due are shown to the customer on the order page.
+- **Checkout context** is built and tested at service level (`PayWindow::forCheckout()` +
+  `OrderService::quote()` which prices inside a rolled-back transaction — numbers stay gapless; the
+  order is created with channel online / website only on submit). There is no storefront cart yet,
+  so nothing calls it from a page.
+- **Admin:** `/admin/payments` (To verify · Received · Failed attempts · Refunds · Requests + KPIs),
+  verify window (amount blank on purpose, live difference, duplicate-UTR warning, reject with a
+  customer-facing reason), order detail payment card (to-verify rows, record / request / refund,
+  ledger with receipt print + void, merged money timeline), order list Verify chip + request button +
+  payment filters (To verify, Refund due…), sidebar **Payments** group + topbar *To verify* /
+  *Refund due* chips, notification `payment.submitted`. Printable receipt
+  `/admin/payments/{id}/receipt`.
+- **Receiving accounts** `/admin/payments/accounts`: the page ships **without** account data; it is
+  fetched by `POST …/unlock` after the OTP, so it is not in the page source. Every change uses the
+  reusable `partials/sensitive-confirm.php` (review old → new masked, then OTP again; delete also
+  needs the name typed). Accounts with money recorded can only be deactivated.
+- **Corrections:** a mistyped payment or refund is **voided** (kept, struck through, stops counting)
+  rather than edited or deleted.
+- **Cron:** `php vayu payments:expire` (every 5 min, in `bin/install-cron.sh`); pages also expire
+  stale windows lazily.
+- **Verified:** 572 test assertions (75 new in `tests/payments_test.php`), HTTP flow on a copy of the
+  dev DB, Chromium (pay window, verify dialog, accounts OTP + ask-twice), and the service flow on
+  MariaDB 10.11.
+- **Not in Stage 5:** storefront checkout page (no cart yet), dashboard money cards, real OTP, real
+  WhatsApp / SMS sending (links only until `docs/whatsapp.md`).
+

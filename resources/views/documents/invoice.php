@@ -102,10 +102,10 @@ include __DIR__ . '/_head.php';
     </footer>
   </div>
 </article>
-<?php if ($public): ?><a class="doc-btn pub-pay" href="#" hidden data-pay>Pay ₹<?= Money::format($due) ?></a><?php endif; ?>
 <script src="<?= base_url('assets/vendor/qrcode.min.js') ?>"></script>
 <script>
 (function(){var el=document.getElementById('qrcode');if(window.QRCode)new QRCode(el,{text:<?= json_encode($qrUrl) ?>,width:88,height:88,colorDark:'#111111',colorLight:'#ffffff',correctLevel:QRCode.CorrectLevel.M});})();
 </script>
+<?php if ($public) { $o = $order; $payContext = 'invoice'; $qrLoaded = true; include __DIR__ . '/_pay-window.php'; } ?>
 </body>
 </html>

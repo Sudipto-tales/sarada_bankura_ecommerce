@@ -213,6 +213,10 @@ Order of work: receiving accounts (OTP-gated) → record payment at shop → `Pa
 (email / WhatsApp / SMS, 30 s cooldown) → turn on the floating Pay on invoice/order page → refunds →
 cron marks expired attempts → payments overview.
 
+**Status: done (2026-11-24).** See "As built" in `docs/payments.md`. `audit_logs` +
+`partials/sensitive-confirm.php` shipped with it. Deferred: storefront checkout page (service ready),
+dashboard money cards.
+
 ### Stage 6: Returns & replacements
 Return policies page, return requests (admin accept, partial qty, no cancel), received →
 `restockFromReturn`, refund → `payment_refunds` (manual), replacement → own dispatch stock-out.

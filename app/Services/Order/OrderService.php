@@ -63,12 +63,16 @@ final class OrderService
 
     /**
      * Validate + create an order (admin "Create order"). Throws ValidationException.
+     * $opts['online'] = true marks a storefront order (channel online / website) — used only by
+     * PayWindow when a checkout payment is submitted (the order exists only after that).
      *
      * @param array<string,mixed> $in
+     * @param array<string,mixed> $opts
      * @return int order id
      */
-    public static function create(array $in, ?int $by = null): int
+    public static function create(array $in, ?int $by = null, array $opts = []): int
     {
+        $online = !empty($opts['online']);
         $err = [];
 
         // ---- customer: existing, or new (a known mobile reuses that customer) ----
@@ -135,6 +139,9 @@ final class OrderService
         if (!isset(self::CHANNEL_DETAILS[$channelDetail]) || $channelDetail === 'website') {
             $channelDetail = 'showroom';
         }
+        if ($online) {
+            $channelDetail = 'website';
+        }
 
         if ($err) {
             throw new ValidationException($err);
@@ -145,7 +152,7 @@ final class OrderService
         $now = date('Y-m-d H:i:s');
 
         $orderId = DB::transaction(static function () use ($customerId, $newCustomer, $shipping, $shipNew, $billing, $billNew, $billingSame, $pickup,
-            $items, $subtotal, $discount, $gstRate, $tax, $taxable, $channelDetail, $in, $by, $now): int {
+            $items, $subtotal, $discount, $gstRate, $tax, $taxable, $channelDetail, $online, $in, $by, $now): int {
             if ($newCustomer !== null) {
                 $customerId = CustomerService::save(CustomerService::validate($newCustomer));
             }
@@ -174,7 +181,7 @@ final class OrderService
                 'shipping_address' => $shipSnap ? json_encode($shipSnap, JSON_UNESCAPED_UNICODE) : null,
                 'place_of_supply' => $place,
                 'order_status' => 'pending',
-                'channel' => 'offline',
+                'channel' => $online ? 'online' : 'offline',
                 'channel_detail' => $channelDetail,
                 'public_token' => bin2hex(random_bytes(16)),
                 'subtotal' => $subtotal,
@@ -201,6 +208,33 @@ final class OrderService
         CustomerStats::recalculate((int) DB::table('orders')->where('id', $orderId)->value('customer_id'));
 
         return $orderId;
+    }
+
+    /**
+     * Price an order input without keeping anything: the order is created inside a transaction
+     * that is then rolled back (the number series gives its number back — still gapless).
+     * Throws ValidationException like create().
+     *
+     * @param array<string,mixed> $in
+     * @return array{subtotal:float, discount_amount:float, tax_amount:float, grand_total:float, customer_name:string, customer_phone:?string}
+     */
+    public static function quote(array $in): array
+    {
+        $q = null;
+        try {
+            DB::transaction(static function () use ($in, &$q): void {
+                $id = self::create($in, null, ['online' => true]);
+                $q = DB::selectOne('SELECT subtotal, discount_amount, tax_amount, grand_total, customer_name, customer_phone FROM orders WHERE id = ?', [$id]);
+                throw new QuoteRollback();
+            });
+        } catch (QuoteRollback) {
+            // expected — nothing is kept
+        }
+
+        return [
+            'subtotal' => (float) $q['subtotal'], 'discount_amount' => (float) $q['discount_amount'], 'tax_amount' => (float) $q['tax_amount'],
+            'grand_total' => (float) $q['grand_total'], 'customer_name' => (string) $q['customer_name'], 'customer_phone' => $q['customer_phone'],
+        ];
     }
 
     /**
@@ -627,4 +661,9 @@ final class OrderService
             trim(implode(', ', array_filter([($a['district'] ?? null) !== ($a['city'] ?? null) ? ($a['district'] ?? null) : null, $a['state'] ?? null])) . ' ' . ($a['pincode'] ?? '')),
         ], static fn($l) => trim($l) !== ''));
     }
+}
+
+/** @internal used by OrderService::quote() to roll back a priced-but-not-kept order. */
+final class QuoteRollback extends \RuntimeException
+{
 }

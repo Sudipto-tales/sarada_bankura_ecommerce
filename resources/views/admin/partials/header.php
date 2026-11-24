@@ -7,6 +7,7 @@ $productsOpen = in_array($active, $productKeys, true);
 $inventoryOpen = str_starts_with($active, 'inventory');
 $customersOpen = str_starts_with($active, 'customers');
 $ordersOpen = str_starts_with($active, 'orders');
+$paymentsOpen = str_starts_with($active, 'payments');
 
 // Topbar quick counts (cheap COUNT queries; never break the page if the DB is unavailable).
 $hdr = ['products' => 0, 'draft' => 0, 'coming_soon' => 0];
@@ -27,6 +28,13 @@ try {
 $ordPending = 0;
 try {
     $ordPending = (int) \Vayu\Database\DB::table('orders')->where('order_status', 'pending')->count();
+} catch (\Throwable $e) {
+}
+// Payments (Stage 5): submissions waiting for verification + refunds owed.
+$pay = ['verify' => 0, 'refund' => 0];
+try {
+    $pay['verify'] = (int) \Vayu\Database\DB::table('payment_attempts')->where('status', 'submitted')->count();
+    $pay['refund'] = (int) (\Vayu\Database\DB::selectOne('SELECT COUNT(*) AS n FROM orders WHERE refund_due > 0')['n'] ?? 0);
 } catch (\Throwable $e) {
 }
 // Topbar stock chips — only when inventory is actually tracked for some product.
@@ -99,6 +107,17 @@ try {
         <a class="subitem<?= $nav('orders.create') ?>" href="<?= route('admin.orders.create') ?>">Create order</a>
       </div>
     </details>
+    <details class="navgroup"<?= $paymentsOpen ? ' open' : '' ?>>
+      <summary class="navitem<?= $paymentsOpen ? ' current' : '' ?>" title="Payments"><i data-lucide="indian-rupee"></i><span>Payments</span><?php if ($pay['verify']): ?><em class="nav-badge"><?= $pay['verify'] > 99 ? '99+' : $pay['verify'] ?></em><?php endif; ?><i data-lucide="chevron-down" class="chev"></i></summary>
+      <div class="subnav">
+        <a class="subitem<?= $nav('payments.verify') ?>" href="<?= route('admin.payments') ?>">To verify<?= $pay['verify'] ? ' (' . $pay['verify'] . ')' : '' ?></a>
+        <a class="subitem<?= $nav('payments.received') ?>" href="<?= route('admin.payments') ?>?tab=received">Received</a>
+        <a class="subitem<?= $nav('payments.requests') ?>" href="<?= route('admin.payments') ?>?tab=requests">Payment requests</a>
+        <a class="subitem<?= $nav('payments.failed') ?>" href="<?= route('admin.payments') ?>?tab=failed">Failed attempts</a>
+        <a class="subitem<?= $nav('payments.refunds') ?>" href="<?= route('admin.payments') ?>?tab=refunds">Refunds<?= $pay['refund'] ? ' (' . $pay['refund'] . ' due)' : '' ?></a>
+        <a class="subitem<?= $nav('payments.accounts') ?>" href="<?= route('admin.payments.accounts') ?>">Receiving accounts</a>
+      </div>
+    </details>
     <a class="navitem" href="#" title="Enquiries"><i data-lucide="clipboard-list"></i><span>Enquiries</span><i data-lucide="chevron-down" class="chev"></i></a>
     <details class="navgroup"<?= $customersOpen ? ' open' : '' ?>>
       <summary class="navitem<?= $customersOpen ? ' current' : '' ?>" title="Customers"><i data-lucide="users"></i><span>Customers</span><i data-lucide="chevron-down" class="chev"></i></summary>
@@ -147,6 +166,18 @@ try {
     <a class="tb-chip" href="<?= route('admin.orders') ?>?status=pending">
       <span class="tb-ic" style="background:#fff0bf;color:#91670a"><i data-lucide="receipt-text"></i></span>
       <span><small>Pending orders</small><b><?= number_format($ordPending) ?></b></span>
+    </a>
+    <?php endif; ?>
+    <?php if ($pay['verify'] > 0): ?>
+    <a class="tb-chip" href="<?= route('admin.payments') ?>">
+      <span class="tb-ic" style="background:#fff0d6;color:#a2632a"><i data-lucide="scan-search"></i></span>
+      <span><small>To verify</small><b><?= number_format($pay['verify']) ?></b></span>
+    </a>
+    <?php endif; ?>
+    <?php if ($pay['refund'] > 0): ?>
+    <a class="tb-chip" href="<?= route('admin.payments') ?>?tab=refunds">
+      <span class="tb-ic" style="background:#fbe1dc;color:#b3483a"><i data-lucide="undo-2"></i></span>
+      <span><small>Refund due</small><b><?= number_format($pay['refund']) ?></b></span>
     </a>
     <?php endif; ?>
     <?php if ($stk['tracked'] > 0): ?>

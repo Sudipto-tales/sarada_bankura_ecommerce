@@ -182,9 +182,13 @@ Production runs on **MySQL** and **Indian time only (IST)**.
    date.timezone = Asia/Kolkata
    ```
 5. **Writable**: `storage/` and `public/assets/uploads/` by the web-server user.
-6. **Cron** (inventory check, every 15 min): `bin/install-cron.sh` adds it idempotently.
-   Manual line:
+6. **Cron** (inventory check every 15 min, payment-window expiry every 5 min): `bin/install-cron.sh`
+   adds both idempotently. Manual lines:
    ```
-   */15 * * * * cd /path/to/app && php vayu inventory:check >> storage/logs/cron.log 2>&1
+   */15 * * * * cd /path/to/app && php vayu inventory:check --quiet >> storage/logs/cron.log 2>&1
+   */5 * * * * cd /path/to/app && php vayu payments:expire --quiet >> storage/logs/cron.log 2>&1
    ```
+   **Email** (payment requests): fill `MAIL_HOST / MAIL_PORT / MAIL_USERNAME / MAIL_PASSWORD /
+   MAIL_FROM_ADDRESS` and run `composer install` (PHPMailer). Until then the Email channel reports
+   “Email isn’t set up yet” and WhatsApp / SMS links still work.
 7. **Optimise**: `composer install --no-dev && php vayu optimize`. Re-run after every `.env` change.
