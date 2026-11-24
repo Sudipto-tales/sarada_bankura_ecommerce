@@ -346,7 +346,7 @@ carry their **own scoped print CSS** (DM Sans/Playfair, monochrome, A4) — not 
   non-rejected order placed. A customer with orders can't be deleted.
 - **Documents:** `/admin/orders/{id}/invoice`, `/admin/orders/{id}/packing-slip` (A4, scoped
   `public/assets/css/documents.css`, QR via vendored `public/assets/vendor/qrcode.min.js`); public
-  `/invoice/{token}` and `/order/{token}` (noindex; Pay button present but hidden until Stage 5).
+  `/invoice/{token}` and `/order/{token}` (noindex; the Pay button is live since Stage 5 — see payments.md).
 - **Fixed along the way:** core `Connection::transaction()` joins an open transaction (nesting);
   `InventoryService::lock()` uses `SELECT … FOR UPDATE` on MySQL (MySQL's UPDATE reports changed rows,
   so same-second writes were wrongly treated as "not tracked").

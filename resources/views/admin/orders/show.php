@@ -20,6 +20,48 @@ $biz = (string) business('name');
 $tr = route('admin.orders.transition', ['id' => $oid]);
 $histIcon = ['pending' => 'file-plus', 'accepted' => 'check', 'processing' => 'hammer', 'packed' => 'package', 'dispatched' => 'truck', 'delivered' => 'package-check', 'rejected' => 'x'];
 
+// Payments (Stage 5)
+$dueNow = \App\Services\Order\PaymentService::dueNow($o);
+$methods = \App\Services\Order\PaymentService::METHODS;
+$toVerify = array_values(array_filter($attempts, static fn($a) => $a['status'] === 'submitted'));
+$lastReq = $requests[0] ?? null;
+$lastReqText = $lastReq ? 'Last sent: ' . (\App\Services\Payment\PaymentRequests::CHANNELS[$lastReq['channel']] ?? $lastReq['channel']) . ' · ' . \App\Services\Payment\PaymentRequests::maskRecipient((string) $lastReq['channel'], (string) $lastReq['recipient']) . ' · ' . $when($lastReq['created_at']) : '';
+$reqAttrs = 'data-pm-request data-url="' . e(route('admin.orders.payment-request', ['id' => $oid])) . '" data-number="' . e((string) $o['order_number']) . '" data-due="' . e((string) $dueNow) . '"'
+    . ' data-email="' . e((string) $o['customer_email']) . '" data-phone="' . e($phone) . '" data-message="' . e($requestMsg) . '" data-cooldown="' . (int) $cooldown . '" data-last="' . e($lastReqText) . '"';
+// One timeline: status changes + money events.
+$events = [];
+foreach ($history as $h) {
+    $same = $h['old_status'] === $h['new_status'];
+    $events[] = ['at' => $h['created_at'], 'tone' => OS::TONES[$h['new_status']] ?? 'grey', 'icon' => $same ? 'key-round' : ($histIcon[$h['new_status']] ?? 'circle'),
+        'title' => $same ? 'Updated' : (OS::STATUSES[$h['new_status']] ?? $h['new_status']), 'note' => $h['note']];
+}
+foreach ($payments as $p) {
+    $events[] = ['at' => $p['created_at'], 'tone' => $p['status'] === 'void' ? 'grey' : 'green', 'icon' => 'indian-rupee',
+        'title' => $inr($p['amount']) . ' received' . ($p['status'] === 'void' ? ' (voided)' : ''),
+        'note' => $p['payment_number'] . ' · ' . ($methods[$p['method']] ?? $p['method']) . ($p['collected_via'] === 'window' ? ' via payment window' : ' at the shop') . ($p['status'] === 'void' ? ' · Voided: ' . $p['void_reason'] : '')];
+}
+foreach ($refunds as $r) {
+    $events[] = ['at' => $r['created_at'], 'tone' => $r['status'] === 'void' ? 'grey' : 'violet', 'icon' => 'undo-2',
+        'title' => $inr($r['amount']) . ' refunded' . ($r['status'] === 'void' ? ' (voided)' : ''), 'note' => $r['refund_number'] . ' · ' . $r['reason']];
+}
+foreach ($attempts as $a) {
+    if ($a['status'] === 'expired') {
+        $events[] = ['at' => $a['updated_at'], 'tone' => 'grey', 'icon' => 'timer-off', 'title' => 'Payment window closed without paying', 'note' => $a['attempt_number'] . ' · ' . $inr($a['amount'])];
+    } elseif ($a['submitted_at']) {
+        $events[] = ['at' => $a['submitted_at'], 'tone' => 'amber', 'icon' => 'send', 'title' => $inr($a['amount']) . ' submitted by the customer',
+            'note' => $a['attempt_number'] . ' · ' . $a['payer_name'] . ($a['payer_reference'] ? ' · UTR ' . $a['payer_reference'] : ' · screenshot')];
+        if ($a['status'] === 'rejected') {
+            $events[] = ['at' => $a['reviewed_at'], 'tone' => 'red', 'icon' => 'ban', 'title' => 'Payment rejected', 'note' => $a['attempt_number'] . ' · ' . $a['reject_reason']];
+        }
+    }
+}
+foreach ($requests as $q) {
+    $events[] = ['at' => $q['created_at'], 'tone' => $q['status'] === 'failed' ? 'red' : 'blue', 'icon' => 'send',
+        'title' => $inr($q['amount']) . ' requested via ' . (\App\Services\Payment\PaymentRequests::CHANNELS[$q['channel']] ?? $q['channel']) . ($q['status'] === 'failed' ? ' — failed' : ''),
+        'note' => 'To ' . \App\Services\Payment\PaymentRequests::maskRecipient((string) $q['channel'], (string) $q['recipient']) . ($q['status'] === 'opened' ? ' (sent from your app)' : '') . ($q['error'] ? ' · ' . $q['error'] : '')];
+}
+usort($events, static fn($a, $b) => strcmp((string) $b['at'], (string) $a['at']));
+
 include __DIR__ . '/../partials/header.php';
 ?>
 <div class="pagehead">
@@ -127,20 +169,58 @@ include __DIR__ . '/../partials/header.php';
     <section class="card">
       <div class="card-h"><div><div class="eyebrow">Activity</div><h3>Timeline</h3></div></div>
       <ol class="ord-timeline">
-        <?php foreach ($history as $h): ?>
-        <li><span class="ord-tl-ic ord-<?= e(OS::TONES[$h['new_status']] ?? 'grey') ?>"><i data-lucide="<?= $h['old_status'] === $h['new_status'] ? 'key-round' : ($histIcon[$h['new_status']] ?? 'circle') ?>"></i></span>
-          <div><b><?= $h['old_status'] === $h['new_status'] ? 'Updated' : e(OS::STATUSES[$h['new_status']] ?? $h['new_status']) ?></b><small><?= $when($h['created_at']) ?></small><?php if ($h['note']): ?><p><?= e((string) $h['note']) ?></p><?php endif; ?></div></li>
+        <?php foreach ($events as $ev): ?>
+        <li><span class="ord-tl-ic ord-<?= e($ev['tone']) ?>"><i data-lucide="<?= e($ev['icon']) ?>"></i></span>
+          <div><b><?= e((string) $ev['title']) ?></b><small><?= $when($ev['at']) ?></small><?php if ($ev['note']): ?><p><?= e((string) $ev['note']) ?></p><?php endif; ?></div></li>
         <?php endforeach; ?>
       </ol>
     </section>
   </div>
 
   <aside class="stack" style="gap:18px">
-    <section class="card ord-paycard">
-      <div class="card-h"><div><div class="eyebrow">Payment</div><h3><?= $payBadge($o) ?></h3></div></div>
-      <div class="ord-paybar"><i style="width:<?= $paidPct ?>%"></i></div>
-      <div class="ord-paynums"><div><small>Paid</small><b><?= $inr($o['paid_amount']) ?></b></div><div><small>Due</small><b class="<?= (float) $o['due_amount'] > 0 ? 'ord-due' : '' ?>"><?= $inr($o['due_amount']) ?></b></div></div>
-      <p class="text-xs muted" style="margin:12px 0 0"><i data-lucide="info" style="width:13px;vertical-align:-2px"></i> Recording payments, UPI verification and payment requests arrive with the payments module (Stage 5). Payment never blocks a status step.</p>
+    <section class="card ord-paycard" id="payment">
+      <div class="card-h"><div><div class="eyebrow">Payment</div><h3><?= $payBadge($o) ?></h3></div>
+        <?php if ($payments): ?><a class="linkbtn" href="<?= route('admin.payments') ?>?tab=received&amp;q=<?= rawurlencode((string) $o['order_number']) ?>">All <i data-lucide="arrow-right"></i></a><?php endif; ?></div>
+      <div class="ord-paybar"><i style="width:<?= $paidPct ?>%"></i><?php if ((float) $o['pending_verification_amount'] > 0 && (float) $o['grand_total'] > 0): ?><i class="pending" style="width:<?= min(100 - $paidPct, round((float) $o['pending_verification_amount'] / (float) $o['grand_total'] * 100)) ?>%"></i><?php endif; ?></div>
+      <div class="ord-paynums">
+        <div><small>Total</small><b><?= $inr($o['grand_total']) ?></b></div>
+        <div><small>Paid</small><b><?= $inr($o['paid_amount']) ?></b></div>
+        <?php if ((float) $o['pending_verification_amount'] > 0): ?><div><small>To verify</small><b class="pm-amber"><?= $inr($o['pending_verification_amount']) ?></b></div><?php endif; ?>
+        <div><small>Due</small><b class="<?= (float) $o['due_amount'] > 0 ? 'ord-due' : '' ?>"><?= $inr($o['due_amount']) ?></b></div>
+      </div>
+      <?php if ((float) $o['refund_due'] > 0): ?><div class="pm-refundbar"><i data-lucide="undo-2"></i><span><b>Refund <?= $inr($o['refund_due']) ?> due</b><?= $st === 'rejected' ? ' — the order was declined' : ' — paid more than the total' ?></span>
+        <button type="button" class="btn sm" data-pm-refund data-url="<?= e(route('admin.orders.refunds.store', ['id' => $oid])) ?>" data-number="<?= e((string) $o['order_number']) ?>" data-max="<?= e((string) $o['paid_amount']) ?>" data-suggest="<?= e((string) $o['refund_due']) ?>" data-reason="<?= $st === 'rejected' ? 'Order declined' : 'Overpaid' ?>">Record refund</button></div><?php endif; ?>
+
+      <?php foreach ($toVerify as $a): ?>
+      <div class="pm-verifyrow"><span class="pm-dot"></span><div><b><?= $inr($a['amount']) ?> to verify</b><small><?= e((string) $a['payer_name']) ?> · <?= $a['payer_reference'] ? 'UTR ' . e((string) $a['payer_reference']) : 'screenshot' ?> · <?= $when($a['submitted_at'], 'j M, g:i a') ?></small></div>
+        <button type="button" class="btn gold sm" data-pm-verify="<?= (int) $a['id'] ?>">Verify</button></div>
+      <?php endforeach; ?>
+
+      <div class="pm-actions">
+        <?php if ($st !== 'rejected'): ?><button type="button" class="btn sm" data-pm-record data-url="<?= e(route('admin.orders.payments.store', ['id' => $oid])) ?>" data-number="<?= e((string) $o['order_number']) ?>" data-due="<?= e((string) $o['due_amount']) ?>"><i data-lucide="plus" style="width:14px"></i>Record payment</button><?php endif; ?>
+        <?php if ($dueNow > 0): ?><button type="button" class="btn sm" <?= $reqAttrs ?>><i data-lucide="send" style="width:14px"></i>Request <?= $inr0($dueNow) ?></button><?php endif; ?>
+        <?php if ((float) $o['paid_amount'] > 0 && (float) $o['refund_due'] <= 0): ?><button type="button" class="btn sm" data-pm-refund data-url="<?= e(route('admin.orders.refunds.store', ['id' => $oid])) ?>" data-number="<?= e((string) $o['order_number']) ?>" data-max="<?= e((string) $o['paid_amount']) ?>" data-suggest="0"><i data-lucide="undo-2" style="width:14px"></i>Refund</button><?php endif; ?>
+      </div>
+      <?php if ($dueNow > 0 && !$hasUpi): ?><p class="text-xs muted" style="margin:10px 0 0"><i data-lucide="info" style="width:13px;vertical-align:-2px"></i> Customers can’t pay online until a UPI ID is added under <a class="linkbtn" href="<?= route('admin.payments.accounts') ?>">Receiving accounts</a>.</p><?php endif; ?>
+
+      <?php if ($payments || $refunds): ?>
+      <ul class="pm-ledger">
+        <?php foreach ($payments as $p): $void = $p['status'] === 'void'; ?>
+        <li class="<?= $void ? 'void' : '' ?>"><i data-lucide="<?= $p['collected_via'] === 'window' ? 'smartphone' : 'store' ?>"></i>
+          <div><b><?= $inr($p['amount']) ?></b> <span class="muted text-xs"><?= e($methods[$p['method']] ?? $p['method']) ?><?= $p['account_name'] ? ' · ' . e((string) $p['account_name']) : '' ?></span>
+            <small><?= e((string) $p['payment_number']) ?> · <?= $when($p['received_at'], 'j M, g:i a') ?><?= $p['reference'] ? ' · ' . e((string) $p['reference']) : '' ?><?= $void ? ' · voided: ' . e((string) $p['void_reason']) : '' ?></small></div>
+          <span class="pm-ledger-acts"><a class="iconbtn" title="Print receipt" target="_blank" rel="noopener" href="<?= route('admin.payments.receipt', ['id' => $p['id']]) ?>"><i data-lucide="printer"></i></a>
+            <?php if (!$void): ?><button type="button" class="iconbtn" title="Void (mistake)" data-pm-void data-url="<?= e(route('admin.payments.void', ['id' => $p['id']])) ?>" data-title="Void <?= e((string) $p['payment_number']) ?>"><i data-lucide="ban"></i></button><?php endif; ?></span></li>
+        <?php endforeach; ?>
+        <?php foreach ($refunds as $r): $void = $r['status'] === 'void'; ?>
+        <li class="refund<?= $void ? ' void' : '' ?>"><i data-lucide="undo-2"></i>
+          <div><b>−<?= $inr($r['amount']) ?></b> <span class="muted text-xs">refund · <?= e($methods[$r['method']] ?? $r['method']) ?></span>
+            <small><?= e((string) $r['refund_number']) ?> · <?= $when($r['refunded_at'], 'j M, g:i a') ?> · <?= e((string) $r['reason']) ?><?= $void ? ' · voided' : '' ?></small></div>
+          <span class="pm-ledger-acts"><?php if (!$void): ?><button type="button" class="iconbtn" title="Void (mistake)" data-pm-void data-url="<?= e(route('admin.payments.refunds.void', ['id' => $r['id']])) ?>" data-title="Void <?= e((string) $r['refund_number']) ?>"><i data-lucide="ban"></i></button><?php endif; ?></span></li>
+        <?php endforeach; ?>
+      </ul>
+      <?php endif; ?>
+      <p class="text-xs muted" style="margin:12px 0 0">Payment never moves the order status — dispatch is allowed with money due.</p>
     </section>
 
     <section class="card">
@@ -213,12 +293,13 @@ include __DIR__ . '/../partials/header.php';
   <div class="modal-f"><button type="button" class="btn" data-close>Cancel</button><button class="btn gold" type="submit"><i data-lucide="package-check" style="width:16px"></i>Mark delivered</button></div>
 </form></div>
 <?php
-$scripts = '<script>window.ORD_DO=' . json_encode($do) . ';</script>' . <<<'JS'
+include __DIR__ . '/../payments/_modals.php';
+$scripts .= '<script>window.ORD_DO=' . json_encode($do) . ';</script>' . <<<'JS'
 <script>
 (function(){
   function open(id){var m=document.getElementById('dlg-'+id);if(!m)return;m.classList.add('show');var f=m.querySelector('input:not([type=hidden]),textarea');if(f)setTimeout(function(){f.focus()},30);}
   document.querySelectorAll('[data-dialog]').forEach(function(b){b.addEventListener('click',function(){open(b.dataset.dialog)})});
-  document.querySelectorAll('.modal-backdrop').forEach(function(m){
+  document.querySelectorAll('.modal-backdrop:not(.pm-modal)').forEach(function(m){
     m.querySelectorAll('[data-close]').forEach(function(b){b.addEventListener('click',function(){m.classList.remove('show')})});
     m.addEventListener('click',function(e){if(e.target===m)m.classList.remove('show')});
     m.querySelector('form').addEventListener('submit',function(){var b=m.querySelector('button[type=submit]');setTimeout(function(){b.disabled=true},0)});

@@ -22,5 +22,6 @@ return [
     // Application console commands, added to `php vayu` alongside the framework's.
     'commands' => [
         App\Console\Commands\InventoryCheckCommand::class,
+        App\Console\Commands\PaymentExpireCommand::class,
     ],
 ];

@@ -12,7 +12,7 @@ use Vayu\Http\Response;
  * Public, no-login pages reached by unguessable tokens (QR codes, links sent to the customer):
  *   /invoice/{token}  the issued invoice
  *   /order/{token}    order status, items, paid / due, the decline note
- * The "Pay remaining" button is rendered but hidden until Stage 5 (payments) switches it on.
+ * Both carry the payment window (documents/_pay-window.php) while money is due.
  */
 class PublicOrderController
 {
@@ -36,6 +36,7 @@ class PublicOrderController
         if ($o === null) {
             return Response::make(view('documents.not-found', ['what' => 'order'])->getContent(), 404);
         }
+        \App\Services\Payment\PayWindow::expireStale();
         $inv = Docs::invoiceFor((int) $o['id']);
 
         return view('documents.order', [
@@ -47,6 +48,7 @@ class PublicOrderController
             'business' => business(),
             'logo' => business('logo') && is_file(app()->publicPath((string) business('logo'))) ? base_url((string) business('logo')) : null,
             'taxRows' => Docs::taxRows(Docs::taxMode($o), $o['gst_rate'] !== null ? (float) $o['gst_rate'] : null, (float) $o['tax_amount']),
+            'lastRejected' => PayController::lastRejected((int) $o['id']),
         ]);
     }
 }

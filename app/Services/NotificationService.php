@@ -23,6 +23,7 @@ final class NotificationService
         'review.submitted' => ['New review', 'message-square-text', 'system'],
         'order.new' => ['New order', 'shopping-bag', 'system'],
         'order.stock_issue' => ['Stock not deducted', 'package-x', 'stock'],
+        'payment.submitted' => ['Payment to verify', 'badge-indian-rupee', 'system'],
         'system.check_failed' => ['System check failed', 'octagon-alert', 'system'],
     ];
     public const TABS = ['all', 'unread', 'stock', 'system'];

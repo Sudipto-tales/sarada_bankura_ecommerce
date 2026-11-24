@@ -49,9 +49,13 @@ include __DIR__ . '/_head.php';
       <div class="total"><span>Total</span><span class="num">₹<?= Money::format($o['grand_total']) ?></span></div>
       <?php if ($st !== 'rejected'): ?>
       <div><span class="muted">Paid</span><span class="num">₹<?= Money::format($o['paid_amount']) ?></span></div>
+      <?php if ((float) $o['pending_verification_amount'] > 0): ?><div><span class="muted">Being checked</span><span class="num">₹<?= Money::format($o['pending_verification_amount']) ?></span></div><?php endif; ?>
       <div><b>Amount due</b><b class="num">₹<?= Money::format($due) ?></b></div>
       <?php endif; ?>
     </div>
+    <?php if ((float) $o['pending_verification_amount'] > 0 && $st !== 'rejected'): ?><p class="pub-note" style="margin:12px 0 0">We received your payment details for ₹<?= Money::format($o['pending_verification_amount']) ?> and are checking them with our bank.</p><?php endif; ?>
+    <?php if ($lastRejected && $st !== 'rejected'): ?><p class="pub-note" style="margin:12px 0 0;background:#f7e1dc;color:#6b2214">Your payment of ₹<?= Money::format($lastRejected['amount']) ?> could not be confirmed: <?= e((string) $lastRejected['reject_reason']) ?> Please contact us if you think this is a mistake.</p><?php endif; ?>
+    <?php if ((float) $o['refund_due'] > 0): ?><p class="pub-note" style="margin:12px 0 0">₹<?= Money::format($o['refund_due']) ?> will be refunded to you. Our team will contact you.</p><?php endif; ?>
   </section>
 
   <?php if ($shipping): ?>
@@ -65,7 +69,6 @@ include __DIR__ . '/_head.php';
   </div>
   <p class="pub-foot"><?= e((string) $business['name']) ?> · <?= e((string) ($business['address']['city'] ?? '')) ?><?= $business['email'] ? ' · ' . e((string) $business['email']) : '' ?></p>
 </main>
-<?php /* Stage 5 turns this on (payment window for the remaining amount). */ ?>
-<a class="doc-btn pub-pay" href="#" hidden data-pay>Pay ₹<?= Money::format($due) ?></a>
+<?php $payContext = 'order'; include __DIR__ . '/_pay-window.php'; ?>
 </body>
 </html>
