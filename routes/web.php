@@ -254,7 +254,7 @@ $router->group(['prefix' => 'admin', 'middleware' => [\App\Middleware\AdminAuth:
 // verify token / HMAC signature, 404 while dormant) + the read-only admin status page.
 $router->get('/webhooks/whatsapp', [\App\Controllers\WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp');
 $router->post('/webhooks/whatsapp', [\App\Controllers\WhatsAppWebhookController::class, 'receive'])->name('webhooks.whatsapp.receive');
-$router->group(['prefix' => 'admin'], function ($router): void {
+$router->group(['prefix' => 'admin', 'middleware' => [\App\Middleware\AdminAuth::class]], function ($router): void {
     $router->get('/settings/whatsapp', [\App\Controllers\Admin\WhatsAppController::class, 'index'])->name('admin.settings.whatsapp');
     $router->post('/settings/whatsapp/check', [\App\Controllers\Admin\WhatsAppController::class, 'check'])->name('admin.settings.whatsapp.check');
     $router->post('/settings/whatsapp/test', [\App\Controllers\Admin\WhatsAppController::class, 'test'])->name('admin.settings.whatsapp.test');
