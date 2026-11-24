@@ -410,7 +410,7 @@ $firstSpace = $spaces[0]['id'] ?? null;
 <section id="visit" class="wrap mt-20">
   <div class="grid lg:grid-cols-2 rounded-[28px] overflow-hidden bg-white border border-ink/5">
     <div class="relative min-h-[320px] bg-ink">
-      <?= store_img($chrome['featured']['image_alt'] ?? null, '', 'absolute inset-0 w-full h-full object-cover opacity-70', true, true, true) ?>
+      <?= store_img($chrome['featured']['image_alt'] ?? \App\Services\Store\DefaultImages::get('showroom-interior'), '', 'absolute inset-0 w-full h-full object-cover opacity-70', true, true, true) ?>
       <div class="absolute inset-0 bg-gradient-to-t from-ink/85 to-ink/10"></div>
       <div class="absolute left-6 right-6 bottom-6 text-cream">
         <h2 class="font-display text-[34px] leading-tight">Visit the showroom</h2>

@@ -26,7 +26,6 @@ use App\Controllers\Admin\ProductController;
 use App\Controllers\Admin\ReviewController;
 use App\Controllers\Admin\TagController;
 use App\Controllers\Admin\VariantController;
-use App\Controllers\ContactController;
 use App\Controllers\PayController;
 use App\Controllers\PublicOrderController;
 use App\Controllers\ReviewFormController;
@@ -39,13 +38,15 @@ $router->group(['middleware' => [\App\Middleware\StoreOpen::class, \App\Middlewa
     $router->get('/brands', [\App\Controllers\Store\BrandController::class, 'index'])->name('store.brands');
     $router->get('/policy', [\App\Controllers\Store\PageController::class, 'policy'])->name('store.policy');
     $router->get('/policy/{page}', [\App\Controllers\Store\PageController::class, 'policySection'])->name('store.policy.section');
+    $router->get('/shop', [\App\Controllers\Store\ShopController::class, 'index'])->name('store.shop');
+    $router->get('/shop/{cat}', [\App\Controllers\Store\ShopController::class, 'category'])->name('store.shop.category');
+    $router->get('/shop/{cat}/{sub}', [\App\Controllers\Store\ShopController::class, 'room'])->name('store.shop.room');
+    $router->get('/product/{slug}', [\App\Controllers\Store\ProductController::class, 'show'])->name('store.product');
+    $router->get('/contact', [\App\Controllers\Store\PageController::class, 'contact'])->name('store.contact');
+    $router->post('/enquiry', [\App\Controllers\Store\EnquiryController::class, 'store'])->name('store.enquiry');
 });
 
 $router->get('/hello/{name?}', [WelcomeController::class, 'hello'])->name('hello');
-
-// CSRF + FormRequest validation + flash demo.
-$router->get('/contact', [ContactController::class, 'show'])->name('contact.show');
-$router->post('/contact', [ContactController::class, 'submit'])->name('contact.submit');
 
 // Public "write a review" form (Stage 2). Rate limiting + spam guards live in ReviewSubmission.
 $router->get('/review/{slug}', [ReviewFormController::class, 'show'])->name('review.show');
@@ -131,6 +132,10 @@ $router->group(['prefix' => 'admin', 'middleware' => [\App\Middleware\AdminAuth:
     $router->post('/reviews/bulk', [ReviewController::class, 'bulk'])->name('admin.reviews.bulk');
     $router->post('/reviews/{id}/update', [ReviewController::class, 'update'])->name('admin.reviews.update');
     $router->post('/reviews/{id}/delete', [ReviewController::class, 'destroy'])->name('admin.reviews.delete');
+
+    // Storefront enquiries inbox (docs/storefront.md §4).
+    $router->get('/enquiries', [\App\Controllers\Admin\EnquiryController::class, 'index'])->name('admin.enquiries');
+    $router->post('/enquiries/{id}/update', [\App\Controllers\Admin\EnquiryController::class, 'update'])->name('admin.enquiries.update');
 
     // Bulk upload (Excel / CSV) — registered before the /products/{id} routes.
     $router->get('/products/import', [ImportController::class, 'show'])->name('admin.products.import');

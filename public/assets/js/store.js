@@ -1,7 +1,8 @@
 /* Maa Sarada storefront — small progressive enhancements (docs/storefront.md §2).
    Every page works without this file: links and forms do the real work.
    Holds: icons, mobile drawer, toasts, saved hearts (guest list in localStorage until S5),
-   and the home page's slider / finder / collection tabs / spotlight calculator. */
+   the home page's slider / finder / collection tabs / spotlight calculator (S1), and the shop
+   filters + product page variant picker, gallery and totals (S2). */
 (function () {
   'use strict';
 
@@ -188,6 +189,191 @@
     calc();
   }
 
+
+  /* ---------- shared: elements that only make sense with JS ---------- */
+  function jsOnly() { $$('[data-js-only]').forEach(function (el) { el.hidden = false; }); }
+
+  /* ---------- shop: filters auto-submit, mobile drawer, grid density ---------- */
+  function shop() {
+    var form = $('#facets'), panel = $('#filters'); if (!form) return;
+    var bar = form.querySelector('[data-apply-bar]'); if (bar) bar.classList.add('lg:hidden');
+    var t = null;
+    // Leave empty boxes and the default sort out of the URL (same canonical URL the server builds).
+    function send() {
+      $$('input[type=number]', form).forEach(function (i) { if (i.value === '') i.disabled = true; });
+      var so = $('#sort'); if (so && so.value === 'featured') so.disabled = true;
+      form.submit();
+    }
+    form.addEventListener('submit', function (e) { e.preventDefault(); send(); });
+    form.addEventListener('change', function (e) {
+      if (e.target.type === 'number') return;            // price boxes submit on Enter / Apply
+      if (panel && panel.classList.contains('open') && window.matchMedia('(max-width:1023px)').matches) return; // mobile: Apply button
+      clearTimeout(t); t = setTimeout(send, 60);
+    });
+    var sort = $('#sort'); if (sort) sort.addEventListener('change', send);
+    $$('[data-filters-open]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); panel.classList.add('open'); document.body.style.overflow = 'hidden'; }); });
+    $$('[data-filters-close]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); panel.classList.remove('open'); document.body.style.overflow = ''; }); });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && panel.classList.contains('open')) { panel.classList.remove('open'); document.body.style.overflow = ''; } });
+    var grid = $('[data-grid]');
+    function dense(on) {
+      if (!grid) return;
+      grid.className = 'mt-5 grid gap-3 sm:gap-5 ' + (on ? 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6' : 'grid-cols-2 md:grid-cols-3 2xl:grid-cols-4');
+      $$('[data-dense]').forEach(function (b) { b.setAttribute('aria-pressed', (b.getAttribute('data-dense') === '1') === on ? 'true' : 'false'); });
+      store.set('ms.dense', on);
+    }
+    $$('[data-dense]').forEach(function (b) { b.addEventListener('click', function () { dense(b.getAttribute('data-dense') === '1'); }); });
+    if (store.get('ms.dense', false)) dense(true);
+  }
+
+  /* ---------- product page ---------- */
+  function product(d) {
+    var root = document;
+    var cur = null;
+    function byId(id) { for (var i = 0; i < d.variants.length; i++) if (d.variants[i].id === id) return d.variants[i]; return null; }
+    function num(n) { var v = Math.round((Number(n) || 0) * 1000) / 1000; return String(v); }
+    function setText(sel, txt) { $$(sel).forEach(function (el) { el.textContent = txt; }); }
+    var qtyIn = $('#qty');
+    var unit = d.unit, price = d.price, minQty = d.min_qty, step = d.step || 1;
+
+    /* gallery */
+    var main = $('[data-main]'), thumbs = $('#thumbs');
+    function shot(i) {
+      if (!main || !d.shots[i]) return;
+      main.src = d.shots[i].full; main.alt = d.shots[i].alt;
+      if (thumbs) $$('[data-shot]', thumbs).forEach(function (a) {
+        var on = +a.getAttribute('data-shot') === i;
+        a.classList.toggle('ring-ink', on); a.classList.toggle('ring-transparent', !on);
+        if (on) a.setAttribute('aria-current', 'true'); else a.removeAttribute('aria-current');
+      });
+    }
+    if (thumbs) thumbs.addEventListener('click', function (e) { var a = e.target.closest('[data-shot]'); if (!a) return; e.preventDefault(); shot(+a.getAttribute('data-shot')); });
+    var box = $('#mainImg');
+    if (box && main && window.matchMedia('(hover:hover)').matches) {
+      box.addEventListener('mousemove', function (e) { var r = box.getBoundingClientRect(); main.style.transformOrigin = ((e.clientX - r.left) / r.width * 100) + '% ' + ((e.clientY - r.top) / r.height * 100) + '%'; main.style.transform = 'scale(2)'; });
+      box.addEventListener('mouseleave', function () { main.style.transform = ''; });
+      box.classList.add('cursor-zoom-in');
+    }
+
+    /* totals */
+    function totals() {
+      if (!qtyIn) return;
+      var q = Math.max(0, parseFloat(qtyIn.value) || 0);
+      var line = Math.round(price * q * 100) / 100, gst = Math.round(line * d.gst) / 100;
+      setText('[data-line]', inr(line, true));
+      setText('[data-gst]', inr(gst, true));
+      setText('[data-advance]', inr(Math.ceil((line + gst) * d.advance - 1e-9) / 100, true));
+      setText('[data-qty-label]', num(q));
+      var wa = $('[data-wa-order]');
+      if (wa && d.wa) wa.href = 'https://wa.me/' + d.wa + '?text=' + encodeURIComponent(wa.getAttribute('data-wa-base') + (cur ? ' (' + cur.title + ')' : '') + ', ' + num(q) + ' ' + unit);
+    }
+    function clampQty(v) {
+      var lo = minQty || step; v = Math.max(lo, v);
+      if (step > 0) v = Math.round(Math.ceil(v / step - 1e-9) * step * 1000) / 1000;
+      return v;
+    }
+    if (qtyIn) {
+      $$('[data-qty]').forEach(function (b) { b.addEventListener('click', function () { qtyIn.value = num(clampQty((parseFloat(qtyIn.value) || 0) + step * +b.getAttribute('data-qty'))); totals(); }); });
+      qtyIn.addEventListener('input', totals);
+      qtyIn.addEventListener('change', function () { qtyIn.value = num(clampQty(parseFloat(qtyIn.value) || 0)); totals(); });
+    }
+
+    /* room calculator: area + 8% → qty in the selling unit (boxes when the unit is a pack) */
+    var cl = $('[data-calc=l]'), cw = $('[data-calc=w]'), cout = $('[data-calc-out]');
+    function calc() {
+      if (!cl) return 0;
+      var a = (parseFloat(cl.value) || 0) * (parseFloat(cw.value) || 0), w = Math.ceil(a * 1.08), pack = cur ? cur.pack_qty : d.pack_qty;
+      var need = pack ? Math.ceil(w / pack) : w;
+      cout.textContent = a.toLocaleString('en-IN') + ' sq ft + 8% wastage = ' + w.toLocaleString('en-IN') + ' sq ft' + (pack ? ' → ' + need + ' ' + unit : '');
+      return need;
+    }
+    if (cl) { cl.addEventListener('input', calc); cw.addEventListener('input', calc); $('[data-calc-use]').addEventListener('click', function () { qtyIn.value = num(clampQty(calc())); totals(); }); }
+
+    /* variants */
+    function apply(v, push) {
+      cur = v;
+      price = v.price; unit = v.unit; minQty = v.min_qty;
+      setText('[data-price]', inr(v.price, true));
+      setText('[data-sku]', v.sku);
+      setText('[data-unit]', v.unit);
+      setText('[data-variant-title]', v.title);
+      var cw2 = $('[data-compare-wrap]'); if (cw2) { cw2.hidden = !v.compare; setText('[data-compare]', v.compare ? inr(v.compare, true) : ''); setText('[data-off]', v.off); }
+      var pk = $('[data-pack]'); if (pk) { pk.hidden = !(v.pack_qty && v.pack_unit); pk.textContent = v.pack_qty && v.pack_unit ? '1 ' + v.unit + ' = ' + num(v.pack_qty) + ' ' + v.pack_unit + ' (' + inr(v.price / v.pack_qty, true) + '/' + v.pack_unit + ') · ' : ''; }
+      var ps = $('[data-pack-spec]'); if (ps) { ps.hidden = !(v.pack_qty && v.pack_unit); setText('[data-pack-qty]', num(v.pack_qty)); }
+      var mh = $('[data-min-help]'); if (mh) { mh.hidden = !v.min_qty; setText('[data-min]', num(v.min_qty)); }
+      $$('[data-variant-input]').forEach(function (i) { i.value = v.id; });
+      if (qtyIn) { qtyIn.min = num(v.min_qty || step); qtyIn.value = num(clampQty(parseFloat(qtyIn.value) || 0)); }
+      // specs: variant values override attribute rows
+      var ov = d.overrides[v.id] || {};
+      $$('[data-spec]').forEach(function (row) {
+        var label = row.getAttribute('data-spec'), val = ov[label], base = row.getAttribute('data-base');
+        row.querySelector('[data-spec-value]').textContent = val != null ? val : base;
+        row.querySelector('[data-spec-sel]').hidden = val == null;
+        row.hidden = val == null && !base;
+      });
+      // table rows
+      $$('[data-row]').forEach(function (tr) {
+        var on = +tr.getAttribute('data-row') === v.id, vv = byId(+tr.getAttribute('data-row'));
+        tr.classList.toggle('bg-teal-50/60', on);
+        var st = tr.querySelector('[data-row-status]');
+        if (st && vv) st.innerHTML = on ? '<span class="text-[11.5px] font-bold text-teal">Selected</span>' : vv.active ? '<span class="text-[11.5px] text-ink-500">Available</span>' : '<span class="text-[11.5px] text-ink-400">Not offered</span>';
+      });
+      // picker radios + labels
+      d.groups.forEach(function (g) {
+        var vid = v.values[g.id];
+        $$('input[data-group="' + g.id + '"]').forEach(function (r) { r.checked = +r.value === vid; });
+        var lab = $('[data-group-label="' + g.id + '"]'); if (lab) g.values.forEach(function (x) { if (x.id === vid) lab.textContent = x.value; });
+      });
+      strike();
+      if (v.images && v.images.length) shot(v.images[0]);
+      if (push && history.replaceState) history.replaceState(null, '', d.url + '?v=' + encodeURIComponent(v.sku) + location.hash);
+      totals(); calc();
+    }
+    // A value is struck through when no active variant has it together with the other chosen values.
+    function strike() {
+      if (!cur) return;
+      d.groups.forEach(function (g) {
+        g.values.forEach(function (x) {
+          var ok = d.variants.some(function (v) {
+            if (!v.active || v.values[g.id] !== x.id) return false;
+            return d.groups.every(function (o) { return o.id === g.id || v.values[o.id] === cur.values[o.id] || v.values[o.id] == null; });
+          });
+          var anyActive = d.variants.some(function (v) { return v.active && v.values[g.id] === x.id; });
+          var chip = $('[data-opt="' + x.id + '"]');
+          if (chip) { chip.classList.toggle('line-through', !ok); chip.classList.toggle('opacity-40', !anyActive); chip.title = ok ? '' : (anyActive ? 'Not in this combination — picks the nearest option' : 'Not offered'); }
+          var input = $('input[data-group="' + g.id + '"][value="' + x.id + '"]'); if (input) input.disabled = !anyActive;
+        });
+      });
+    }
+    // Choosing a value: exact match with the other choices, else the closest active variant with that value.
+    function choose(gid, vid) {
+      var want = {}; d.groups.forEach(function (g) { want[g.id] = cur ? cur.values[g.id] : null; }); want[gid] = vid;
+      var best = null, score = -1;
+      d.variants.forEach(function (v) {
+        if (!v.active || v.values[gid] !== vid) return;
+        var s = 0; d.groups.forEach(function (g) { if (v.values[g.id] === want[g.id]) s++; });
+        if (s > score) { score = s; best = v; }
+      });
+      if (best) apply(best, true);
+    }
+    root.addEventListener('change', function (e) { var r = e.target; if (r.matches && r.matches('input[data-group]')) choose(+r.getAttribute('data-group'), +r.value); });
+    root.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('[data-pick]'); if (!a) return;
+      var v = byId(+a.getAttribute('data-pick')); if (!v || !v.active) return;
+      e.preventDefault(); apply(v, true); var buy = $('#buy'); if (buy) buy.scrollIntoView({ behavior: reduceMotion ? 'auto' : 'smooth', block: 'start' });
+    });
+    var start = byId(d.selected);
+    if (start) apply(start, false); else { totals(); calc(); }
+
+    /* reviews filter */
+    var rf = $('#revFilter');
+    if (rf) rf.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-app]'); if (!b) return;
+      var k = b.getAttribute('data-app');
+      $$('[data-app]', rf).forEach(function (x) { x.setAttribute('aria-pressed', x === b ? 'true' : 'false'); });
+      $$('[data-review-app]').forEach(function (r) { r.hidden = k !== '' && r.getAttribute('data-review-app') !== k; });
+    });
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     icons();
     drawer();
@@ -196,5 +382,10 @@
     if (flash.length) toast(flash.map(function (f) { return f.message; }).join(' · '));
     var home = null; try { home = JSON.parse(($('#home-data') || {}).textContent || 'null'); } catch (e) { /* ignore */ }
     if (home) { slider(home); finder(home); tabs(); spotlight(); }
+    jsOnly();
+    shop();
+    var pd = null; try { pd = JSON.parse(($('#product-data') || {}).textContent || 'null'); } catch (e) { /* ignore */ }
+    if (pd) product(pd);
+    icons();
   });
 })();

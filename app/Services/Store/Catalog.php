@@ -31,12 +31,12 @@ final class Catalog
             return self::buildChrome();
         }
 
-        return cache()->remember('store.chrome.v1', $ttl, fn () => self::buildChrome());
+        return cache()->remember('store.chrome.v2', $ttl, fn () => self::buildChrome());
     }
 
     public static function forgetChrome(): void
     {
-        cache()->forget('store.chrome.v1');
+        cache()->forget('store.chrome.v2');
     }
 
     /** @return array<string,mixed> */
@@ -95,7 +95,7 @@ final class Catalog
                 'slug' => (string) $r['slug'],
                 'description' => (string) ($r['description'] ?? ''),
                 'is_featured' => (int) $r['is_featured'] === 1,
-                'image' => $images[(int) $r['id']] ?? null,
+                'image' => $images[(int) $r['id']] ?? DefaultImages::forSlug((string) $r['slug'], (string) $r['name']),
                 'count' => $own[(int) $r['id']] ?? 0,
                 'children' => [],
             ];
@@ -497,6 +497,9 @@ final class Catalog
      */
     private static function slides(array $featured): array
     {
+        if ($featured === []) {
+            return DefaultImages::slides((string) business('address.city', 'Bankura'));
+        }
         $slides = [[
             'image' => null,
             'kicker' => business('address.city', 'Bankura') . ' showroom',
@@ -515,9 +518,7 @@ final class Catalog
                 'cta' => 'See this stone',
             ];
         }
-        if ($featured !== []) {
-            $slides[0]['image'] = $featured[0]['image_alt'] ?? $featured[0]['image'];
-        }
+        $slides[0]['image'] = DefaultImages::get('showroom');
 
         return $slides;
     }
@@ -678,7 +679,7 @@ final class Catalog
             $cards[$c['id']] = $c;
         }
 
-        return array_map(function ($r) use ($logos, $productIds, $cards, $productsEach) {
+        return array_map(function ($r, $i) use ($logos, $productIds, $cards, $productsEach) {
             $bid = (int) $r['id'];
             $mine = array_values(array_filter(array_map(fn ($id) => $cards[$id] ?? null, $productIds[$bid])));
 
@@ -691,11 +692,11 @@ final class Catalog
                 'type' => (string) ($r['brand_type'] ?? ''),
                 'description' => (string) ($r['description'] ?? ''),
                 'count' => (int) $r['n'],
-                'image' => $logos[$bid] ?? ($mine[0]['image'] ?? null),
+                'image' => $logos[$bid] ?? ($mine[0]['image'] ?? DefaultImages::pool($i, (string) $r['name'])),
                 'is_logo' => isset($logos[$bid]),
                 'products' => $productsEach > 0 ? $mine : [],
             ];
-        }, $rows);
+        }, $rows, array_keys($rows));
     }
 
     /* ================================================================ reviews */

@@ -1,6 +1,6 @@
 # Storefront: PHP Build Plan (Stage 8)
 
-**Status: S1 BUILT (2026-11-25) on `feature/stage8-storefront`; S2–S6 planned.** This turns the HTML design set in `html/storefront/*.html`
+**Status: S1 + S2 BUILT (2026-11-25) on `feature/stage8-storefront`; S3–S6 planned.** This turns the HTML design set in `html/storefront/*.html`
 (+ `assets/store.js`) into server-rendered PHP pages on the Vayu stack. It reuses what Stages 0–5
 already built: catalogue, media, reviews, customers, orders, payments. It adds only what the design
 needs and the schema doesn't have yet.
@@ -404,3 +404,74 @@ login) instead of a preview cookie: no extra secret to manage; preview pages sen
 - Verified: SQLite (tests, 884 assertions) and MariaDB (`maa_sarada_test`: migrate + seeder + `/`,
   `/brands`, `/policy`, 404 render with no SQL errors); Chromium 1440 px + 375 px, no console
   errors, no horizontal scroll.
+
+---
+
+## 8. As built: S2 Catalogue (2026-11-25)
+
+| Piece | Where |
+| --- | --- |
+| Shop listing | `GET /shop`, `/shop/{space}`, `/shop/{space}/{room}` → `Store\ShopController`. `?cat=<slug>` (finder without JS) redirects to the path; a room reached by its own slug 301s to `/shop/{space}/{room}` |
+| Filters / facets / search / sort / pages | `App\Services\Store\Listing` (`fromQuery()` whitelist → `run()`), 24 per page |
+| Product page | `GET /product/{slug}?v={SKU}` → `Store\ProductController` + `App\Services\Store\ProductPage` (variants, option map, gallery incl. variant images, specs + variant overrides, return policy, reviews, related, JSON-LD) |
+| Enquiries | `POST /enquiry` → `Store\EnquiryController` → `App\Services\Store\Enquiries` (only writer of `enquiries`). Numbers `ENQ/26-27/0001` (new `enquiry` series in `DocumentNumber` + `business.numbering.enquiry`) |
+| Contact page | `GET /contact` (store layout) replaces the old demo `ContactController` + `views/contact.php` (deleted; `ContactRequest` stays for the CSRF test) |
+| Admin inbox | `GET /admin/enquiries` (+ `POST /admin/enquiries/{id}/update`) → `Admin\EnquiryController`, view `admin/enquiries/index.php`; sidebar link with a "new" badge |
+| Views | `store/shop.php`, `store/product.php`, `store/contact.php`, partials `enquiry-form.php`, `spec-teaser.php` |
+| JS | `store.js`: filters auto-submit + mobile drawer + grid density; product gallery/zoom, option picker (inactive combinations struck), qty stepper + totals, room calculator, variant table, review filter |
+| Tests | `tests/storefront_s2_test.php` (89 assertions) |
+
+**How filtering works (differs from §3.3's "query builder"):** `Listing` builds one cached *facet
+index* (a small row per listed product: categories, brand, discovery tags, attribute + option
+values, cheapest active price, flags, search text) and filters / counts / sorts in PHP. The SQL is
+fixed — nothing from the URL reaches a query. Fine for a catalogue of hundreds (thousands) of
+products; cached for `STOREFRONT_CACHE_TTL` like the menu.
+
+**Query string:** `q`, `attr[code][]`, `opt[group][]`, `brand[]`, `tag[]`, `min`, `max`, `avail[]`
+(`in` / `price` / `nosoon`), `offer=1`, `sort` (`featured|best|rating|low|high|new`), `page`.
+OR inside a facet, AND across facets; each facet's counts ignore its own filter.
+- Facets = attributes with `used_for` `filters` / `variants_filters`. An option group with the same
+  name as an attribute (Finish, Thickness, Size, Grade) is merged into it; other groups get
+  `opt[slug][]`. Only active variants count.
+- Colour: values are grouped by `attribute_values.family`; a stone name in the URL (home finder)
+  selects its family. Names without a family stay as their own value.
+- Price filter / sort use the cheapest **active** variant (else the product price); enquiry-only,
+  price-hidden and coming-soon products drop out of a price filter.
+- `origin=` from §3.3 was not added: origin is `attr[origin][]`, and "Imported / Indian" are the
+  `/shop/imported` and `/shop/indian` category pages.
+
+**Product page without JS:** the selected variant is rendered server-side; variant table rows link
+to `?v=SKU`, and a `<noscript>` select switches variant. Inactive variants show as "Not offered";
+archived ones are never shown. Until S3 adds the cart, the buy box shows **Request this stone**
+(enquiry form, `kind=quote`) and **Order on WhatsApp** (qty + variant in the message); when the
+`store.cart.add` route exists, the same box turns into the Add to bag / Buy now form
+(`product_id`, `variant_id`, `qty`).
+
+**Enquiries:** honeypot + signed time stamp (≥ 3 s, ≤ 2 days) + 6 per IP per hour + same
+mobile/text/product within 24 h = the first one (no duplicate). The mobile links an existing
+customer, else creates an online customer. Product enquiries store "Quote request: <stone>
+(<variant>)" at the top of the message. Notification `enquiry.received` (dedupe key
+`enquiry:<id>`, cleared when the status leaves *new*). `back` (return page) accepts local paths
+only.
+
+**Admin inbox:** tabs Open / New / Contacted / Quoted / Converted / Closed / All, search (name,
+mobile, ENQ number, text), drawer with WhatsApp / call / customer / product links and **Create
+order** (`/admin/orders/create?customer=<id>`). Permissions checked in the controller:
+`enquiries.view` (see), `enquiries.reply` (status + note), `enquiries.assign` (assignee = active
+`admin_users`). Linking a converted order (`converted_order_id`) exists in the service; the UI for
+it comes with S6.
+
+**Verified:** SQLite (full suite 973 assertions) and MariaDB `maa_sarada_test` (all pages,
+filters, search, enquiry write, inbox search; demo rows removed afterwards). Chromium 1440 px +
+375 px on shop, room, product (variant / enquiry-only / coming soon) and contact: no console
+errors, no horizontal scroll; variant switch updates price, SKU, specs and URL; filter
+auto-submit gives clean URLs; mobile filter drawer works (also without JS via `#filters:target`).
+
+## Default images
+
+When the catalogue has no picture yet, `App\Services\Store\DefaultImages` fills in stock photos from
+`public/assets/image/defaults/` (`<key>.jpg` 1600w, `<key>-sm.jpg` 600w, downloaded from the design
+mockups in `html/storefront`). Used for: hero slides when no featured product has a photo, category /
+room covers (matched by slug keyword: living, bath, kitchen, wall, floor…), brand pictures, the
+showroom block and the shop header. Real uploaded media always wins. Product cards keep the stone
+placeholder so a product never shows a photo that is not of that stone.

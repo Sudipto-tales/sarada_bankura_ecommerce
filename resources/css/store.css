@@ -23,6 +23,8 @@
   body { background: #F6F2EA; color: #15211F; -webkit-font-smoothing: antialiased; }
   [data-lucide], svg.lucide { width: 1.1em; height: 1.1em; stroke-width: 1.75; }
   summary::-webkit-details-marker { display: none; }
+  /* `hidden` must win over display utilities (flex, contents…) — JS toggles it on styled elements. */
+  [hidden] { display: none !important; }
 }
 
 @layer components {
@@ -70,6 +72,14 @@
   .prose-policy section { @apply bg-white rounded-[24px] border border-ink/5 p-7 scroll-mt-28; }
   .prose-policy ul { @apply list-disc pl-5 space-y-1.5 mt-3; }
   .prose-policy p { @apply mt-3; }
+
+  /* Shop filters: a full-screen drawer below lg. Works without JS through #filters:target. */
+  .fbox input[type="checkbox"] { accent-color: #1E6E74; width: 16px; height: 16px; flex-shrink: 0; }
+  @media (max-width: 1023px) {
+    #filters { position: fixed; inset: 0; z-index: 55; background: #F6F2EA; padding: 20px; overflow-y: auto; transform: translateX(-100%); visibility: hidden; transition: transform .25s, visibility .25s; }
+    #filters.open, #filters:target { transform: none; visibility: visible; }
+  }
+  #mainImg img[data-main] { transition: transform .15s ease-out; }
 
   .toast { @apply fixed z-[60] left-1/2 -translate-x-1/2 bottom-24 lg:bottom-8 bg-ink text-cream text-[13.5px] px-4 py-2.5 rounded-full shadow-card transition pointer-events-none; opacity: 0; }
   .toast.on { opacity: 1; }
