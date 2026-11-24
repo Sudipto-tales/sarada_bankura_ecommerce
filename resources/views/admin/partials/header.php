@@ -37,6 +37,12 @@ try {
     $pay['refund'] = (int) (\Vayu\Database\DB::selectOne('SELECT COUNT(*) AS n FROM orders WHERE refund_due > 0')['n'] ?? 0);
 } catch (\Throwable $e) {
 }
+// Storefront enquiries not yet handled (Stage 8 S2).
+$enqNew = 0;
+try {
+    $enqNew = (int) \Vayu\Database\DB::table('enquiries')->where('status', 'new')->count();
+} catch (\Throwable $e) {
+}
 // Topbar stock chips — only when inventory is actually tracked for some product.
 $stk = ['tracked' => 0, 'low' => 0, 'out' => 0];
 try {
@@ -121,7 +127,7 @@ try {
         <a class="subitem<?= $nav('payments.accounts') ?>" href="<?= route('admin.payments.accounts') ?>">Receiving accounts</a>
       </div>
     </details>
-    <a class="navitem" href="#" title="Enquiries"><i data-lucide="clipboard-list"></i><span>Enquiries</span><i data-lucide="chevron-down" class="chev"></i></a>
+    <a class="navitem<?= $nav('enquiries') ?>" href="<?= route('admin.enquiries') ?>" title="Enquiries"><i data-lucide="clipboard-list"></i><span>Enquiries</span><?php if ($enqNew): ?><em class="nav-badge"><?= $enqNew > 99 ? '99+' : $enqNew ?></em><?php endif; ?></a>
     <details class="navgroup"<?= $customersOpen ? ' open' : '' ?>>
       <summary class="navitem<?= $customersOpen ? ' current' : '' ?>" title="Customers"><i data-lucide="users"></i><span>Customers</span><i data-lucide="chevron-down" class="chev"></i></summary>
       <div class="subnav">

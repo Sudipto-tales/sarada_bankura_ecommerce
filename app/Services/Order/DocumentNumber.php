@@ -14,7 +14,7 @@ use Vayu\Database\DB;
  */
 final class DocumentNumber
 {
-    public const SERIES = ['order', 'invoice', 'payment', 'refund', 'attempt', 'return'];
+    public const SERIES = ['order', 'invoice', 'payment', 'refund', 'attempt', 'return', 'enquiry'];
 
     /** "26-27" for a date in FY 2026-27 (1 Apr 2026 – 31 Mar 2027), IST. */
     public static function fy(?int $ts = null): string

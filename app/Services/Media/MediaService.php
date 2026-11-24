@@ -30,7 +30,7 @@ final class MediaService
     public const THUMB_EDGE = 480;
 
     public const OWNER_TYPES = ['product', 'variant', 'brand', 'category', 'review', 'payment_attempt', 'order'];
-    public const ROLES = ['cover', 'gallery', 'video', 'logo', 'photo', 'proof', 'document'];
+    public const ROLES = ['cover', 'gallery', 'room', 'video', 'logo', 'photo', 'proof', 'document']; // room = lifestyle shot (storefront hover + hero)
 
     private const PUBLIC_DIR = 'assets/uploads/media';
 

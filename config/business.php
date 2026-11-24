@@ -53,6 +53,7 @@ return [
         'refund' => 'RFD',
         'attempt' => 'PAT',
         'return' => 'RET',
+        'enquiry' => 'ENQ',
     ],
 
     'delivery' => [
