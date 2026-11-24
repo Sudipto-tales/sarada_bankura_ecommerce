@@ -44,6 +44,14 @@ $router->group(['middleware' => [\App\Middleware\StoreOpen::class, \App\Middlewa
     $router->get('/product/{slug}', [\App\Controllers\Store\ProductController::class, 'show'])->name('store.product');
     $router->get('/contact', [\App\Controllers\Store\PageController::class, 'contact'])->name('store.contact');
     $router->post('/enquiry', [\App\Controllers\Store\EnquiryController::class, 'store'])->name('store.enquiry');
+    // S3 bag, calculator, saved (guest shortlist in localStorage; the server only renders its cards).
+    $router->get('/cart', [\App\Controllers\Store\CartController::class, 'show'])->name('store.cart');
+    $router->post('/cart/add', [\App\Controllers\Store\CartController::class, 'add'])->name('store.cart.add');
+    $router->post('/cart/update', [\App\Controllers\Store\CartController::class, 'update'])->name('store.cart.update');
+    $router->post('/cart/remove', [\App\Controllers\Store\CartController::class, 'remove'])->name('store.cart.remove');
+    $router->get('/calculator', [\App\Controllers\Store\CartController::class, 'calculator'])->name('store.calculator');
+    $router->get('/saved', [\App\Controllers\Store\SavedController::class, 'index'])->name('store.saved');
+    $router->get('/saved/cards', [\App\Controllers\Store\SavedController::class, 'cards'])->name('store.saved.cards');
 });
 
 $router->get('/hello/{name?}', [WelcomeController::class, 'hello'])->name('hello');

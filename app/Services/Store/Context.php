@@ -52,8 +52,8 @@ final class Context
         if (self::$cartCount !== null) {
             return self::$cartCount;
         }
-        $token = (string) ($_COOKIE[self::CART_COOKIE] ?? '');
-        if (!preg_match('/^[A-Za-z0-9]{32,64}$/', $token)) {
+        $token = Cart::token();
+        if ($token === null) {
             return self::$cartCount = 0;
         }
         $row = DB::select("SELECT COUNT(*) AS n FROM cart_items i JOIN carts c ON c.id = i.cart_id

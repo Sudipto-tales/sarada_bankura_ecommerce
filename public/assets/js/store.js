@@ -374,6 +374,134 @@
     });
   }
 
+  /* ---------- S3 bag: add-to-bag forms via fetch (plain post without JS) ---------- */
+  function setBagCount(n) {
+    $$('[data-count=bag]').forEach(function (b) { b.textContent = n; b.classList.toggle('hidden', !n); b.classList.toggle('grid', !!n); });
+  }
+  function cartForms() {
+    var meta = $('meta[name=csrf-token]');
+    document.addEventListener('submit', function (e) {
+      var f = e.target;
+      if (!f || !/\/cart\/add$/.test(f.getAttribute('action') || '')) return;
+      if (e.submitter && e.submitter.name === 'next') return; // "Buy now" → normal post + redirect
+      if (!window.fetch || !window.FormData) return;
+      e.preventDefault();
+      var btns = $$('button', f).concat(f.id ? $$('button[form="' + f.id + '"]') : []);
+      btns.forEach(function (b) { b.disabled = true; });
+      fetch(f.action, { method: 'POST', body: new FormData(f), credentials: 'same-origin',
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': meta ? meta.content : '' } })
+        .then(function (r) { return r.json().catch(function () { return { ok: false, message: 'Something went wrong. Please try again.' }; }); })
+        .then(function (d) { if (d.ok) setBagCount(d.count); toast(d.message); })
+        .catch(function () { f.submit(); })
+        .then(function () { btns.forEach(function (b) { b.disabled = false; }); });
+    });
+  }
+
+  /* ---------- bag page: steppers auto-submit, "Save for later" also saves locally ---------- */
+  function cartPage() {
+    $$('form[data-cart-qty]').forEach(function (f) {
+      var input = $('input[name=qty]', f), timer = null;
+      $$('[data-js-hide]', f).forEach(function (b) { b.hidden = true; });
+      function send() { clearTimeout(timer); timer = setTimeout(function () { f.submit(); }, 450); }
+      $$('[data-step]', f).forEach(function (b) {
+        b.addEventListener('click', function () {
+          var step = parseFloat(b.getAttribute('data-step')) || 1, min = parseFloat(input.min) || Math.abs(step);
+          var v = Math.round(((parseFloat(input.value) || 0) + step) * 1000) / 1000;
+          input.value = String(Math.max(min, v)); send();
+        });
+      });
+      input.addEventListener('change', send);
+    });
+    $$('[data-later]').forEach(function (b) {
+      b.addEventListener('click', function () { var s = b.getAttribute('data-later'); if (s && !saved.has(s)) saved.toggle(s); });
+    });
+  }
+
+  /* ---------- calculator: rooms → sq ft → order qty (server re-checks on add) ---------- */
+  function calculator(d) {
+    var root = $('#calc'); if (!root || !d.stones.length) return;
+    var rooms = $('#rooms'), tpl = $('[data-room]', rooms).cloneNode(true), form = $('#calcForm'), optSel = $('#opt');
+    function out(k, txt) { $$('[data-out="' + k + '"]', root).forEach(function (el) { el.textContent = txt; }); }
+    function n(x) { return Math.round(x * 1000) / 1000; }
+    function fmt(x) { return n(x).toLocaleString('en-IN'); }
+    function isSqft(u) { return /^(sq ?ft|sft|square ?f(ee|oo)t)$/i.test(String(u || '').replace(/\./g, '').trim()); }
+    function stone() {
+      var r = $('input[name=stone]:checked', root), id = r ? +r.value : d.stones[0].id;
+      for (var i = 0; i < d.stones.length; i++) if (d.stones[i].id === id) return d.stones[i];
+      return d.stones[0];
+    }
+    function fillOpts() {
+      var s = stone(); optSel.innerHTML = '';
+      s.options.forEach(function (o, i) {
+        var op = document.createElement('option'); op.value = i;
+        op.textContent = (o.title || 'Standard') + ' · ' + inr(o.price, true) + '/' + o.unit; optSel.appendChild(op);
+      });
+      $('#opts').hidden = s.options.length < 2;
+    }
+    function calc() {
+      var area = 0;
+      $$('[data-room]', rooms).forEach(function (r) {
+        var g = function (k) { return Math.max(0, parseFloat(($('[data-k=' + k + ']', r) || {}).value) || 0); };
+        area += Math.max(0, g('l') * g('w') - g('minus'));
+      });
+      var wst = +$('#waste').value, need = area * (1 + wst / 100), s = stone(), o = s.options[+optSel.value || 0] || s.options[0];
+      var step = s.step || 1, qty;
+      if (isSqft(o.unit)) qty = need;
+      else if (o.pack_qty && isSqft(o.pack_unit)) qty = need / o.pack_qty;
+      else qty = 0; // sold per piece / slab: can't be derived from an area
+      if (qty > 0) {
+        qty = Math.ceil(n(qty / step)) * step;
+        if (o.min_qty && qty < o.min_qty) qty = Math.ceil(n(o.min_qty / step)) * step;
+        qty = n(qty);
+      }
+      var sub = Math.round(qty * o.price * 100) / 100, gst = d.tax_rate > 0 ? Math.round(sub * d.tax_rate) / 100 : 0, total = Math.round((sub + gst) * 100) / 100;
+      out('name', s.name); out('rate', (o.title ? o.title + ' · ' : '') + inr(o.price, true) + ' / ' + o.unit);
+      out('area', fmt(area) + ' sq ft'); out('waste', wst); out('need', fmt(Math.ceil(need)) + ' sq ft');
+      out('order', qty > 0 ? fmt(qty) + ' ' + o.unit + (o.pack_qty && o.pack_unit && !isSqft(o.unit) ? ' (' + fmt(qty * o.pack_qty) + ' ' + o.pack_unit + ')' : '') : 'Ask us — sold per ' + o.unit);
+      out('sub', inr(sub, true)); out('gst', inr(gst, true)); out('total', inr(total, true));
+      out('advance', inr(Math.ceil(total * d.advance_percent) / 100, true));
+      out('add', qty > 0 ? 'Add ' + fmt(qty) + ' ' + o.unit + ' to bag' : 'Add to bag');
+      form.elements.product_id.value = s.id; form.elements.variant_id.value = o.id; form.elements.qty.value = qty > 0 ? qty : '';
+      $('button', form).disabled = !(qty > 0);
+      var view = $('[data-out=view]', root); if (view) view.href = d.base + s.url;
+    }
+    rooms.addEventListener('input', calc);
+    rooms.addEventListener('click', function (e) {
+      var b = e.target.closest('[data-del]');
+      if (b && $$('[data-room]', rooms).length > 1) { rooms.removeChild(b.closest('[data-room]')); calc(); }
+    });
+    $('#addRoom').addEventListener('click', function () {
+      var r = tpl.cloneNode(true), k = $$('[data-room]', rooms).length + 1;
+      $('[data-k=name]', r).value = 'Room ' + k; $('[data-k=l]', r).value = 10; $('[data-k=w]', r).value = 10; $('[data-k=minus]', r).value = 0;
+      rooms.appendChild(r); icons(); calc();
+    });
+    $('#stones').addEventListener('change', function () { fillOpts(); calc(); });
+    optSel.addEventListener('change', calc);
+    $('#waste').addEventListener('change', calc);
+    fillOpts(); calc();
+  }
+
+  /* ---------- saved page: cards for the local shortlist ---------- */
+  function savedPage() {
+    var page = $('#savedPage'); if (!page) return;
+    var grid = $('#savedGrid'), empty = $('#savedEmpty'), share = $('#share');
+    function render() {
+      var list = saved.all();
+      if (!list.length) { grid.innerHTML = ''; empty.hidden = false; share.hidden = true; return; }
+      fetch(page.getAttribute('data-cards') + '?s=' + encodeURIComponent(list.join(',')), { credentials: 'same-origin' })
+        .then(function (r) { return r.text(); })
+        .then(function (html) {
+          grid.innerHTML = html; empty.hidden = html.trim() !== '';
+          var names = $$('h3', grid).map(function (h) { return h.textContent.trim(); });
+          share.hidden = !names.length;
+          share.href = share.href.split('?')[0] + '?text=' + encodeURIComponent('My stone shortlist: ' + names.join(', '));
+          paintSaved(); icons();
+        });
+    }
+    document.addEventListener('click', function (e) { if (e.target.closest && e.target.closest('#savedGrid [data-save]')) setTimeout(render, 0); });
+    render();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     icons();
     drawer();
@@ -386,6 +514,9 @@
     shop();
     var pd = null; try { pd = JSON.parse(($('#product-data') || {}).textContent || 'null'); } catch (e) { /* ignore */ }
     if (pd) product(pd);
+    cartForms(); cartPage(); savedPage();
+    var cd = null; try { cd = JSON.parse(($('#calc-data') || {}).textContent || 'null'); } catch (e) { /* ignore */ }
+    if (cd) calculator(cd);
     icons();
   });
 })();

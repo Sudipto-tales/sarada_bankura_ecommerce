@@ -1,6 +1,6 @@
 # Storefront: PHP Build Plan (Stage 8)
 
-**Status: S1 + S2 BUILT (2026-11-25) on `feature/stage8-storefront`; S3–S6 planned.** This turns the HTML design set in `html/storefront/*.html`
+**Status: S1 + S2 + S3 BUILT (2026-11-25) on `feature/stage8-storefront`; S4–S6 planned.** This turns the HTML design set in `html/storefront/*.html`
 (+ `assets/store.js`) into server-rendered PHP pages on the Vayu stack. It reuses what Stages 0–5
 already built: catalogue, media, reviews, customers, orders, payments. It adds only what the design
 needs and the schema doesn't have yet.
@@ -466,6 +466,43 @@ filters, search, enquiry write, inbox search; demo rows removed afterwards). Chr
 375 px on shop, room, product (variant / enquiry-only / coming soon) and contact: no console
 errors, no horizontal scroll; variant switch updates price, SKU, specs and URL; filter
 auto-submit gives clean URLs; mobile filter drawer works (also without JS via `#filters:target`).
+
+## 9. As built: S3 Cart (2026-11-25)
+
+| Piece | Where |
+| --- | --- |
+| Buy rule | `App\Services\Store\Purchasable::check(product, variant)` (§3.2) + `quantity()` (number > 0, rounded **up** to `order_step`, ≥ minimum, ≤ 9,999,999). Price = variant price ?? product price, the same rule as `OrderService::cleanItems` |
+| Bag | `App\Services\Store\Cart` (only writer of `carts` / `cart_items`): `add`, `update` (0 = remove), `remove`, `convert` (for S4), `lines()` (re-priced), `totals()`, `taxRate()` |
+| Routes | `GET /cart`, `POST /cart/add` (`product_id`, `variant_id`, `qty`, optional `next=checkout`), `POST /cart/update` (`line`, `qty`), `POST /cart/remove` (`line`, `later`), `GET /calculator`, `GET /saved`, `GET /saved/cards?s=slug,…` → `Store\CartController`, `Store\SavedController` |
+| Views | `store/cart.php`, `store/calculator.php`, `store/saved.php` |
+| Calculator data | `App\Services\Store\Calculator::stones()` (buyable stones + active options, 2 batched queries), embedded as `#calc-data` JSON instead of a separate `/calculator.json` |
+| JS | `store.js`: add-to-bag forms → fetch JSON (badge + toast; plain post without JS, "Buy now" always posts), bag steppers auto-submit, "Save for later" also saves locally, calculator maths, saved page cards |
+| Tests | `tests/storefront_s3_test.php` (75 assertions) |
+
+**Behaviour notes**
+
+- Cart row + `ms_cart` cookie (48 chars, HttpOnly, SameSite=Lax, 30 days) are created on the
+  **first add**, never on a visit. An unknown / malformed cookie token is never adopted: the next
+  add makes a fresh cart. A line can only be changed through the visitor's own cart.
+- Nothing price-like is read from the request. `price_at_add` only drives the "price went up /
+  dropped since you added it" notice; every view re-prices from the DB.
+- Lines that stop being buyable (enquiry-only, archived option, minimum raised…) stay visible,
+  greyed with the reason, and are left out of the totals; checkout is disabled until removed.
+- Adding to an existing line checks the minimum against the new total. Blank qty (card button) =
+  max(minimum, one step). Up to 60 lines (= `OrderService::MAX_ITEMS`).
+- **GST in the bag (and on the product page):** added only when prices exclude tax **and**
+  `BUSINESS_GSTIN` is set, because `OrderService::create` refuses GST without a GSTIN. S4 checkout
+  must use `Cart::taxRate()` for `gst_enabled` / `gst_rate` so the bag total = the order total.
+- Until S4 registers `store.checkout`, the bag's button is **Order this bag on WhatsApp** (lines in
+  the message) and "Buy now" lands on `/cart`.
+- Calculator: qty derived only for sq ft products or boxes whose `pack_unit` is sq ft; per-piece /
+  slab stones say "Ask us". `/cart/add` validates the posted qty again.
+- Saved: still the guest localStorage list (`ms.saved`, slugs); the server only renders the cards.
+  `customer_saved_items` + merge come with S5. Cart abandon cron is S6.
+
+**Verified:** SQLite full suite 1048 assertions; curl smoke on a scratch DB copy (JSON add, plain
+form add → back to the product page, update, CSRF 419, foreign Referer → `/cart`). No browser run
+(owner asked to skip Playwright for S3).
 
 ## Default images
 

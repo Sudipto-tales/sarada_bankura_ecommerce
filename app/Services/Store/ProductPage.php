@@ -84,7 +84,7 @@ final class ProductPage
             'reviews' => self::reviews($id),
             'related' => self::related($id, $primary, $parent),
             'advance_percent' => PaymentService::ADVANCE_PERCENT,
-            'gst_rate' => (float) business('tax.gst_rate', 18),
+            'gst_rate' => Cart::taxRate(), // same rule as the bag: GST only when prices exclude it and a GSTIN is set
             'tax_included' => (bool) business('tax.prices_include_tax', false),
         ];
     }

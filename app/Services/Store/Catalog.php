@@ -774,7 +774,7 @@ final class Catalog
     }
 
     /** @return array{src:string, full:string, alt:string} public image paths (use with base_url) */
-    private static function img(array $r): array
+    public static function img(array $r): array
     {
         return [
             'src' => (string) ($r['thumb_path'] ?: $r['path']),
