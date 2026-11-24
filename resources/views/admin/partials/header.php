@@ -198,11 +198,24 @@ try {
             aria-label="Notifications<?= $nfUnread ? ', ' . $nfUnread . ' unread' : '' ?>" data-feed="<?= e(route('admin.notifications.feed')) ?>">
       <i data-lucide="bell"></i><span class="nf-badge<?= $nfUnread ? '' : ' hidden' ?>" id="nfBadge"><?= $nfUnread > 9 ? '9+' : $nfUnread ?></span>
     </button>
-    <div class="tb-user">
-      <span class="avatar">A</span>
-      <span class="who"><b>Admin</b><small>Store Owner</small></span>
-      <i data-lucide="chevron-down" class="chev"></i>
-    </div>
+    <?php // Admin access: logged-in staff chip + menu (My account, Staff, Log out).
+    $msMe = \App\Services\AdminAccess\Guard::user();
+    $msMeRoles = $msMe ? implode(', ', array_column(\App\Services\AdminAccess\Roles::forUser((int) $msMe['id']), 'name')) : '';
+    ?>
+    <details class="tb-user-menu">
+      <summary class="tb-user" aria-label="Account menu">
+        <span class="avatar"><?= e(mb_strtoupper(mb_substr((string) ($msMe['name'] ?? 'A'), 0, 1))) ?></span>
+        <span class="who"><b><?= e((string) ($msMe['name'] ?? 'Admin')) ?></b><small><?= e($msMeRoles !== '' ? mb_strimwidth($msMeRoles, 0, 28, '…') : 'Staff') ?></small></span>
+        <i data-lucide="chevron-down" class="chev"></i>
+      </summary>
+      <div class="tb-menu-pop glass" role="menu">
+        <div class="tb-menu-id"><b><?= e((string) ($msMe['name'] ?? '')) ?></b><small><?= e((string) ($msMe['email'] ?? $msMe['phone'] ?? '')) ?></small></div>
+        <a role="menuitem" href="<?= route('admin.account') ?>"<?= $nav('account') ? ' class="on"' : '' ?>><i data-lucide="user-round"></i>My account</a>
+        <a role="menuitem" href="<?= route('admin.account') ?>#password"><i data-lucide="key-round"></i>Change password</a>
+        <?php if ($msMe && \App\Services\AdminAccess\Guard::can('staff.manage')): ?><a role="menuitem" href="<?= route('admin.staff') ?>"<?= $nav('staff') ? ' class="on"' : '' ?>><i data-lucide="users-round"></i>Staff</a><?php endif; ?>
+        <form method="post" action="<?= route('admin.logout') ?>"><?= csrf_field() ?><button type="submit" role="menuitem"><i data-lucide="log-out"></i>Log out</button></form>
+      </div>
+    </details>
   </div>
   <div class="nf-panel" id="nfPanel" role="dialog" aria-label="Notifications" hidden>
     <div class="nf-head">
