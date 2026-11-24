@@ -6,6 +6,7 @@ use App\Services\NotificationService;
 use App\Services\Order\DocumentNumber;
 use App\Services\Order\Money;
 use App\Services\Order\PaymentService;
+use App\Services\WhatsApp\FlowNotifier;
 use Vayu\Database\DB;
 use Vayu\Validation\ValidationException;
 
@@ -71,6 +72,7 @@ final class Ledger
             return ['payment_id' => $pid, 'payment_number' => $number];
         });
         NotificationService::markReadByKey('payment:submitted:' . $a['id']);
+        FlowNotifier::paymentReceived((int) $res['payment_id']); // WhatsApp (Stage 7), no-op while dormant
 
         return $res + ['difference' => (float) ((PaymentService::cents($v['amount']) - PaymentService::cents($a['amount'])) / 100)];
     }
@@ -98,6 +100,7 @@ final class Ledger
             }
         });
         NotificationService::markReadByKey('payment:submitted:' . $a['id']);
+        FlowNotifier::paymentRejected((int) $a['id']); // WhatsApp (Stage 7), no-op while dormant
     }
 
     /**
@@ -148,7 +151,7 @@ final class Ledger
         }
         $now = date('Y-m-d H:i:s');
 
-        return DB::transaction(static function () use ($order, $v, $method, $reference, $by, $now): array {
+        $res = DB::transaction(static function () use ($order, $v, $method, $reference, $by, $now): array {
             $number = DocumentNumber::next('payment');
             $pid = (int) DB::table('payments')->insertGetId([
                 'payment_number' => $number,
@@ -171,6 +174,9 @@ final class Ledger
 
             return ['payment_id' => $pid, 'payment_number' => $number];
         });
+        FlowNotifier::paymentReceived((int) $res['payment_id']); // WhatsApp (Stage 7), no-op while dormant
+
+        return $res;
     }
 
     /** Correct a mistake: the payment stays listed (struck through) and stops counting. */

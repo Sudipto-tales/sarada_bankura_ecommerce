@@ -143,6 +143,7 @@ class OrderController
             'customer' => DB::selectOne('SELECT id, name, phone, email, company, customer_type, total_orders FROM customers WHERE id = ?', [(int) $o['customer_id']]),
             'warnings' => $o['order_status'] === 'pending' ? Orders::stockWarnings($oid) : [],
             'otp' => session()->get('order_otp'),
+            'otpSent' => session()->get('order_otp_sent'), // WhatsApp (Stage 7): whatsapp | email | null
             'orderUrl' => self::absolute((string) route('order.public', ['token' => $o['public_token']])),
             'do' => (string) $request->query('do', ''),
             // Stage 5 — payment card + timeline
@@ -188,6 +189,7 @@ class OrderController
         }
         if ($res['otp']) {
             session()->flash('order_otp', $res['otp']);
+            session()->flash('order_otp_sent', $res['otp_sent'] ?? null);
 
             return redirect(route('admin.orders.show', ['id' => $oid]));
         }
@@ -217,7 +219,8 @@ class OrderController
     public function resendOtp(Request $request, string $id): Response
     {
         try {
-            session()->flash('order_otp', Orders::resendOtp((int) $id));
+            session()->flash('order_otp', Orders::resendOtp((int) $id, null, $sentVia));
+            session()->flash('order_otp_sent', $sentVia);
             session()->flash('success', 'New delivery OTP generated — send it to the customer. The old one no longer works.');
         } catch (OrderException $e) {
             session()->flash('error', $e->getMessage());

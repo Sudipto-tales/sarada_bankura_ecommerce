@@ -20,7 +20,7 @@ class VerifyCsrfToken implements MiddlewareInterface
      *
      * @var list<string>
      */
-    protected array $except = ['api', 'up'];
+    protected array $except = ['api', 'up', 'webhooks']; // webhooks: signed by the sender (e.g. WhatsApp HMAC)
 
     public function handle(Request $request, \Closure $next): Response
     {

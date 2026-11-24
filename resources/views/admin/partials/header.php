@@ -141,7 +141,15 @@ try {
     <a class="navitem" href="#" title="Reports"><i data-lucide="chart-no-axes-column"></i><span>Reports</span><i data-lucide="chevron-down" class="chev"></i></a>
     <a class="navitem" href="#" title="Communication"><i data-lucide="messages-square"></i><span>Communication</span><i data-lucide="chevron-down" class="chev"></i></a>
     <a class="navitem<?= $nav('media') ?>" href="<?= route('admin.media') ?>" title="Media &amp; files"><i data-lucide="images"></i><span>Media &amp; files</span></a>
-    <a class="navitem" href="#" title="Settings"><i data-lucide="settings"></i><span>Settings</span></a>
+    <?php /* Settings (WhatsApp, Stage 7) — System / Payment settings are not planned yet. */ $settingsOpen = str_starts_with($active, 'settings'); ?>
+    <details class="navgroup"<?= $settingsOpen ? ' open' : '' ?>>
+      <summary class="navitem<?= $settingsOpen ? ' current' : '' ?>" title="Settings"><i data-lucide="settings"></i><span>Settings</span><i data-lucide="chevron-down" class="chev"></i></summary>
+      <div class="subnav">
+        <a class="subitem<?= $nav('settings.whatsapp') ?>" href="<?= route('admin.settings.whatsapp') ?>">WhatsApp</a>
+        <span class="subitem is-soon" title="Coming soon">System <small>soon</small></span>
+        <span class="subitem is-soon" title="Coming soon">Payment <small>soon</small></span>
+      </div>
+    </details>
   </nav>
 </aside>
 <main>

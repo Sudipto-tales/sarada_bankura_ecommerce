@@ -6,6 +6,7 @@ use App\Services\Customer\Phone;
 use App\Services\Order\Money;
 use App\Services\Order\PaymentService;
 use App\Services\Mail\Mail;
+use App\Services\WhatsApp\WhatsAppService;
 use Vayu\Database\DB;
 
 /**
@@ -13,7 +14,8 @@ use Vayu\Database\DB;
  * which recomputes the due amount when opened, so an old link never over-asks.
  *
  *   email     real send through Mail (SMTP, MAIL_* in .env) → logged sent / failed
- *   whatsapp  wa.me link the admin sends from their own WhatsApp → logged opened
+ *   whatsapp  Cloud API template when active → logged sent; dormant / API failed → wa.me link the
+ *             admin sends from their own WhatsApp → logged opened (WhatsAppService decides)
  *   sms       sms: link for the admin's phone → logged opened
  *
  * One request per order per 30 s (any channel), enforced with a guarded UPDATE on
@@ -121,7 +123,17 @@ final class PaymentRequests
                 DB::update('UPDATE orders SET last_payment_request_at = ? WHERE id = ?', [$order['last_payment_request_at'], $orderId]);
             }
         } elseif ($channel === 'whatsapp') {
-            $open = 'https://wa.me/91' . $to . '?text=' . rawurlencode($message);
+            // WhatsApp (Stage 7): real payment_request template once the Cloud API is active; while
+            // dormant (or if the API fails) the same wa.me link as before, sent from the admin's app.
+            $first = trim(explode(' ', trim((string) $order['customer_name']))[0] ?? '');
+            $wa = WhatsAppService::send('payment_request', $to, ['name' => $first ?: 'Customer', 'amount' => Money::inr($amount), 'order_number' => $order['order_number']],
+                ['button' => (string) $order['public_token'], 'fallback_text' => $message, 'related_type' => 'order', 'related_id' => $orderId, 'sent_by' => $by]);
+            if ($wa->sent()) {
+                $status = 'sent';
+            } else {
+                $open = $wa->fallbackUrl ?? 'https://wa.me/91' . $to . '?text=' . rawurlencode($message);
+                $error = $wa->mode === 'api' && $wa->error ? mb_substr('WhatsApp API failed: ' . $wa->error, 0, 255) : null;
+            }
         } else {
             $open = 'sms:+91' . $to . '?body=' . rawurlencode($message);
         }
