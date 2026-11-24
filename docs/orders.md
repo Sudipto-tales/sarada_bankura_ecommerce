@@ -1,6 +1,6 @@
 # Orders, Payments, Invoices & Returns
 
-**Status: Stage 4 built (2026-11-24)** — orders, workflow, stock-out, packing slip, invoice, public pages, delivery OTP. Payments = Stage 5, returns UI = Stage 6 (tables exist). See "As built" at the end.
+**Status: Stage 4 built (2026-11-24)** — orders, workflow, stock-out, packing slip, invoice, public pages, delivery OTP. Payments = Stage 5 (built). Returns & replacements = Stage 6 (built 2026-11-24). See the "As built" sections at the end.
 
 Status-driven order management for Maa Sarada Marble &
 Stone, aligned to the existing inventory, customers and notifications modules. Order status,
@@ -352,3 +352,56 @@ carry their **own scoped print CSS** (DM Sans/Playfair, monochrome, A4) — not 
   so same-second writes were wrongly treated as "not tracked").
 - **Not in Stage 4:** dashboard order cards / Online-vs-Offline section, order list on the customer
   page, editing an order after creation (create a new one / decline while pending).
+
+## As built (Stage 6 — returns & replacements, 2026-11-24)
+
+- **No new migration.** Uses the Stage 4 tables (`product_return_policies`, `return_requests`,
+  `return_request_items`) and `payment_refunds.return_request_id` from Stage 5.
+- **Service** `App\Services\Order\ReturnService` is the only writer of the three return tables
+  (`ReturnException` for refusals). Flow `submitted → approved → received → resolved`, or
+  `submitted → rejected`. Every step is a guarded `UPDATE … WHERE status = ?`; there is no cancel and
+  no second decision. Numbers `RET/26-27/0001` via `DocumentNumber::next('return')`.
+- **Who raises a request:** the admin, on behalf of the customer, from the delivered order's
+  **Return / replace** dialog (type, lines + qty, reason, details). There is no customer-side form
+  yet (no storefront login); customers ask by phone / WhatsApp. The public `/order/{token}` page
+  shows each request and its status (and the decline note) read-only.
+- **Eligibility:** order must be `delivered`. Each line is checked against its **order-item
+  snapshot** (`return_allowed` / `replacement_allowed` + days, counted from `delivered_at`, IST;
+  **0 days = no time limit**). Quantity ≤ delivered − already claimed, where claimed = asked
+  (waiting) / approved (approved) / received (received, completed); declined requests free their
+  quantity. The admin may **accept outside policy** only with a written reason (kept on the request
+  and in the timeline) — added because orders placed before a policy existed snapshot "no returns".
+- **Approve** per line (0 … asked, at least one > 0 — partial approval). **Decline** needs a
+  customer-facing note. Notifications: `return.requested` (bell, deduped per request, marked read
+  once decided) and `return.approved`.
+- **Received:** per line qty (0 … approved) + "put back in stock" tick (default on; untick broken
+  stone) → `InventoryService::restockFromReturn` (`return_in`, reference = request number).
+  Untracked products are skipped; a unit that can't convert is a warning + `order.stock_issue`
+  notification, never a block.
+- **Resolve — return:** the admin credits the returned goods (default = what the customer paid for
+  those units: line price incl. its share of order discount and GST; may be lowered for damage).
+  The credit is stored per line in `return_request_items.refund_amount` and
+  `PaymentService::syncOrder()` now lowers what the order owes by Σ credits of completed returns
+  (`owes = grand_total − credit`). So an unpaid order simply owes less, and a paid one shows
+  **Refund ₹X due** (existing badge / topbar chip). The money sent back is recorded with **Record
+  refund** on the return page → `ReturnService::recordRefund` → `Ledger::refund` with
+  `return_request_id` (capped at credited − already refunded). A fully returned order whose money was
+  refunded shows `refunded`.
+- **Resolve — replacement:** "Dispatch replacement" (courier / tracking optional) takes the received
+  quantity of the same product out of stock via `InventoryService::consumeForOrder` (`sale`,
+  reference = request number). No money changes.
+- **Timeline:** return events are written to `order_status_history` (same status, note prefixed with
+  the request number). The order timeline shows them as return events; the return page filters them
+  by number (no extra table).
+- **Screens:** `/admin/returns` (KPIs, status chips, type filter, search), `/admin/returns/{id}`
+  (stepper, items asked / approved / received / value, one next-step form, money card with Record
+  refund, timeline), `/admin/return-policies` (per-product policy, bulk "set policy for selected",
+  pause without losing settings), order detail **Return / replace** button + Returns panel +
+  "Returned −₹X" in the payment card. Sidebar Orders ▸ Returns & replacements (pending count) ·
+  Return policies. CSS `.ret-*`.
+- **Tests:** `tests/returns_test.php` (66 assertions, in-memory SQLite); HTTP flow on a copy of the
+  dev DB; service flow on MariaDB 10.11 (rolled back).
+- **Not in Stage 6:** customer self-service return form, variant-level policies in the UI (the
+  table supports `variant_id`; the page edits product level), a different product as replacement
+  (same product/variant is sent), return pickup scheduling / courier labels, `CustomerStats` does not
+  subtract returns from `total_spent`.

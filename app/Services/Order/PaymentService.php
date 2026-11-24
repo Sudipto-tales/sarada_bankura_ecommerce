@@ -78,10 +78,13 @@ final class PaymentService
             $pending = self::cents(DB::selectOne("SELECT COALESCE(SUM(amount), 0) AS s FROM payment_attempts WHERE order_id = ? AND status = 'submitted'", [$orderId])['s'] ?? 0);
         }
         $net = $paid - $refunded;
+        // Goods taken back on a completed return are credited: the order owes that much less
+        // (Stage 6, ReturnService) — so a fully paid order shows the credit as refund due.
+        $credit = ReturnService::creditCents($orderId);
         // A rejected order owes nothing; anything kept is due back to the customer.
-        $owes = $o['order_status'] === 'rejected' ? 0 : $total;
+        $owes = $o['order_status'] === 'rejected' ? 0 : max(0, $total - $credit);
         $status = match (true) {
-            $refunded > 0 && $net <= 0 => 'refunded',
+            $refunded > 0 && $net <= 0, $credit > 0 && $owes === 0 && $net <= 0 => 'refunded',
             $net <= 0 => 'unpaid',
             $net > $owes => 'overpaid',
             $net === $owes => 'paid',

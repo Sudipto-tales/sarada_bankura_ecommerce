@@ -58,6 +58,24 @@ include __DIR__ . '/_head.php';
     <?php if ((float) $o['refund_due'] > 0): ?><p class="pub-note" style="margin:12px 0 0">₹<?= Money::format($o['refund_due']) ?> will be refunded to you. Our team will contact you.</p><?php endif; ?>
   </section>
 
+  <?php
+  // Stage 6: returns & replacements on this order (read-only for the customer).
+  $retPub = ['submitted' => 'We’re reviewing your request', 'approved' => 'Approved — we’ll collect the goods', 'received' => 'Goods received', 'resolved' => 'Completed', 'rejected' => 'Not accepted'];
+  $returnsPub = \App\Services\Order\ReturnService::forOrder((int) $o['id']);
+  if ($returnsPub): ?>
+  <section class="pub-card">
+    <h2>Returns &amp; replacements</h2>
+    <table class="pub-items">
+      <?php foreach ($returnsPub as $rq): ?>
+      <tr><td><b><?= $rq['request_type'] === 'return' ? 'Return' : 'Replacement' ?> · <?= e((string) $rq['request_number']) ?></b>
+        <small><?= e(implode(', ', array_map(static fn($it) => $it['product_name'] . ' × ' . $qty($it['received_quantity'] ?? $it['approved_quantity'] ?? $it['requested_quantity']) . ' ' . $it['unit'], $rq['items']))) ?></small>
+        <?php if ($rq['status'] === 'rejected' && $rq['admin_note']): ?><small><?= e((string) preg_replace('/^.*Declined: /s', '', (string) $rq['admin_note'])) ?></small><?php endif; ?></td>
+        <td class="r"><b><?= e($retPub[$rq['status']] ?? $rq['status']) ?></b></td></tr>
+      <?php endforeach; ?>
+    </table>
+  </section>
+  <?php endif; ?>
+
   <?php if ($shipping): ?>
   <section class="pub-card"><h2>Delivery address</h2><p style="margin:0;font-size:13px;line-height:1.6"><b><?= e((string) $shipping['name']) ?></b><br><?= implode('<br>', array_map('e', OS::addressLines($shipping))) ?></p></section>
   <?php endif; ?>

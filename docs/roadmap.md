@@ -222,6 +222,12 @@ Return policies page, return requests (admin accept, partial qty, no cancel), re
 `restockFromReturn`, refund → `payment_refunds` (manual), replacement → own dispatch stock-out.
 Notifications `return.requested` / `return.approved`.
 
+**Status: done (2026-11-24).** See "As built (Stage 6)" in `docs/orders.md`. No migration;
+`ReturnService` is the single writer of the return tables; completed returns credit the order in
+`PaymentService::syncOrder()` (refund due → `Ledger::refund` with `return_request_id`). Verified: 638
+test assertions (66 new), HTTP flow, Chromium (desktop + phone), MariaDB service flow. Deferred:
+customer self-service return form, variant-level policies in the UI.
+
 ## Sensitive changes: ask twice
 
 Confidential data can't be changed in one click. Applies to: **receiving account details**
@@ -257,6 +263,7 @@ Save change ─► Step 1: review dialog — "You are changing: UPI ID  maasa•
 | `orders.paid_amount / due_amount / payment_status / pending_verification_amount / refund_due` | `PaymentService::syncOrder()` |
 | `customers.total_orders / total_spent / last_order_at / lifecycle` | `CustomerStats` |
 | Every number series (order, invoice, payment, refund, attempt, return) | `DocumentNumber::next()` on `document_counters` |
+| `return_requests` / `return_request_items` / `product_return_policies` | `ReturnService` |
 | `notifications` | `NotificationService` |
 
 Controllers never update these columns directly. That's what keeps order status, payment status,
