@@ -1,6 +1,7 @@
 # WhatsApp Channel (Meta Cloud API)
 
-**Status: PLANNED (2026-11-22), not built.** Owner decision: use the **official Meta WhatsApp
+**Status: W1–W3 BUILT (2026-11-24, branch `feature/whatsapp-core`) — see "As built" at the end.
+Returns / admin-OTP / staff-invite hooks, W4 campaigns and W5 are still to do.** Owner decision: use the **official Meta WhatsApp
 Cloud API directly** (no BSP, no unofficial QR tools like WA Sender). The feature is built now and
 stays **dormant** until the owner puts the credentials in `.env`. Until then, every flow keeps
 working exactly as planned today (`wa.me` links, email OTP).
@@ -178,3 +179,61 @@ OTP never stored in clear; phone normalisation; webhook signature accept/reject;
 moves forward; duplicate webhook is a no-op; STOP clears consent; campaign skips non-consented
 customers. Then an HTTP smoke test of the status page in both dormant and active (stubbed) modes,
 on MySQL.
+
+## As built (Stage 7 W1–W3, 2026-11-24)
+
+- **Migration** `2026_11_25_000013_create_whatsapp_tables.php`: `whatsapp_messages` as in §5 (status
+  also takes `opened` = a wa.me hand-off) and `whatsapp_campaigns` for W4. Campaign counters are
+  `sent_count / delivered_count / read_count / failed_count` (`read` is reserved in MySQL).
+- **Config** `config/whatsapp.php`: credentials from `.env` (keys already in `.env.example`), event →
+  template map (name / category / variable order / button), `auto.*` switches per automatic event,
+  OTP limits (1 / min, 5 / h per phone), cost rates. Active = enabled + all five required values.
+- **Services** (`app/Services/WhatsApp/`):
+  - `WhatsAppService` — single writer of outgoing rows and the only class calling Graph.
+    `send(event, phone, params, opts)` → `SendResult {mode, ok, messageId, fallbackUrl, error, logId}`.
+    Dormant: no HTTP call; when the caller gives `fallback_text` it returns the same wa.me link as
+    before and logs it `fallback / opened`; automatic sends (no text) do nothing and log nothing.
+    Active: template payload (body params in config order, dynamic URL button gets only the token,
+    `auth_otp` gets a copy-code button), 8 s curl timeout, `sent` + wamid or `failed` + Meta code;
+    on failure a wa.me fallback is offered except for OTP. OTP params are stored as `••••••`; the
+    token is scrubbed from every error text. `$http` is the test hook — tests never reach Meta.
+    Also `checkConnection()`, `templateStatus()`, `windowOpen()`, `costEstimate()`.
+  - `Webhook` — GET verify (`hub.*` / `hub_*`), `X-Hub-Signature-256` HMAC over the raw body
+    (constant-time), statuses forward-only (sent → delivered → read; failed only before delivered),
+    guarded UPDATE, unknown wamid ignored; inbound stored `in / received`, linked to the customer by
+    phone, bell notification `whatsapp.inbound` (dedupe per phone); `STOP` / `UNSUBSCRIBE` (whole
+    message) sets `customers.marketing_consent = 0` and is noted on the row. Duplicates are no-ops.
+  - `FlowNotifier` — W3 hooks, all no-ops while dormant, run after the flow's transaction and never
+    throw: `orderTransition()` (accepted → `order_confirmed`, dispatched → `order_dispatched` +
+    delivery OTP, delivered → `order_delivered` with the invoice token), `deliveryOtp()` (`auth_otp`;
+    if WhatsApp can't send → **email**, never wa.me; dormant → null so the order page keeps its
+    "Send on WhatsApp" link), `paymentReceived()` (verify + record at shop), `paymentRejected()`,
+    `forOrder()` for the order timeline.
+- **Hook points (one line each):** `OrderService::transition()` (returns `otp_sent` = whatsapp |
+  email | null), `OrderService::resendOtp(…, &$sentVia)`, `Ledger::verify / record / reject`,
+  `PaymentRequests::send()` WhatsApp branch (sent → logged `sent`, no tab; dormant or API failure →
+  same wa.me as before, logged `opened`, the API error noted). The admin's custom message text is
+  used only for the wa.me fallback — the template text is fixed by Meta.
+- **Routes** (one `// WhatsApp` block at the end of `routes/web.php`): `GET|POST /webhooks/whatsapp`
+  (404 while dormant, 403 on bad token / signature, else 200 `EVENT_RECEIVED`), CSRF-exempt via the
+  `webhooks` prefix in `VerifyCsrfToken::$except`; `/admin/settings/whatsapp` + `POST …/check` and
+  `POST …/test`.
+- **Admin page** `/admin/settings/whatsapp` (sidebar **Settings ▾ WhatsApp**, System / Payment
+  greyed "soon"): Dormant / Active badge, ✅ / ❌ per .env key (never values), webhook URL to copy,
+  Check connection (name, number, quality, daily tier) + template status vs Meta, Send test
+  (`auth_otp` to `WHATSAPP_TEST_NUMBER`), auto-message switches, month-to-date cost estimate, message
+  log with direction / status / template / date filters and a wa.me Reply for inbound. Order detail
+  timeline shows each API message with its ✓ / ✓✓ / read / ✗ tick; the OTP card says whether the code
+  went out on WhatsApp or by email.
+- **Verified:** `tests/whatsapp_test.php` (77 assertions; all 649 pass) — dormant fallback, payload
+  shape, rename via config, failure + scrubbed token, OTP masking + limits, webhook verify /
+  signature / forward-only statuses / duplicates / inbound / STOP, controller 404 / 403 / 200, every
+  hook dormant (unchanged behaviour) and active (stubbed HTTP), API down doesn't block an order.
+  HTTP on port 8001 against a copy of the dev DB: page + order detail dormant and active (fake
+  credentials), webhook verify 200 / 403, signed POST 200, bad signature 403, dormant 404.
+  Not yet run on MariaDB.
+- **Still to do:** `return_update` hook (after Stage 6 merges), admin OTP `OtpChannel` + `staff_invite`
+  (after admin-access merges), `whatsapp.view/test/campaign` permissions + `can` middleware on the
+  WhatsApp routes (admin-access phase 5), a `whatsapp.inbound` entry in `NotificationService::TYPES`
+  (left out to avoid a merge clash; unknown types show under "system" with the passed icon), W4
+  campaigns, W5 customer OTP login.

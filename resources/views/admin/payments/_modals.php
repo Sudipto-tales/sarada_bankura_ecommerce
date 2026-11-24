@@ -232,7 +232,7 @@ $scripts = ($scripts ?? '') . '<script>window.PM=' . $pmCfg . ';</script>' . <<<
       var c=qf.querySelector('[name=channel]:checked').value,win=c==='whatsapp'?window.open('','_blank'):null;
       send(qf,qf.dataset.url).then(function(j){
         if(!j){if(win)win.close();return;}
-        if(j.open_url){if(c==='whatsapp'&&win){win.location=j.open_url}else{location.href=j.open_url}}
+        if(j.open_url){if(c==='whatsapp'&&win){win.location=j.open_url}else{location.href=j.open_url}}else if(win){win.close()}
         msToast.success(j.message);Q.querySelector('[data-f=last]').textContent='Last sent: just now via '+c;reqBtn.dataset.cooldown=String(j.cooldown);reqBtn.dataset.last='Last sent: just now via '+c;cooldown(j.cooldown);
       });
     });

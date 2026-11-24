@@ -166,9 +166,10 @@ class PaymentController
         } catch (PaymentException $e) {
             return json(['ok' => false, 'message' => $e->getMessage()], 409);
         }
+        $channel = (string) $request->input('channel');
         $msg = $r['status'] === 'sent'
-            ? Money::inr($r['amount']) . ' requested by email to ' . $r['recipient'] . '.'
-            : (PaymentRequests::CHANNELS[$request->input('channel')] ?? '') . ' opened in a new tab — press Send there to deliver it.';
+            ? Money::inr($r['amount']) . ' requested ' . ($channel === 'whatsapp' ? 'on WhatsApp ✓ to ' . PaymentRequests::maskRecipient($channel, $r['recipient']) : 'by email to ' . $r['recipient']) . '.'
+            : (PaymentRequests::CHANNELS[$channel] ?? '') . ' opened in a new tab — press Send there to deliver it.';
 
         return json(['ok' => true, 'message' => $msg] + $r + ['cooldown' => PaymentRequests::COOLDOWN]);
     }

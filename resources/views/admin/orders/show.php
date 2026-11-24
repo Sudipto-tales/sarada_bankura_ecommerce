@@ -60,6 +60,14 @@ foreach ($requests as $q) {
         'title' => $inr($q['amount']) . ' requested via ' . (\App\Services\Payment\PaymentRequests::CHANNELS[$q['channel']] ?? $q['channel']) . ($q['status'] === 'failed' ? ' — failed' : ''),
         'note' => 'To ' . \App\Services\Payment\PaymentRequests::maskRecipient((string) $q['channel'], (string) $q['recipient']) . ($q['status'] === 'opened' ? ' (sent from your app)' : '') . ($q['error'] ? ' · ' . $q['error'] : '')];
 }
+// WhatsApp (Stage 7): messages sent through the Cloud API, with their delivery tick.
+$waLabels = ['auth_otp' => 'Delivery OTP', 'order_confirmed' => 'Order confirmed', 'order_dispatched' => 'Dispatched', 'order_delivered' => 'Delivered',
+    'payment_request' => 'Payment request', 'payment_received' => 'Payment received', 'payment_rejected' => 'Payment rejected'];
+foreach (\App\Services\WhatsApp\FlowNotifier::forOrder($oid) as $w) {
+    $events[] = ['at' => $w['created_at'], 'tone' => $w['status'] === 'failed' ? 'red' : 'green', 'icon' => 'message-circle',
+        'title' => 'WhatsApp: ' . ($waLabels[$w['template']] ?? $w['template']) . ' · ' . \App\Services\WhatsApp\FlowNotifier::tick((string) $w['status']),
+        'note' => 'To ' . \App\Services\WhatsApp\WhatsAppService::mask((string) $w['phone']) . ($w['error_text'] ? ' · ' . $w['error_text'] : '')];
+}
 usort($events, static fn($a, $b) => strcmp((string) $b['at'], (string) $a['at']));
 
 include __DIR__ . '/../partials/header.php';
@@ -96,7 +104,7 @@ include __DIR__ . '/../partials/header.php';
 <section class="card ord-otp" role="status">
   <div><div class="eyebrow">Delivery OTP — shown only now</div>
     <div class="ord-otp-code" id="otpCode"><?= e(implode(' ', str_split((string) $otp, 3))) ?></div>
-    <p class="text-xs muted" style="margin:4px 0 0">Send it to the customer. They give it to the delivery person on arrival. Valid <?= (int) business('delivery.otp_days') ?> days.</p></div>
+    <p class="text-xs muted" style="margin:4px 0 0"><?php if (($otpSent ?? null) === 'whatsapp'): ?><b>Sent to the customer on WhatsApp ✓</b> — <?php elseif (($otpSent ?? null) === 'email'): ?><b>WhatsApp failed — emailed to the customer</b> — <?php else: ?>Send it to the customer. <?php endif; ?>They give it to the delivery person on arrival. Valid <?= (int) business('delivery.otp_days') ?> days.</p></div>
   <div class="flex gap-2 flex-wrap">
     <a class="btn gold" target="_blank" rel="noopener" href="<?= e($waText('Namaskar ' . $o['customer_name'] . ', your order ' . $o['order_number'] . ' from ' . $biz . ' is on the way. Delivery OTP: ' . $otp . ' — share it with our delivery person only after you receive the material. Track: ' . $orderUrl)) ?>"><i data-lucide="message-circle" style="width:16px"></i>Send on WhatsApp</a>
     <button class="btn" type="button" data-copy="<?= e((string) $otp) ?>"><i data-lucide="copy" style="width:16px"></i>Copy</button>

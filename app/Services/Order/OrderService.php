@@ -392,7 +392,7 @@ final class OrderService
      * (dispatch), otp or manual_reason (delivered).
      *
      * @param array<string,mixed> $meta
-     * @return array{otp: ?string, warnings: list<string>}
+     * @return array{otp: ?string, warnings: list<string>, otp_sent: ?string} otp_sent = whatsapp|email|null
      */
     public static function transition(int $orderId, string $to, array $meta = []): array
     {
@@ -477,8 +477,10 @@ final class OrderService
             NotificationService::notify('order.stock_issue', 'Stock not deducted for ' . $o['order_number'],
                 implode(' ', $warnings), route('admin.orders.show', ['id' => $orderId]), 'warning');
         }
+        // WhatsApp (Stage 7): customer update + delivery OTP; no-op while dormant, never throws.
+        $otpSent = \App\Services\WhatsApp\FlowNotifier::orderTransition($orderId, $to, $otp);
 
-        return ['otp' => $otp, 'warnings' => $warnings];
+        return ['otp' => $otp, 'warnings' => $warnings, 'otp_sent' => $otpSent];
     }
 
     /**
@@ -578,13 +580,14 @@ final class OrderService
     }
 
     /** New OTP for a dispatched order (the old one stops working). */
-    public static function resendOtp(int $orderId, ?int $by = null): string
+    public static function resendOtp(int $orderId, ?int $by = null, ?string &$sentVia = null): string
     {
         if (DB::table('orders')->where('id', $orderId)->value('order_status') !== 'dispatched') {
             throw new OrderException('A delivery OTP is only needed while the order is out for delivery.');
         }
         $otp = self::newOtp($orderId);
         self::history($orderId, 'dispatched', 'dispatched', $by, 'New delivery OTP generated');
+        $sentVia = \App\Services\WhatsApp\FlowNotifier::deliveryOtp($orderId, $otp); // WhatsApp (Stage 7)
 
         return $otp;
     }

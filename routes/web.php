@@ -206,3 +206,13 @@ $router->group(['prefix' => 'admin'], function ($router): void {
     $router->post('/products/{id}/media/{mediaId}/delete', [ProductController::class, 'deleteMedia'])->name('admin.products.media.delete');
     $router->post('/products/{id}/delete', [ProductController::class, 'destroy'])->name('admin.products.destroy');
 });
+
+// WhatsApp (Stage 7, docs/whatsapp.md) — public Meta webhook (CSRF-exempt via the "webhooks" prefix,
+// verify token / HMAC signature, 404 while dormant) + the read-only admin status page.
+$router->get('/webhooks/whatsapp', [\App\Controllers\WhatsAppWebhookController::class, 'verify'])->name('webhooks.whatsapp');
+$router->post('/webhooks/whatsapp', [\App\Controllers\WhatsAppWebhookController::class, 'receive'])->name('webhooks.whatsapp.receive');
+$router->group(['prefix' => 'admin'], function ($router): void {
+    $router->get('/settings/whatsapp', [\App\Controllers\Admin\WhatsAppController::class, 'index'])->name('admin.settings.whatsapp');
+    $router->post('/settings/whatsapp/check', [\App\Controllers\Admin\WhatsAppController::class, 'check'])->name('admin.settings.whatsapp.check');
+    $router->post('/settings/whatsapp/test', [\App\Controllers\Admin\WhatsAppController::class, 'test'])->name('admin.settings.whatsapp.test');
+});
