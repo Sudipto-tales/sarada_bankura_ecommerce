@@ -1,0 +1,110 @@
+name: CI
+
+# Runs on every pull request into main and on every push to main.
+# The deploy workflow (Stage 3) will reuse these checks before shipping.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  PHP_VERSION: '8.3'
+
+jobs:
+  # Syntax check + full test suite on SQLite (same as `php tests/run.php` locally).
+  tests:
+    name: Lint & tests (SQLite)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo, pdo_sqlite, pdo_mysql, mbstring, json, fileinfo, gd
+          coverage: none
+          tools: composer:v2
+
+      - name: PHP syntax check
+        run: |
+          find . -path ./vendor -prune -o -path ./.git -prune -o -name '*.php' -type f -print0 \
+            | xargs -0 -n1 -P4 php -l -d display_errors=1 > /tmp/lint.log \
+            || { grep -v '^No syntax errors' /tmp/lint.log; exit 1; }
+          echo "All PHP files parse."
+
+      - name: Validate composer.json / composer.lock
+        run: composer validate --no-check-publish --no-check-all
+
+      - name: Install production dependencies (as the server will)
+        run: composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
+
+      - name: Run tests
+        run: php tests/run.php
+
+  # Every migration must also work on MySQL, which is what production runs.
+  mysql:
+    name: Migrations (MySQL 8.0)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: root
+          MYSQL_DATABASE: vayu_ci
+          MYSQL_USER: vayu
+          MYSQL_PASSWORD: vayu
+        ports: ['3306:3306']
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-interval=5s --health-timeout=5s --health-retries=20
+    env:
+      APP_ENV: production
+      APP_DEBUG: 'false'
+      APP_KEY: ci-only-not-a-secret
+      DB_TYPE: mysql
+      DB_HOST: 127.0.0.1
+      DB_PORT: '3306'
+      DB_DATABASE: vayu_ci
+      DB_USERNAME: vayu
+      DB_PASSWORD: vayu
+      ADMIN_EMAIL: ci@example.com
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ env.PHP_VERSION }}
+          extensions: pdo, pdo_mysql, mbstring, json
+          coverage: none
+          tools: composer:v2
+
+      - name: Install production dependencies
+        run: composer install --no-dev --no-interaction --no-progress --prefer-dist
+
+      - name: Migrate (fresh database)
+        run: php vayu migrate
+
+      - name: Migrate again (must be a no-op)
+        run: php vayu migrate
+
+      - name: Seed admin roles + Owner (first-deploy step)
+        run: php vayu admin:install
+
+      - name: Roll back everything, then migrate again (down() methods work)
+        run: |
+          php vayu migrate:rollback --step=999
+          php vayu migrate:rollback | grep -q 'Nothing to roll back' \
+            || { echo 'Some migrations were not rolled back'; exit 1; }
+          php vayu migrate
+          php vayu migrate:status
