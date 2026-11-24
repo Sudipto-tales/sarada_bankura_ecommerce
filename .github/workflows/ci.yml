@@ -1,20 +1,19 @@
 name: CI
 
-# Runs on every pull request into main and on every push to main.
-# The deploy workflow (Stage 3) will reuse these checks before shipping.
+# Runs on every pull request into main. Pushes to main run it through deploy.yml
+# (workflow_call), so the same checks gate every production deploy.
 on:
   pull_request:
     branches: [main]
-  push:
-    branches: [main]
+  workflow_call:
   workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
   PHP_VERSION: '8.3'
@@ -51,22 +50,33 @@ jobs:
       - name: Run tests
         run: php tests/run.php
 
-  # Every migration must also work on MySQL, which is what production runs.
+  # Every migration must also work on the production database. Hostinger runs
+  # MariaDB 11.8 (hPanel labels it "MySQL"); MySQL 8.0 is kept so a host move stays safe.
   mysql:
-    name: Migrations (MySQL 8.0)
+    name: Migrations (${{ matrix.db.name }})
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        db:
+          - { name: 'MariaDB 11.8', image: 'mariadb:11.8', health: 'healthcheck.sh --connect --innodb_initialized' }
+          - { name: 'MySQL 8.0', image: 'mysql:8.0', health: 'mysqladmin ping -h 127.0.0.1 -uroot -proot' }
     services:
       mysql:
-        image: mysql:8.0
+        image: ${{ matrix.db.image }}
         env:
           MYSQL_ROOT_PASSWORD: root
           MYSQL_DATABASE: vayu_ci
           MYSQL_USER: vayu
           MYSQL_PASSWORD: vayu
+          MARIADB_ROOT_PASSWORD: root
+          MARIADB_DATABASE: vayu_ci
+          MARIADB_USER: vayu
+          MARIADB_PASSWORD: vayu
         ports: ['3306:3306']
         options: >-
-          --health-cmd="mysqladmin ping -h 127.0.0.1 -uroot -proot"
+          --health-cmd="${{ matrix.db.health }}"
           --health-interval=5s --health-timeout=5s --health-retries=20
     env:
       APP_ENV: production

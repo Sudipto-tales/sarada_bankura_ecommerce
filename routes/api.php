@@ -16,6 +16,8 @@ $router->get('/up', fn () => (new Response())->json([
     'status' => 'ok',
     'app' => config('app.name'),
     'time' => date('c'),
+    // Written by the deploy workflow; lets the post-deploy health check confirm the new code is live.
+    'release' => is_file(app()->basePath('REVISION')) ? trim((string) file_get_contents(app()->basePath('REVISION'))) : 'dev',
 ]))->name('health');
 
 // Token-based API authentication demo.
