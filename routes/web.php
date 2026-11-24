@@ -32,7 +32,14 @@ use App\Controllers\PublicOrderController;
 use App\Controllers\ReviewFormController;
 use App\Controllers\WelcomeController;
 
-$router->get('/', [WelcomeController::class, 'index'])->name('home');
+// Storefront (Stage 8, docs/storefront.md). StoreOpen = launch switch (STOREFRONT_ENABLED; admins preview),
+// StoreCustomer = signed-in customer from the session. Fully-qualified names keep this block self-contained.
+$router->group(['middleware' => [\App\Middleware\StoreOpen::class, \App\Middleware\StoreCustomer::class]], function ($router): void {
+    $router->get('/', [\App\Controllers\Store\HomeController::class, 'index'])->name('home');
+    $router->get('/brands', [\App\Controllers\Store\BrandController::class, 'index'])->name('store.brands');
+    $router->get('/policy', [\App\Controllers\Store\PageController::class, 'policy'])->name('store.policy');
+    $router->get('/policy/{page}', [\App\Controllers\Store\PageController::class, 'policySection'])->name('store.policy.section');
+});
 
 $router->get('/hello/{name?}', [WelcomeController::class, 'hello'])->name('hello');
 

@@ -1,3 +1,25 @@
+<?php
+/**
+ * 404. Storefront paths get the store-styled page (docs/storefront.md S1); /admin, /webhooks
+ * and anything that fails to render fall back to the plain page below.
+ * Rendered by Vayu\Exceptions\Handler with $status and $message.
+ */
+$__path = (string) (parse_url((string) ($_SERVER['REQUEST_URI'] ?? '/'), PHP_URL_PATH) ?: '/');
+if (!preg_match('#^/(admin|webhooks|api)(/|$)#', $__path)) {
+    try {
+        $__visible = \App\Services\Store\Context::visible();
+        echo \App\Services\Store\View::html('store.errors.404', ['message' => $message ?? 'Not Found'], [
+            'title' => 'Page not found',
+            'layout' => $__visible ? 'app' : 'minimal',
+            'chrome' => $__visible,
+        ]);
+
+        return;
+    } catch (\Throwable) {
+        // fall through to the plain page
+    }
+}
+?>
 <!doctype html>
 <html lang="en">
 <head>

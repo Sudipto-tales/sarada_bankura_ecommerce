@@ -4,6 +4,11 @@ module.exports = {
     './resources/views/**/*.php',
     './app/**/*.php',
     './html/**/*.html',
+    // the storefront has its own build (tailwind.store.config.js → store.css)
+    '!./resources/views/store/**',
+    '!./resources/views/errors/**',
+    '!./app/Services/Store/**',
+    '!./app/Controllers/Store/**',
   ],
   theme: {
     extend: {
