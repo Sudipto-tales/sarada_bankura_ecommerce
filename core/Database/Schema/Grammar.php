@@ -156,7 +156,7 @@ class Grammar
     {
         $name = $this->indexName($table, $columns, 'index');
 
-        return 'CREATE INDEX IF NOT EXISTS ' . $this->wrap($name)
+        return 'CREATE INDEX ' . $this->ifNotExists() . $this->wrap($name)
             . ' ON ' . $this->wrap($table) . ' (' . $this->columnize($columns) . ')';
     }
 
@@ -167,7 +167,7 @@ class Grammar
     {
         $name = $this->indexName($table, $columns, 'unique');
 
-        return 'CREATE UNIQUE INDEX IF NOT EXISTS ' . $this->wrap($name)
+        return 'CREATE UNIQUE INDEX ' . $this->ifNotExists() . $this->wrap($name)
             . ' ON ' . $this->wrap($table) . ' (' . $this->columnize($columns) . ')';
     }
 
@@ -176,7 +176,24 @@ class Grammar
      */
     protected function indexName(string $table, array $columns, string $type): string
     {
-        return $table . '_' . implode('_', $columns) . '_' . $type;
+        $name = $table . '_' . implode('_', $columns) . '_' . $type;
+
+        // MySQL caps identifiers at 64 characters; keep the name readable and unique.
+        if ($this->driver === 'mysql' && strlen($name) > 64) {
+            $name = substr($name, 0, 55) . '_' . substr(md5($name), 0, 8);
+        }
+
+        return $name;
+    }
+
+    /**
+     * MySQL 8 has no CREATE INDEX IF NOT EXISTS (MariaDB and SQLite do). Indexes are
+     * only created alongside their table or column inside a tracked migration, so the
+     * guard is not needed there.
+     */
+    protected function ifNotExists(): string
+    {
+        return $this->driver === 'mysql' ? '' : 'IF NOT EXISTS ';
     }
 
     /**
