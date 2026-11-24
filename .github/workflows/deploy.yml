@@ -1,0 +1,122 @@
+name: Deploy
+
+# Every push to main: run the full CI, build a release (code + production vendor/),
+# upload it to a new releases/<id> folder on Hostinger, then bin/deploy/activate.sh
+# backs up the database, migrates, switches `current` and health-checks (auto rollback).
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: false
+
+jobs:
+  ci:
+    uses: ./.github/workflows/ci.yml
+
+  deploy:
+    name: Deploy to production
+    needs: ci
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    environment:
+      name: production
+      url: ${{ vars.APP_URL }}
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ vars.PHP_VERSION || '8.3' }}
+          extensions: mbstring, json
+          coverage: none
+          tools: composer:v2
+
+      - name: Build release
+        id: build
+        run: |
+          RELEASE_ID="$(TZ=Asia/Kolkata date +%Y%m%d-%H%M%S)-${GITHUB_SHA::7}"
+          echo "id=$RELEASE_ID" >> "$GITHUB_OUTPUT"
+          composer install --no-dev --no-interaction --no-progress --prefer-dist --optimize-autoloader
+          mkdir -p "$RUNNER_TEMP/release"
+          rsync -a ./ "$RUNNER_TEMP/release/" \
+            --exclude='.git/' --exclude='.github/' --exclude='tests/' --exclude='docs/' \
+            --exclude='html/' --exclude='tools/' --exclude='node_modules/' --exclude='agent/' \
+            --exclude='.env' --exclude='.env.*' --exclude='*.sqlite' \
+            --exclude='tailwind*.config.js' --exclude='README.md' \
+            --exclude='/storage/logs/***' --exclude='/storage/cache/***' --exclude='/storage/media/***' \
+            --exclude='/storage/imports/***' --exclude='/storage/uploads/***'
+          echo "Release $RELEASE_ID: $(du -sh "$RUNNER_TEMP/release" | cut -f1)"
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS || secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          [ -n "$DEPLOY_HOST" ] && [ -n "$SSH_KEY" ] && [ -n "$KNOWN_HOSTS" ] \
+            || { echo "DEPLOY_HOST / DEPLOY_SSH_KEY / DEPLOY_KNOWN_HOSTS missing"; exit 1; }
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host prod
+            HostName $DEPLOY_HOST
+            Port $DEPLOY_PORT
+            User $DEPLOY_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 15
+          EOF
+          ssh prod 'echo "connected as $(whoami)"'
+
+      - name: Upload release
+        env:
+          RELEASE_ID: ${{ steps.build.outputs.id }}
+        run: |
+          ssh prod "mkdir -p '$DEPLOY_PATH/releases/$RELEASE_ID'"
+          rsync -az --delete -e ssh "$RUNNER_TEMP/release/" "prod:$DEPLOY_PATH/releases/$RELEASE_ID/"
+
+      - name: Activate (backup, migrate, switch, health check)
+        env:
+          RELEASE_ID: ${{ steps.build.outputs.id }}
+        run: |
+          ssh prod "DEPLOY_PATH='$DEPLOY_PATH' \
+            PHP_VERSION='${{ vars.PHP_VERSION || '8.3' }}' \
+            HEALTHCHECK_URL='${{ vars.HEALTHCHECK_URL }}' \
+            KEEP_RELEASES='${{ vars.KEEP_RELEASES || 5 }}' \
+            KEEP_BACKUPS='${{ vars.KEEP_BACKUPS || 10 }}' \
+            bash '$DEPLOY_PATH/releases/$RELEASE_ID/bin/deploy/activate.sh' '$RELEASE_ID'"
+
+      # A release folder that never got activated is useless; remove it.
+      - name: Remove failed upload
+        if: failure() && steps.build.outputs.id != ''
+        env:
+          RELEASE_ID: ${{ steps.build.outputs.id }}
+        run: |
+          [ -f ~/.ssh/deploy_key ] || exit 0
+          ssh prod "cur=\$(readlink -f '$DEPLOY_PATH/current' || true); \
+            [ \"\$cur\" = '$DEPLOY_PATH/releases/$RELEASE_ID' ] || rm -rf '$DEPLOY_PATH/releases/$RELEASE_ID'" || true
+
+      - name: Summary
+        if: always()
+        env:
+          RELEASE_ID: ${{ steps.build.outputs.id }}
+        run: |
+          {
+            echo "### Deploy ${{ job.status }}"
+            echo "- Release: \`$RELEASE_ID\`"
+            echo "- Commit: \`${GITHUB_SHA::7}\`"
+            echo "- Site: ${{ vars.APP_URL }}"
+          } >> "$GITHUB_STEP_SUMMARY"
+          rm -f ~/.ssh/deploy_key
