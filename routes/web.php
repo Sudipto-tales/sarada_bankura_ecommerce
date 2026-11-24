@@ -55,8 +55,39 @@ $router->post('/pay/attempt/{token}/close', [PayController::class, 'close'])->na
 $router->get('/pay/{token}', [PayController::class, 'show'])->name('pay.show');
 $router->post('/pay/{token}/start', [PayController::class, 'start'])->name('pay.start');
 
-// Admin — product catalog.
+// Admin access (docs/admin-access.md): login / forgot password stay public; every other /admin route
+// needs a staff login (AdminAuth). Fully-qualified names keep this block self-contained.
 $router->group(['prefix' => 'admin'], function ($router): void {
+    $auth = \App\Controllers\Admin\AuthController::class;
+    $router->get('/login', [$auth, 'showLogin'])->name('admin.login');
+    $router->post('/login', [$auth, 'login'])->name('admin.login.submit')->middleware('throttle:30,1');
+    $router->get('/forgot', [$auth, 'showForgot'])->name('admin.forgot');
+    $router->post('/forgot', [$auth, 'sendForgot'])->name('admin.forgot.send')->middleware('throttle:10,1');
+    $router->get('/forgot/reset', [$auth, 'showReset'])->name('admin.forgot.reset');
+    $router->post('/forgot/reset', [$auth, 'reset'])->name('admin.forgot.reset.submit')->middleware('throttle:20,1');
+});
+$router->group(['prefix' => 'admin', 'middleware' => [\App\Middleware\AdminAuth::class]], function ($router): void {
+    $auth = \App\Controllers\Admin\AuthController::class;
+    $account = \App\Controllers\Admin\AccountController::class;
+    $staff = \App\Controllers\Admin\StaffController::class;
+    $router->post('/logout', [$auth, 'logout'])->name('admin.logout');
+    $router->get('/password/set', [$auth, 'showSetPassword'])->name('admin.password.set');
+    $router->post('/password/set', [$auth, 'setPassword'])->name('admin.password.set.submit');
+    $router->get('/account', [$account, 'show'])->name('admin.account');
+    $router->post('/account/password/code', [$account, 'sendCode'])->name('admin.account.code')->middleware('throttle:10,1');
+    $router->post('/account/password', [$account, 'changePassword'])->name('admin.account.password')->middleware('throttle:20,1');
+    $router->post('/account/logout-others', [$account, 'logoutOthers'])->name('admin.account.logoutOthers');
+    $router->get('/staff', [$staff, 'index'])->name('admin.staff');
+    $router->post('/staff', [$staff, 'store'])->name('admin.staff.store');
+    $router->post('/staff/{id}/update', [$staff, 'update'])->name('admin.staff.update');
+    $router->post('/staff/{id}/resend', [$staff, 'resend'])->name('admin.staff.resend');
+    $router->post('/staff/{id}/reset', [$staff, 'reset'])->name('admin.staff.reset');
+    $router->post('/staff/{id}/disable', [$staff, 'disable'])->name('admin.staff.disable');
+    $router->post('/staff/{id}/enable', [$staff, 'enable'])->name('admin.staff.enable');
+});
+
+// Admin — product catalog.
+$router->group(['prefix' => 'admin', 'middleware' => [\App\Middleware\AdminAuth::class]], function ($router): void {
     $router->get('', [DashboardController::class, 'index'])->name('admin.dashboard');
     $router->get('/', [DashboardController::class, 'index'])->name('admin.dashboard.slash');
 

@@ -26,6 +26,16 @@ class Session
         }
 
         if ($this->native && PHP_SAPI !== 'cli' && session_status() !== PHP_SESSION_ACTIVE) {
+            // Admin login lives in this session: keep the cookie away from JS and cross-site posts,
+            // refuse made-up session ids, and let idle sessions live the admin's 2 h idle window.
+            if (!headers_sent()) {
+                @ini_set('session.use_strict_mode', '1');
+                @ini_set('session.gc_maxlifetime', '7200');
+                session_set_cookie_params([
+                    'lifetime' => 0, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax',
+                    'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off',
+                ]);
+            }
             @session_start();
         }
 
