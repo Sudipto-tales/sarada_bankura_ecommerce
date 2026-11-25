@@ -281,9 +281,10 @@ include __DIR__ . '/../partials/header.php';
       <button type="button" class="linkbtn" data-copy="<?= e($orderUrl) ?>" style="margin-top:10px"><i data-lucide="link"></i>Copy order link</button>
     </section>
 
-    <?php if ($o['notes'] || $o['internal_note']): ?>
+    <?php if ($o['notes'] || $o['internal_note'] || !empty($o['buyer_note'])): ?>
     <section class="card">
       <div class="card-h"><h3>Notes</h3></div>
+      <?php if (!empty($o['buyer_note'])): ?><p class="text-sm" style="margin:0 0 8px"><span class="eyebrow" style="display:block">From the customer</span><?= nl2br(e((string) $o['buyer_note'])) ?></p><?php endif; ?>
       <?php if ($o['notes']): ?><p class="text-sm" style="margin:0 0 8px"><span class="eyebrow" style="display:block">On invoice</span><?= nl2br(e((string) $o['notes'])) ?></p><?php endif; ?>
       <?php if ($o['internal_note']): ?><p class="text-sm" style="margin:0"><span class="eyebrow" style="display:block">Internal</span><?= nl2br(e((string) $o['internal_note'])) ?></p><?php endif; ?>
     </section>

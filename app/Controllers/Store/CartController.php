@@ -20,6 +20,14 @@ class CartController
     public function show(): Response
     {
         View::loadHelpers();
+        // A checkout that was paid but never reached /checkout/done: finish it now.
+        $done = \App\Services\Store\Checkout::reconcile();
+        if ($done !== null) {
+            session()->flash($done['ok'] ? 'success' : 'error', $done['ok'] ? 'Your order ' . $done['order_number'] . ' is placed — we’re checking your payment.' : (string) $done['message']);
+            if ($done['ok']) {
+                return redirect((string) route('order.public', ['token' => $done['order_token']]));
+            }
+        }
         $lines = Cart::lines();
         $inBag = array_map(fn ($l) => $l['product_id'], $lines);
 

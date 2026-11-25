@@ -502,6 +502,108 @@
     render();
   }
 
+  /* ---------- checkout: plan, billing, GST rows by state, pincode autofill, pay window ---------- */
+  function checkoutPage() {
+    var form = $('#co'); if (!form) return;
+    var amounts = {}; try { amounts = JSON.parse(($('#co-amounts') || {}).textContent || '{}'); } catch (e) { /* ignore */ }
+    var home = (form.getAttribute('data-home-state') || '').toLowerCase();
+    function plan() {
+      var c = form.querySelector('[name=pay_choice]:checked'), k = c ? c.value : 'advance';
+      $$('[data-paynow]').forEach(function (el) { el.textContent = amounts[k] || el.textContent; });
+      $$('[data-plan-note]').forEach(function (el) { el.hidden = el.getAttribute('data-plan-note') !== k; });
+      var amt = document.querySelector('#payWindow [data-pw-amount]'); if (amt) amt.textContent = amounts[k] || amt.textContent;
+    }
+    function taxRows() {
+      var st = ($('#state').value || '').toLowerCase(), intra = !st || st === home;
+      $$('[data-tax]').forEach(function (el) { el.hidden = (el.getAttribute('data-tax') === 'cgst_sgst') !== intra; });
+    }
+    function clearErr(name) {
+      var f = form.querySelector('[name="' + name + '"]:not([type=hidden])'); if (f) f.removeAttribute('aria-invalid');
+      var m = form.querySelector('[data-err-for="' + name + '"]'); if (m) m.textContent = '';
+    }
+    form.addEventListener('change', function (e) {
+      if (e.target.name === 'pay_choice') plan();
+      if (e.target.id === 'state') taxRows();
+      if (e.target.id === 'sameBill') $('#billBox').hidden = e.target.checked;
+      if (e.target.getAttribute('aria-invalid') === 'true' || e.target.id === 'terms') clearErr(e.target.name);
+    });
+    form.addEventListener('input', function (e) { if (e.target.getAttribute('aria-invalid') === 'true') clearErr(e.target.name); });
+
+    function showErrors(errors, message) {
+      $$('[data-err-for]', form).forEach(function (m) { m.textContent = ''; });
+      $$('[aria-invalid]', form).forEach(function (f) { f.removeAttribute('aria-invalid'); });
+      var first = null, general = [];
+      Object.keys(errors || {}).forEach(function (k) {
+        var msg = errors[k][0], f = form.querySelector('[name="' + k + '"]:not([type=hidden])'), m = form.querySelector('[data-err-for="' + k + '"]');
+        if (f) f.setAttribute('aria-invalid', 'true');
+        if (m) m.textContent = msg; else general.push(msg);
+        if (!first && f) first = f;
+        if (k.indexOf('bill_') === 0) { $('#billBox').hidden = false; $('#sameBill').checked = false; }
+      });
+      var box = $('#coErr');
+      box.textContent = general.length ? general.join(' ') : (message && !first ? message : '');
+      box.hidden = !box.textContent;
+      if (first) { first.focus(); first.scrollIntoView({ block: 'center' }); } else if (!box.hidden) box.scrollIntoView({ block: 'center' });
+    }
+    document.addEventListener('paywindow:errors', function (e) { showErrors(e.detail.errors, e.detail.message); });
+
+    /* Quick checks before the window opens (the server checks everything again). */
+    function check() {
+      var e = {}, val = function (n) { var f = form.querySelector('[name="' + n + '"]:not([type=hidden])'); return f ? f.value.trim() : ''; };
+      if (!/^(\+?91|0)?[6-9]\d{9}$/.test(val('phone').replace(/[\s-]/g, ''))) e.phone = ['Enter your 10-digit mobile number.'];
+      if (val('name').length < 2) e.name = ['Enter your name.'];
+      if (!/^[1-9]\d{5}$/.test(val('pincode'))) e.pincode = ['Enter the 6-digit pincode.'];
+      if (!val('state')) e.state = ['Pick your state.'];
+      if (!val('city')) e.city = ['Enter your district or city.'];
+      if (val('line1').length < 3) e.line1 = ['Enter your house / building and street.'];
+      if (!$('#sameBill').checked) {
+        if (val('bill_line1').length < 3) e.bill_line1 = ['Enter the billing street address.'];
+        if (!/^[1-9]\d{5}$/.test(val('bill_pincode'))) e.bill_pincode = ['Enter the 6-digit pincode.'];
+        if (!val('bill_state')) e.bill_state = ['Pick your state.'];
+        if (!val('bill_city')) e.bill_city = ['Enter your district or city.'];
+      }
+      if (!$('#terms').checked) e.terms = ['Please accept the terms and returns policy to continue.'];
+      return e;
+    }
+    form.addEventListener('submit', function (ev) {
+      if (!window.PayWindow) return; // no pay window on the page → plain post (server explains)
+      ev.preventDefault();
+      var e = check();
+      if (Object.keys(e).length) { showErrors(e); return; }
+      showErrors({});
+      window.PayWindow.open();
+    });
+
+    /* Pincode → state + city + post offices, through our own cached lookup. */
+    var pin = $('#pin'), msg = $('#pinMsg'), spin = $('#pinSpin'), last = '';
+    var url = form.getAttribute('data-pincode-url');
+    function failed() { spin.hidden = true; msg.textContent = 'Couldn’t look this up — please pick your state and type your city.'; }
+    function lookup() {
+      var v = pin.value.replace(/\D/g, '').slice(0, 6);
+      if (pin.value !== v) pin.value = v;
+      if (v.length < 6 || v === last) return;
+      last = v; spin.hidden = false; msg.textContent = 'Looking up…';
+      fetch(url.replace('000000', v), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) { failed(); if (j.reason === 'invalid') msg.textContent = 'A pincode is 6 digits and doesn’t start with 0.'; return; }
+          spin.hidden = true;
+          var sel = $('#state'), want = String(j.state || '').toLowerCase();
+          Array.prototype.forEach.call(sel.options, function (o) { if (o.value && o.value.toLowerCase() === want) sel.value = o.value; });
+          if (j.district && !$('#city').value.trim()) $('#city').value = j.district;
+          var list = $('#areaList'); list.textContent = '';
+          (j.areas || []).forEach(function (a) { var o = document.createElement('option'); o.value = a; list.appendChild(o); });
+          msg.textContent = '✓ ' + [j.district, j.state].filter(Boolean).join(', ');
+          clearErr('state'); clearErr('city'); clearErr('pincode');
+          taxRows();
+        })
+        .catch(failed);
+    }
+    pin.addEventListener('input', lookup);
+    if (pin.value.length === 6) lookup();
+    plan(); taxRows();
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     icons();
     drawer();
@@ -514,7 +616,14 @@
     shop();
     var pd = null; try { pd = JSON.parse(($('#product-data') || {}).textContent || 'null'); } catch (e) { /* ignore */ }
     if (pd) product(pd);
-    cartForms(); cartPage(); savedPage();
+    cartForms(); cartPage(); savedPage(); checkoutPage();
+    $$('[data-copy-link]').forEach(function (b) {
+      b.hidden = false;
+      b.addEventListener('click', function () {
+        var url = location.href.split('#')[0];
+        (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { toast('Link copied'); }, function () { prompt('Copy this link:', url); });
+      });
+    });
     var cd = null; try { cd = JSON.parse(($('#calc-data') || {}).textContent || 'null'); } catch (e) { /* ignore */ }
     if (cd) calculator(cd);
     icons();

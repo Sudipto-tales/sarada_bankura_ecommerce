@@ -99,7 +99,7 @@ final class OrderService
                 if ($email !== '' && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
                     $err['new_customer.email'][] = 'Enter a valid email address.';
                 }
-                $newCustomer = ['name' => $name, 'phone' => (string) $phone, 'email' => $email, 'customer_type' => 'individual', 'source' => 'showroom'];
+                $newCustomer = ['name' => $name, 'phone' => (string) $phone, 'email' => $email, 'customer_type' => 'individual', 'source' => $online ? 'online' : 'showroom'];
             }
         }
 
@@ -192,6 +192,7 @@ final class OrderService
                 'due_amount' => round($taxable + $tax, 2),
                 'notes' => blank_to_null(mb_substr(trim((string) ($in['notes'] ?? '')), 0, 2000)),
                 'internal_note' => blank_to_null(mb_substr(trim((string) ($in['internal_note'] ?? '')), 0, 2000)),
+                'buyer_note' => blank_to_null(mb_substr(trim((string) ($in['buyer_note'] ?? '')), 0, 1000)),
                 'created_by' => $by,
                 'created_at' => $now,
                 'updated_at' => $now,

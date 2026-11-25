@@ -1,6 +1,6 @@
 # Storefront: PHP Build Plan (Stage 8)
 
-**Status: S1 + S2 + S3 BUILT (2026-11-25) on `feature/stage8-storefront`; S4–S6 planned.** This turns the HTML design set in `html/storefront/*.html`
+**Status: S1 + S2 + S3 BUILT (2026-11-25, merged); S4 BUILT on `feature/stage8-s4-checkout`; S5–S6 planned.** This turns the HTML design set in `html/storefront/*.html`
 (+ `assets/store.js`) into server-rendered PHP pages on the Vayu stack. It reuses what Stages 0–5
 already built: catalogue, media, reviews, customers, orders, payments. It adds only what the design
 needs and the schema doesn't have yet.
@@ -503,6 +503,48 @@ auto-submit gives clean URLs; mobile filter drawer works (also without JS via `#
 **Verified:** SQLite full suite 1048 assertions; curl smoke on a scratch DB copy (JSON add, plain
 form add → back to the product page, update, CSRF 419, foreign Referer → `/cart`). No browser run
 (owner asked to skip Playwright for S3).
+
+## 10. As built: S4 Checkout (2026-11-25)
+
+| Piece | Where |
+| --- | --- |
+| Checkout rules | `App\Services\Store\Checkout`: `buildOrderInput()` (form → `OrderService::create` input from `Cart::lines()`), `start()` (→ `PayWindow::forCheckout`, token + cart id in session `checkout_attempt`), `finish()` (→ `Cart::convert`), `reconcile()`, `STATES`, `canonicalState()`, `taxMode()` |
+| Routes | `GET /checkout`, `POST /checkout/start` (JSON), `POST /checkout/done`, `GET /checkout/pincode/{code}` (throttle 30/min), `GET` + `POST /track` → `Store\CheckoutController`, `Store\TrackController` |
+| Reskins | `/order/{token}` → `store/order.php` (full store layout while the store is visible, minimal otherwise), `/pay/{token}` → `store/pay.php` (minimal). `documents/order.php` + `documents/pay.php` deleted; `/invoice/{token}` keeps the printable style and its own `documents/_pay-window.php` |
+| Pay window | `store/partials/pay-window.php` (store look, same `data-pw-*` hooks). `pay-window.js` gained a **checkout mode** (`data-mode="checkout"`): opening posts the checkout form; 422 field errors come back as a `paywindow:errors` event; after a successful submit it posts the token to `/checkout/done`. `window.PayWindow.open()` is exposed |
+| Order data | `OrderService::create` now stores `buyer_note`, and a new customer created by an online order gets `source = online`. Admin order page shows the note under Notes → "From the customer" |
+| JS | `store.js` `checkoutPage()`: plan switch, billing toggle, CGST+SGST ↔ IGST rows by state, pincode autofill (state select + city + post-office datalist), quick checks before the window opens; `[data-copy-link]` |
+| Tests | `tests/storefront_s4_test.php` (44 assertions) |
+
+**Behaviour notes**
+
+- Nothing price-like comes from the form: items, unit prices (frozen as strings for the window's
+  6 minutes), GST (`Cart::taxRate()`) and the channel are set by the server. Discount, `customer_id`
+  and `items` in the POST are ignored. A signed-in customer (S5) uses their `customer_id`; a guest
+  becomes `new_customer`, so a known mobile reuses that customer (same as an admin order).
+- The bag must be fully buyable: any greyed line → `/cart`. Pressing "Place order" again (or "Try
+  again" after expiry) closes the previous open attempt first.
+- **Deviation from §3.6:** there is no `POST /checkout/quote`. GST doesn't change with the state, only
+  its split, so the page renders both CGST + SGST and IGST rows and JS shows one. The amount
+  charged always comes from the server when the window opens.
+- State is a `<select>` of the 36 states / UTs (place of supply must match `business.address.state`
+  exactly for CGST + SGST). Landmark is appended to address line 2. "Create an account" and "Save
+  this address" from the design are left for S5 (OrderService already saves the address).
+- Paid but never reached `/checkout/done` (tab closed): the next `/cart` or `/checkout` visit in that
+  session finishes it and redirects to the order. If `PayWindow::submit` kept the payment but couldn't
+  create the order (bag changed while paying), the bag stays and the customer is told staff will call.
+- Without JS the form posts normally: field errors come back inline; otherwise the page says the UPI
+  window needs JavaScript (and offers WhatsApp). No UPI account set up → WhatsApp order link instead.
+- Track: order number (any case, spaces ignored) + mobile → `/order/{token}`, `go=pay` → `/pay/{token}`.
+  The same message for a wrong mobile or an unknown number; 10 lookups / hour / IP.
+- The order page never shows the delivery OTP (only its hash is stored); it reminds the customer to
+  share the OTP they were sent. "Report a problem" on delivered orders is a WhatsApp link (returns are
+  raised by staff, Stage 6); review buttons link to `/review/{slug}`.
+
+**Verified:** SQLite full suite 1096 assertions; curl smoke on MariaDB `maa_sarada_test` (add → bag →
+checkout → pincode lookup → 422 errors → start → submit → done → order page / pay page / track;
+order `online / website / pending`, IGST place of supply, buyer note, cart converted; rows removed
+afterwards). No browser run (Playwright skipped by default).
 
 ## Default images
 

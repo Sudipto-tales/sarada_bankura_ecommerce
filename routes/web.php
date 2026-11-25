@@ -52,6 +52,13 @@ $router->group(['middleware' => [\App\Middleware\StoreOpen::class, \App\Middlewa
     $router->get('/calculator', [\App\Controllers\Store\CartController::class, 'calculator'])->name('store.calculator');
     $router->get('/saved', [\App\Controllers\Store\SavedController::class, 'index'])->name('store.saved');
     $router->get('/saved/cards', [\App\Controllers\Store\SavedController::class, 'cards'])->name('store.saved.cards');
+    // S4 checkout → payment window → order; track / pay-a-balance lookup.
+    $router->get('/checkout', [\App\Controllers\Store\CheckoutController::class, 'show'])->name('store.checkout');
+    $router->post('/checkout/start', [\App\Controllers\Store\CheckoutController::class, 'start'])->name('store.checkout.start');
+    $router->post('/checkout/done', [\App\Controllers\Store\CheckoutController::class, 'done'])->name('store.checkout.done');
+    $router->get('/checkout/pincode/{code}', [\App\Controllers\Store\CheckoutController::class, 'pincode'])->name('store.checkout.pincode')->middleware('throttle:30,1');
+    $router->get('/track', [\App\Controllers\Store\TrackController::class, 'show'])->name('store.track');
+    $router->post('/track', [\App\Controllers\Store\TrackController::class, 'find'])->name('store.track.find');
 });
 
 $router->get('/hello/{name?}', [WelcomeController::class, 'hello'])->name('hello');
