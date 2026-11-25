@@ -3,28 +3,35 @@
 use Vayu\Database\DB;
 use Vayu\Database\Seeder;
 
-/** Units, option groups and sample sub-categories. Idempotent: each block skips if data exists. */
+/** Units, option groups and sample sub-categories. Idempotent: units are added by symbol if missing; the other blocks skip if data exists. */
 return new class extends Seeder {
     public function run(): void
     {
         $now = date('Y-m-d H:i:s');
 
-        if ((int) DB::table('units')->count() === 0) {
-            $units = [
-                ['Square foot', 'sq ft', 'area'], ['Square metre', 'sq m', 'area'],
-                ['Running foot', 'running ft', 'length'], ['Millimetre', 'mm', 'length'],
-                ['Centimetre', 'cm', 'length'], ['Inch', 'inch', 'length'], ['Foot', 'ft', 'length'],
-                ['Piece', 'piece', 'count'], ['Slab', 'slab', 'count'],
-                ['Box', 'box', 'pack'], ['Set', 'set', 'pack'],
-                ['Kilogram', 'kg', 'weight'], ['Tonne', 'ton', 'weight'],
-            ];
-            foreach ($units as $i => [$name, $symbol, $kind]) {
-                DB::table('units')->insert(['name' => $name, 'symbol' => $symbol, 'kind' => $kind, 'sort' => $i, 'created_at' => $now, 'updated_at' => $now]);
+        // Insert each standard unit that is missing (by symbol). Not gated on an empty table:
+        // AttributeLibrarySeeder adds '%' first, which used to make this skip every unit.
+        $units = [
+            ['Square foot', 'sq ft', 'area'], ['Square metre', 'sq m', 'area'],
+            ['Running foot', 'running ft', 'length'], ['Millimetre', 'mm', 'length'],
+            ['Centimetre', 'cm', 'length'], ['Inch', 'inch', 'length'], ['Foot', 'ft', 'length'],
+            ['Piece', 'piece', 'count'], ['Slab', 'slab', 'count'],
+            ['Box', 'box', 'pack'], ['Set', 'set', 'pack'],
+            ['Kilogram', 'kg', 'weight'], ['Tonne', 'ton', 'weight'],
+        ];
+        $added = 0;
+        foreach ($units as $i => [$name, $symbol, $kind]) {
+            if (DB::table('units')->where('symbol', $symbol)->exists()) {
+                continue;
             }
-            // Old free-text unit "sqft" → "sq ft".
-            DB::table('product_pricing')->where('unit', 'sqft')->update(['unit' => 'sq ft']);
-            DB::table('product_pricing')->where('unit', 'sqm')->update(['unit' => 'sq m']);
-            echo "Seeded units.\n";
+            DB::table('units')->insert(['name' => $name, 'symbol' => $symbol, 'kind' => $kind, 'sort' => $i, 'created_at' => $now, 'updated_at' => $now]);
+            $added++;
+        }
+        // Old free-text unit "sqft" → "sq ft".
+        DB::table('product_pricing')->where('unit', 'sqft')->update(['unit' => 'sq ft']);
+        DB::table('product_pricing')->where('unit', 'sqm')->update(['unit' => 'sq m']);
+        if ($added) {
+            echo "Seeded units: {$added}.\n";
         }
 
         if ((int) DB::table('option_groups')->count() === 0) {
