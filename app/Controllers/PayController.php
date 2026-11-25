@@ -2,7 +2,6 @@
 
 namespace App\Controllers;
 
-use App\Services\Order\DocumentService as Docs;
 use App\Services\Order\PaymentService;
 use App\Services\Payment\Accounts;
 use App\Services\Payment\PaymentException;
@@ -31,15 +30,12 @@ class PayController
         PayWindow::expireStale();
         $o = self::order($token);
 
-        return view('documents.pay', [
-            'o' => $o,
-            'dueNow' => PaymentService::dueNow($o),
-            'canPay' => Accounts::defaultUpi() !== null,
-            'business' => business(),
-            'logo' => business('logo') && is_file(app()->publicPath((string) business('logo'))) ? base_url((string) business('logo')) : null,
-            'items' => DB::select('SELECT product_name, variant_name, quantity, unit, line_total FROM order_items WHERE order_id = ? ORDER BY sort, id', [(int) $o['id']]),
-            'taxRows' => Docs::taxRows(Docs::taxMode($o), $o['gst_rate'] !== null ? (float) $o['gst_rate'] : null, (float) $o['tax_amount']),
-            'lastRejected' => self::lastRejected((int) $o['id']),
+        return \App\Services\Store\View::page('store.pay', PublicOrderController::storeData($o), [
+            'title' => 'Pay for order ' . $o['order_number'],
+            'layout' => 'minimal',
+            'active' => 'pay',
+            'chrome' => false,
+            'head' => '<meta name="robots" content="noindex,nofollow"><meta name="referrer" content="no-referrer">',
         ]);
     }
 
@@ -90,7 +86,7 @@ class PayController
     /* ---------------------------------------------------------------- */
 
     /** @return array<string,mixed> */
-    private static function payload(array $a): array
+    public static function payload(array $a): array
     {
         return PayWindow::present($a) + [
             'submit_url' => route('pay.submit', ['token' => $a['public_token']]),

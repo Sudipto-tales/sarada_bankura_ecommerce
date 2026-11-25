@@ -1,10 +1,14 @@
 /* Customer payment window (docs/payments.md §1). The server fixes the amount and the expiry;
    the countdown here is display only. One attempt per opening; closing without submitting
-   marks it failed (sendBeacon), so the shop can follow up. No dependencies (QRCode optional). */
+   marks it failed (sendBeacon), so the shop can follow up. No dependencies (QRCode optional).
+   Checkout mode (data-mode="checkout", storefront): "open" posts the checkout form (data-form)
+   to data-start; form errors are handed back to the page as a `paywindow:errors` event, and
+   after a successful submit the page posts the token to data-done (bag → order). */
 (function () {
   var root = document.getElementById('payWindow');
   if (!root) return;
   var csrf = root.dataset.csrf, startUrl = root.dataset.start, context = root.dataset.context || 'order';
+  var checkout = root.dataset.mode === 'checkout', doneUrl = root.dataset.done || '';
   var att = null, timer = null, deadline = 0, submitted = false, busy = false;
   var $ = function (s) { return root.querySelector(s); };
   var $$ = function (s) { return Array.prototype.slice.call(root.querySelectorAll(s)); };
@@ -23,14 +27,40 @@
   }
   function isOpen() { return att && !submitted && att.status === 'open'; }
 
+  function startBody() {
+    if (checkout) { var form = document.querySelector(root.dataset.form); return new FormData(form); }
+    var f = new FormData(); f.append('context', context); return f;
+  }
+  function hide() {
+    clearInterval(timer);
+    root.hidden = true;
+    document.body.style.overflow = '';
+  }
+
   function open() {
     root.hidden = false;
     document.body.style.overflow = 'hidden';
     state('loading');
-    post(startUrl, (function () { var f = new FormData(); f.append('context', context); return f; })()).then(function (j) {
+    post(startUrl, startBody()).then(function (j) {
+      if (!j.ok && checkout && j.errors) {
+        hide(); att = null;
+        document.dispatchEvent(new CustomEvent('paywindow:errors', { detail: j }));
+        return;
+      }
       if (!j.ok) { $('[data-pw-msg]').textContent = j.message || 'Payment could not be started.'; state('error'); return; }
       render(j);
     }, function () { $('[data-pw-msg]').textContent = 'You seem to be offline. Check your connection and try again.'; state('error'); });
+  }
+
+  /* Checkout: the bag becomes the order (plain form post → redirect to the order page). */
+  function finish() {
+    if (!checkout || !doneUrl || !att) return false;
+    var f = document.createElement('form');
+    f.method = 'post'; f.action = doneUrl; f.hidden = true;
+    [['_token', csrf], ['token', att.token]].forEach(function (p) { var i = document.createElement('input'); i.type = 'hidden'; i.name = p[0]; i.value = p[1]; f.appendChild(i); });
+    document.body.appendChild(f);
+    f.submit();
+    return true;
   }
 
   function render(a) {
@@ -94,6 +124,7 @@
         var link = $('[data-pw-done-link]');
         if (j.order_url) { link.href = j.order_url; link.hidden = false; } else { link.hidden = true; }
         state('done');
+        if (checkout) { link.hidden = true; setTimeout(finish, 1200); }
         return;
       }
       if (j.errors) {
@@ -111,10 +142,10 @@
   function closeWindow() {
     if (isOpen() && !confirm('Close the payment window?\n\nIf you have already paid, press Cancel and submit your payment ID first.')) return;
     if (isOpen()) beacon();
-    clearInterval(timer);
-    root.hidden = true;
-    document.body.style.overflow = '';
-    if (submitted || (att && att.status !== 'open')) location.reload();
+    if (submitted && finish()) return;
+    hide();
+    // Checkout keeps the filled-in form (no reload); "Place order" opens a fresh window.
+    if (!checkout && (submitted || (att && att.status !== 'open'))) location.reload();
     att = null;
   }
   function beacon() {
@@ -136,6 +167,7 @@
   window.addEventListener('beforeunload', function (e) { if (isOpen()) { e.preventDefault(); e.returnValue = ''; } });
   window.addEventListener('pagehide', function () { if (isOpen()) beacon(); });
 
+  window.PayWindow = { open: open };
   document.querySelectorAll('[data-pay]').forEach(function (b) {
     b.hidden = false;
     b.addEventListener('click', function (e) { e.preventDefault(); open(); });

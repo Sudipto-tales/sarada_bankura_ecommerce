@@ -36,7 +36,7 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <link rel="stylesheet" href="<?= e(store_asset('css/store.css')) ?>">
 <?= $page['head'] ?>
 </head>
-<body class="font-sans text-[15px]<?= $minimal ? '' : ' pb-16 lg:pb-0' ?>">
+<body class="font-sans text-[15px]<?= $minimal ? '' : ' pb-16 lg:pb-0' ?>"<?= !empty($page['body_attrs']) ? ' ' . $page['body_attrs'] : '' ?>>
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-ink text-cream px-3 py-2 rounded">Skip to content</a>
 <?php if (Context::previewing()): ?>
 <div class="bg-copper text-white text-[12.5px]"><div class="wrap py-2 flex flex-wrap items-center justify-between gap-2">
@@ -49,6 +49,8 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <?= store_partial($minimal ? 'footer-minimal' : 'footer', ['chrome' => $chrome, 'active' => $page['active']]) ?>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="application/json" id="store-flash"><?= store_json($flash) ?></script>
+<?php $acct = Context::customer(); ?>
+<script type="application/json" id="store-account"><?= store_json($acct && $acct['customer_id'] ? ['saved' => \App\Services\Store\Saved::slugs((int) $acct['customer_id']), 'url' => (string) route('store.saved.toggle')] : null) ?></script>
 <script src="<?= e(store_asset('vendor/lucide/lucide-0.544.0.min.js')) ?>" defer></script>
 <script src="<?= e(store_asset('js/store.js')) ?>" defer></script>
 <?= $page['scripts'] ?>

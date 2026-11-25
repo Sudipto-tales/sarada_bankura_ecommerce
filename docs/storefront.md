@@ -1,6 +1,6 @@
 # Storefront: PHP Build Plan (Stage 8)
 
-**Status: S1 + S2 + S3 BUILT (2026-11-25) on `feature/stage8-storefront`; S4–S6 planned.** This turns the HTML design set in `html/storefront/*.html`
+**Status: S1 + S2 + S3 BUILT (2026-11-25, merged); S4 BUILT on `feature/stage8-s4-checkout`; S5 BUILT on `feature/stage8-s5-accounts`; S6 planned.** This turns the HTML design set in `html/storefront/*.html`
 (+ `assets/store.js`) into server-rendered PHP pages on the Vayu stack. It reuses what Stages 0–5
 already built: catalogue, media, reviews, customers, orders, payments. It adds only what the design
 needs and the schema doesn't have yet.
@@ -503,6 +503,92 @@ auto-submit gives clean URLs; mobile filter drawer works (also without JS via `#
 **Verified:** SQLite full suite 1048 assertions; curl smoke on a scratch DB copy (JSON add, plain
 form add → back to the product page, update, CSRF 419, foreign Referer → `/cart`). No browser run
 (owner asked to skip Playwright for S3).
+
+## 10. As built: S4 Checkout (2026-11-25)
+
+| Piece | Where |
+| --- | --- |
+| Checkout rules | `App\Services\Store\Checkout`: `buildOrderInput()` (form → `OrderService::create` input from `Cart::lines()`), `start()` (→ `PayWindow::forCheckout`, token + cart id in session `checkout_attempt`), `finish()` (→ `Cart::convert`), `reconcile()`, `STATES`, `canonicalState()`, `taxMode()` |
+| Routes | `GET /checkout`, `POST /checkout/start` (JSON), `POST /checkout/done`, `GET /checkout/pincode/{code}` (throttle 30/min), `GET` + `POST /track` → `Store\CheckoutController`, `Store\TrackController` |
+| Reskins | `/order/{token}` → `store/order.php` (full store layout while the store is visible, minimal otherwise), `/pay/{token}` → `store/pay.php` (minimal). `documents/order.php` + `documents/pay.php` deleted; `/invoice/{token}` keeps the printable style and its own `documents/_pay-window.php` |
+| Pay window | `store/partials/pay-window.php` (store look, same `data-pw-*` hooks). `pay-window.js` gained a **checkout mode** (`data-mode="checkout"`): opening posts the checkout form; 422 field errors come back as a `paywindow:errors` event; after a successful submit it posts the token to `/checkout/done`. `window.PayWindow.open()` is exposed |
+| Order data | `OrderService::create` now stores `buyer_note`, and a new customer created by an online order gets `source = online`. Admin order page shows the note under Notes → "From the customer" |
+| JS | `store.js` `checkoutPage()`: plan switch, billing toggle, CGST+SGST ↔ IGST rows by state, pincode autofill (state select + city + post-office datalist), quick checks before the window opens; `[data-copy-link]` |
+| Tests | `tests/storefront_s4_test.php` (44 assertions) |
+
+**Behaviour notes**
+
+- Nothing price-like comes from the form: items, unit prices (frozen as strings for the window's
+  6 minutes), GST (`Cart::taxRate()`) and the channel are set by the server. Discount, `customer_id`
+  and `items` in the POST are ignored. A signed-in customer (S5) uses their `customer_id`; a guest
+  becomes `new_customer`, so a known mobile reuses that customer (same as an admin order).
+- The bag must be fully buyable: any greyed line → `/cart`. Pressing "Place order" again (or "Try
+  again" after expiry) closes the previous open attempt first.
+- **Deviation from §3.6:** there is no `POST /checkout/quote`. GST doesn't change with the state, only
+  its split, so the page renders both CGST + SGST and IGST rows and JS shows one. The amount
+  charged always comes from the server when the window opens.
+- State is a `<select>` of the 36 states / UTs (place of supply must match `business.address.state`
+  exactly for CGST + SGST). Landmark is appended to address line 2. "Create an account" and "Save
+  this address" from the design are left for S5 (OrderService already saves the address).
+- Paid but never reached `/checkout/done` (tab closed): the next `/cart` or `/checkout` visit in that
+  session finishes it and redirects to the order. If `PayWindow::submit` kept the payment but couldn't
+  create the order (bag changed while paying), the bag stays and the customer is told staff will call.
+- Without JS the form posts normally: field errors come back inline; otherwise the page says the UPI
+  window needs JavaScript (and offers WhatsApp). No UPI account set up → WhatsApp order link instead.
+- Track: order number (any case, spaces ignored) + mobile → `/order/{token}`, `go=pay` → `/pay/{token}`.
+  The same message for a wrong mobile or an unknown number; 10 lookups / hour / IP.
+- The order page never shows the delivery OTP (only its hash is stored); it reminds the customer to
+  share the OTP they were sent. "Report a problem" on delivered orders is a WhatsApp link (returns are
+  raised by staff, Stage 6); review buttons link to `/review/{slug}`.
+
+**Verified:** SQLite full suite 1096 assertions; curl smoke on MariaDB `maa_sarada_test` (add → bag →
+checkout → pincode lookup → 422 errors → start → submit → done → order page / pay page / track;
+order `online / website / pending`, IGST place of supply, buyer note, cart converted; rows removed
+afterwards). No browser run (Playwright skipped by default).
+
+## 11. As built: S5 Accounts (2026-11-26)
+
+**Login rule (owner, 2026-11-26):** browsing, the bag, the calculator, enquiries, track and the
+`/order` + `/pay` token pages need **no login**. Saving works as a guest (browser list) and is merged
+into the account at sign-in. **Checkout needs an account**: a guest pressing Checkout / Buy now goes
+to `/signin?next=/checkout` (bag kept) and comes straight back. **Staff never sign in on the
+storefront**: they use `/admin` (separate `admin_users`); a logged-in admin only gets the preview.
+
+| Piece | Where |
+| --- | --- |
+| Migration | `2026_11_26_000017_storefront_accounts`: `users.email` → NULL (phone-only accounts; MySQL `MODIFY`, SQLite table rebuild), `users.session_version` |
+| Auth | `App\Services\Store\CustomerAuth` (only writer of storefront `users`, `customer_auth_codes`, `customer_remember_tokens`): `register`, `attempt`, `logout`, `resolve`, `changePassword`, `sendResetCode`, `resetPassword`, `updateProfile`, `safeNext`. `AuthException` = message safe to show |
+| Saved | `App\Services\Store\Saved` (only writer of `customer_saved_items`): `slugs`, `toggle`, `merge`, `cleanSlugs`. Per product (variant 0) |
+| Bag merge | `Cart::adopt(userId, customerId)` at sign-in: this browser's bag keeps its lines and takes the account's open bag (same line → quantities added), other open bags → `abandoned`; no guest bag → the account's bag comes to this browser. `Cart::forgetCookie()` at sign-out (bag stays on the account) |
+| Middleware | `StoreCustomer` → `CustomerAuth::resolve()` (session, else remember cookie); also on `/order/{token}` + `/pay/{token}` for the header. New `RequireCustomer`: guest → `/signin?next=…`, JSON → 401 `{signin, url}` |
+| Routes | `GET/POST /signin`, `POST /register`, `POST /signin/forgot`, `POST /signin/reset`, `POST /signout`, `GET /account[/{tab}]` (orders, addresses, profile), `POST /account/profile`, `/account/password`, `/account/addresses[/{id}[/default|/delete]]`, `POST /saved/toggle`. `/checkout` + `/checkout/start` behind `RequireCustomer`; `/checkout/done` stays open so a submitted payment always reaches its order page |
+| Addresses | `CustomerService::saveOwnAddress / makeDefaultAddress / deleteOwnAddress` (same writer as admin; ownership checked; orders keep their frozen address JSON) |
+| Checkout | signed in: "Signed in as…" + sign-out, phone read-only (server forces the account phone), saved-address picker (`address_id` → `shipping_address_id`, no duplicate address; someone else's id is ignored). Typing in the fields switches to "A new address" |
+| Views | `store/signin.php` (four panels: in / up / forgot / reset, server-picked so no-JS works), `store/account.php`; layout emits `#store-account` JSON (saved slugs + toggle URL) when signed in |
+| JS | `store.js`: signed in → localStorage mirrors the account list and each heart posts `/saved/toggle`; a browser that was signed in and isn't any more clears its mirror; sign-in forms send the guest list as `saved`; auth tabs; account pincode autofill |
+| Tests | `tests/storefront_s5_test.php` (57 assertions); `storefront_s4_test.php` HTTP part now signs in first |
+
+**Security notes**
+
+- Login ID = mobile or email. 5 wrong passwords per login ID / 20 per IP in 15 min (rate_limiter);
+  same message for unknown account and wrong password; "switched off" is told only after the right
+  password. Registrations 10 / hour / IP; route throttles on top.
+- Session `customer = {id, ver}` regenerated on every sign-in; password change / reset bumps
+  `session_version` and deletes every remember token (all other browsers signed out).
+- Remember me = `ms_remember` cookie `selector:validator` (httponly, Lax), only `sha256(validator)`
+  stored, 30 days, rotated on every use, so a copied cookie stops working.
+- Reset code: 6 digits, `password_hash`, 15 min, 5 tries, one use; 3 per hour per email, 10 per IP;
+  same answer whether the email exists. Without `MAIL_*` the page says "message us on WhatsApp"
+  (staff reset by hand). Phone OTP waits for WhatsApp (W-phase); `phone_verified_at` stays NULL.
+- `next` accepts same-site paths only (no `//host`, scheme, backslash, control chars, `/signin`, `/admin`).
+
+**Verified:** SQLite full suite 1154 assertions; curl smoke on a scratch SQLite copy (guest checkout →
+sign-in, register, account tabs, address add, sign-out clears bag + mirror) and on MariaDB
+`maa_sarada_test` (migration 000017, two phone-only accounts with NULL email, sign-out → `/account`
+gated, sign-in with remember + `next`; rows removed afterwards). No browser run.
+
+**Left for S6:** admin "reset customer password" button on the customer page (for phone-only
+customers), cart-abandon cron, WhatsApp phone OTP when W3 lands.
 
 ## Default images
 

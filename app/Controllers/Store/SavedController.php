@@ -3,15 +3,19 @@
 namespace App\Controllers\Store;
 
 use App\Services\Store\Catalog;
+use App\Services\Store\Context;
+use App\Services\Store\Saved;
 use App\Services\Store\View;
 use Vayu\Database\DB;
 use Vayu\Http\Request;
 use Vayu\Http\Response;
 
 /**
- * Saved stones (docs/storefront.md §3.8). Until S5 the shortlist lives in the browser
- * (localStorage `ms.saved`, a list of product slugs); the page asks /saved/cards for their cards.
- * Signed-in saving (customer_saved_items) + merge arrive with accounts in S5.
+ * Saved stones (docs/storefront.md §3.8). Guests keep the shortlist in the browser
+ * (localStorage `ms.saved`, product slugs). Signed in (S5), the account's list
+ * (customer_saved_items via Store\Saved) is the truth: the layout hands it to store.js, which
+ * mirrors it locally and sends each heart tap to POST /saved/toggle. The guest list is merged
+ * into the account at sign-in. The page asks /saved/cards for the cards either way.
  */
 class SavedController
 {
@@ -50,5 +54,16 @@ class SavedController
         }
 
         return (new Response($html, 200, ['Content-Type' => 'text/html; charset=utf-8', 'Cache-Control' => 'no-store', 'X-Robots-Tag' => 'noindex']));
+    }
+
+    /** POST /saved/toggle {slug, on?} (signed in) → JSON {ok, saved, slugs}. */
+    public function toggle(Request $request): Response
+    {
+        $cid = (int) (Context::customer()['customer_id'] ?? 0);
+        $slug = (string) $request->input('slug', '');
+        $on = $request->input('on');
+        [$saved, $err] = $cid > 0 ? Saved::toggle($cid, $slug, $on === null || $on === '' ? null : (bool) (int) $on) : [false, 'Please sign in again.'];
+
+        return json(['ok' => $err === null, 'saved' => $saved, 'message' => $err, 'slugs' => $cid > 0 ? Saved::slugs($cid) : []], $err === null ? 200 : 422);
     }
 }

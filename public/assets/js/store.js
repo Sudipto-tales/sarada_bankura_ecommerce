@@ -32,16 +32,37 @@
     set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } }
   };
 
-  /* ---------- saved (guest shortlist; merged into the account at sign-in in S5) ---------- */
+  /* ---------- saved: guest list in localStorage; signed in = the account's list (S5) ----------
+     #store-account = {saved: [slugs], url} when signed in, else null. Signed in, the browser list
+     mirrors the account and every tap is sent to /saved/toggle. On a browser that was signed in and
+     now isn't (signed out), the mirrored list is cleared so the next person doesn't see it. */
+  var acct = null; try { acct = JSON.parse(($('#store-account') || {}).textContent || 'null'); } catch (e) { acct = null; }
+  if (acct && Array.isArray(acct.saved)) { store.set('ms.saved', acct.saved); store.set('ms.acct', 1); }
+  else if (store.get('ms.acct', 0)) { store.set('ms.saved', []); store.set('ms.acct', 0); }
   var saved = {
     all: function () { var a = store.get('ms.saved', []); return Array.isArray(a) ? a : []; },
     has: function (s) { return saved.all().indexOf(s) >= 0; },
     toggle: function (s) {
       var a = saved.all(), i = a.indexOf(s);
       if (i < 0) a.push(s); else a.splice(i, 1);
-      store.set('ms.saved', a); return i < 0;
+      store.set('ms.saved', a);
+      if (acct) syncSaved(s, i < 0);
+      return i < 0;
     }
   };
+  function syncSaved(slug, on) {
+    if (!window.fetch || !window.FormData) return;
+    var meta = $('meta[name=csrf-token]'), fd = new FormData();
+    fd.append('slug', slug); fd.append('on', on ? '1' : '0');
+    fetch(acct.url, { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': meta ? meta.content : '' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (Array.isArray(d.slugs) && (d.ok || d.slugs.length)) { store.set('ms.saved', d.slugs); paintSaved(); }
+        if (!d.ok && d.message) toast(d.message);
+        if (d.signin && d.url) location.href = d.url;
+      })
+      .catch(function () { /* offline: the local mirror keeps the tap until the next page load */ });
+  }
   function paintSaved() {
     var n = saved.all().length;
     $$('[data-count=saved]').forEach(function (b) { b.textContent = n; b.classList.toggle('hidden', n === 0); b.classList.toggle('grid', n > 0); });
@@ -57,7 +78,8 @@
     if (!btn) return;
     e.preventDefault();
     var on = saved.toggle(btn.getAttribute('data-save'));
-    paintSaved(); toast(on ? 'Saved to your shortlist' : 'Removed from your shortlist');
+    paintSaved();
+    toast(on ? (acct ? 'Saved to your account' : 'Saved on this device — sign in to keep it on any device') : 'Removed from your shortlist');
   });
 
   /* ---------- mobile drawer ---------- */
@@ -502,6 +524,172 @@
     render();
   }
 
+  /* ---------- checkout: plan, billing, GST rows by state, pincode autofill, pay window ---------- */
+  function checkoutPage() {
+    var form = $('#co'); if (!form) return;
+    var amounts = {}; try { amounts = JSON.parse(($('#co-amounts') || {}).textContent || '{}'); } catch (e) { /* ignore */ }
+    var home = (form.getAttribute('data-home-state') || '').toLowerCase();
+    function plan() {
+      var c = form.querySelector('[name=pay_choice]:checked'), k = c ? c.value : 'advance';
+      $$('[data-paynow]').forEach(function (el) { el.textContent = amounts[k] || el.textContent; });
+      $$('[data-plan-note]').forEach(function (el) { el.hidden = el.getAttribute('data-plan-note') !== k; });
+      var amt = document.querySelector('#payWindow [data-pw-amount]'); if (amt) amt.textContent = amounts[k] || amt.textContent;
+    }
+    function taxRows() {
+      var st = ($('#state').value || '').toLowerCase(), intra = !st || st === home;
+      $$('[data-tax]').forEach(function (el) { el.hidden = (el.getAttribute('data-tax') === 'cgst_sgst') !== intra; });
+    }
+    function clearErr(name) {
+      var f = form.querySelector('[name="' + name + '"]:not([type=hidden])'); if (f) f.removeAttribute('aria-invalid');
+      var m = form.querySelector('[data-err-for="' + name + '"]'); if (m) m.textContent = '';
+    }
+    form.addEventListener('change', function (e) {
+      if (e.target.name === 'pay_choice') plan();
+      if (e.target.id === 'state') taxRows();
+      if (e.target.id === 'sameBill') $('#billBox').hidden = e.target.checked;
+      if (e.target.getAttribute('aria-invalid') === 'true' || e.target.id === 'terms') clearErr(e.target.name);
+    });
+    form.addEventListener('input', function (e) { if (e.target.getAttribute('aria-invalid') === 'true') clearErr(e.target.name); });
+
+    function showErrors(errors, message) {
+      $$('[data-err-for]', form).forEach(function (m) { m.textContent = ''; });
+      $$('[aria-invalid]', form).forEach(function (f) { f.removeAttribute('aria-invalid'); });
+      var first = null, general = [];
+      Object.keys(errors || {}).forEach(function (k) {
+        var msg = errors[k][0], f = form.querySelector('[name="' + k + '"]:not([type=hidden])'), m = form.querySelector('[data-err-for="' + k + '"]');
+        if (f) f.setAttribute('aria-invalid', 'true');
+        if (m) m.textContent = msg; else general.push(msg);
+        if (!first && f) first = f;
+        if (k.indexOf('bill_') === 0) { $('#billBox').hidden = false; $('#sameBill').checked = false; }
+      });
+      var box = $('#coErr');
+      box.textContent = general.length ? general.join(' ') : (message && !first ? message : '');
+      box.hidden = !box.textContent;
+      if (first) { first.focus(); first.scrollIntoView({ block: 'center' }); } else if (!box.hidden) box.scrollIntoView({ block: 'center' });
+    }
+    document.addEventListener('paywindow:errors', function (e) { showErrors(e.detail.errors, e.detail.message); });
+
+    /* Quick checks before the window opens (the server checks everything again). */
+    function check() {
+      var e = {}, val = function (n) { var f = form.querySelector('[name="' + n + '"]:not([type=hidden])'); return f ? f.value.trim() : ''; };
+      if (!/^(\+?91|0)?[6-9]\d{9}$/.test(val('phone').replace(/[\s-]/g, ''))) e.phone = ['Enter your 10-digit mobile number.'];
+      if (val('name').length < 2) e.name = ['Enter your name.'];
+      if (!/^[1-9]\d{5}$/.test(val('pincode'))) e.pincode = ['Enter the 6-digit pincode.'];
+      if (!val('state')) e.state = ['Pick your state.'];
+      if (!val('city')) e.city = ['Enter your district or city.'];
+      if (val('line1').length < 3) e.line1 = ['Enter your house / building and street.'];
+      if (!$('#sameBill').checked) {
+        if (val('bill_line1').length < 3) e.bill_line1 = ['Enter the billing street address.'];
+        if (!/^[1-9]\d{5}$/.test(val('bill_pincode'))) e.bill_pincode = ['Enter the 6-digit pincode.'];
+        if (!val('bill_state')) e.bill_state = ['Pick your state.'];
+        if (!val('bill_city')) e.bill_city = ['Enter your district or city.'];
+      }
+      if (!$('#terms').checked) e.terms = ['Please accept the terms and returns policy to continue.'];
+      return e;
+    }
+    form.addEventListener('submit', function (ev) {
+      if (!window.PayWindow) return; // no pay window on the page → plain post (server explains)
+      ev.preventDefault();
+      var e = check();
+      if (Object.keys(e).length) { showErrors(e); return; }
+      showErrors({});
+      window.PayWindow.open();
+    });
+
+    /* Pincode → state + city + post offices, through our own cached lookup. */
+    var pin = $('#pin'), msg = $('#pinMsg'), spin = $('#pinSpin'), last = '';
+    var url = form.getAttribute('data-pincode-url');
+    function failed() { spin.hidden = true; msg.textContent = 'Couldn’t look this up — please pick your state and type your city.'; }
+    function lookup() {
+      var v = pin.value.replace(/\D/g, '').slice(0, 6);
+      if (pin.value !== v) pin.value = v;
+      if (v.length < 6 || v === last) return;
+      last = v; spin.hidden = false; msg.textContent = 'Looking up…';
+      fetch(url.replace('000000', v), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) { failed(); if (j.reason === 'invalid') msg.textContent = 'A pincode is 6 digits and doesn’t start with 0.'; return; }
+          spin.hidden = true;
+          var sel = $('#state'), want = String(j.state || '').toLowerCase();
+          Array.prototype.forEach.call(sel.options, function (o) { if (o.value && o.value.toLowerCase() === want) sel.value = o.value; });
+          if (j.district && !$('#city').value.trim()) $('#city').value = j.district;
+          var list = $('#areaList'); list.textContent = '';
+          (j.areas || []).forEach(function (a) { var o = document.createElement('option'); o.value = a; list.appendChild(o); });
+          msg.textContent = '✓ ' + [j.district, j.state].filter(Boolean).join(', ');
+          clearErr('state'); clearErr('city'); clearErr('pincode');
+          taxRows();
+        })
+        .catch(failed);
+    }
+    pin.addEventListener('input', lookup);
+    if (pin.value.length === 6) lookup();
+    plan(); taxRows();
+
+    /* Signed in (S5): pick a saved address → the fields fill in; typing in them → "a new address". */
+    var pick = $('#addrPick');
+    if (pick) {
+      var names = ['pincode', 'state', 'city', 'area', 'line1', 'line2', 'landmark'], filling = false;
+      pick.addEventListener('change', function (e) {
+        var r = e.target; if (!r || r.name !== 'address_id') return;
+        if (r.hasAttribute('data-addr-new')) { names.forEach(function (n) { var f = form.querySelector('[name="' + n + '"]'); if (f && f.tagName !== 'SELECT') f.value = ''; }); $('#state').value = ''; pin.focus(); taxRows(); return; }
+        var a = {}; try { a = JSON.parse(r.getAttribute('data-addr') || '{}'); } catch (x) { a = {}; }
+        filling = true;
+        names.forEach(function (n) { var f = form.querySelector('[name="' + n + '"]'); if (f) { f.value = a[n] || ''; clearErr(n); } });
+        var sel = $('#state'), want = String(a.state || '').toLowerCase();
+        Array.prototype.forEach.call(sel.options, function (o) { if (o.value.toLowerCase() === want) sel.value = o.value; });
+        last = pin.value; msg.textContent = ''; filling = false; taxRows();
+      });
+      form.addEventListener('input', function (e) {
+        if (filling || names.indexOf(e.target.name) < 0) return;
+        var n = pick.querySelector('[data-addr-new]'); if (n && !n.checked) n.checked = true;
+      });
+      form.addEventListener('change', function (e) { if (e.target.id === 'state' && !filling) { var n = pick.querySelector('[data-addr-new]'); if (n) n.checked = true; } });
+    }
+  }
+
+  /* ---------- account address form (S5): pincode → state + city + post offices ---------- */
+  function addressForm() {
+    var form = $('[data-address-form]'); if (!form || !window.fetch) return;
+    var pin = $('#pin', form), msg = $('#pinMsg', form), url = form.getAttribute('data-pincode-url'), last = '';
+    pin.addEventListener('input', function () {
+      var v = pin.value.replace(/\D/g, '').slice(0, 6); if (pin.value !== v) pin.value = v;
+      if (v.length < 6 || v === last) return;
+      last = v; msg.textContent = 'Looking up…';
+      fetch(url.replace('000000', v), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) { msg.textContent = j.reason === 'invalid' ? 'A pincode is 6 digits and doesn’t start with 0.' : 'Couldn’t look this up — pick the state and type the city.'; return; }
+          var sel = $('#state', form), want = String(j.state || '').toLowerCase();
+          Array.prototype.forEach.call(sel.options, function (o) { if (o.value && o.value.toLowerCase() === want) sel.value = o.value; });
+          var city = $('#city', form); if (j.district && !city.value.trim()) city.value = j.district;
+          var list = $('#areaList', form); list.textContent = '';
+          (j.areas || []).forEach(function (a) { var o = document.createElement('option'); o.value = a; list.appendChild(o); });
+          msg.textContent = '✓ ' + [j.district, j.state].filter(Boolean).join(', ');
+        })
+        .catch(function () { msg.textContent = 'Couldn’t look this up — pick the state and type the city.'; });
+    });
+  }
+
+  /* ---------- sign-in page (S5): tabs, and the guest saved list travels with every sign-in form ---------- */
+  function authForms() {
+    document.addEventListener('submit', function (e) {
+      var f = e.target; if (!f || !f.hasAttribute || !f.hasAttribute('data-auth')) return;
+      var i = f.querySelector('input[name=saved]'); if (i) i.value = JSON.stringify(saved.all());
+    });
+    var tabs = $$('[data-auth-tab]'); if (!tabs.length) return;
+    function show(k) {
+      if (!$('[data-auth-panel="' + k + '"]')) k = 'in';
+      $$('[data-auth-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-auth-panel') !== k; });
+      var tabKey = (k === 'up') ? 'up' : 'in';
+      $$('[role=tab][data-auth-tab]').forEach(function (t) { t.setAttribute('aria-selected', t.getAttribute('data-auth-tab') === tabKey ? 'true' : 'false'); });
+      var f = $('[data-auth-panel="' + k + '"] input:not([type=hidden])'); if (f && document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-auth-tab],[data-auth-go]')) f.focus();
+    }
+    tabs.forEach(function (t) { t.addEventListener('click', function (e) { e.preventDefault(); var k = t.getAttribute('data-auth-tab'); history.replaceState(null, '', '#' + k); show(k); }); });
+    $$('[data-auth-go]').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); var k = a.getAttribute('data-auth-go'); history.replaceState(null, '', '#' + k); show(k); }); });
+    var start = (location.hash || '').slice(1);
+    if (start) show(start);
+  }
+
   document.addEventListener('DOMContentLoaded', function () {
     icons();
     drawer();
@@ -514,7 +702,14 @@
     shop();
     var pd = null; try { pd = JSON.parse(($('#product-data') || {}).textContent || 'null'); } catch (e) { /* ignore */ }
     if (pd) product(pd);
-    cartForms(); cartPage(); savedPage();
+    cartForms(); cartPage(); savedPage(); checkoutPage(); authForms(); addressForm();
+    $$('[data-copy-link]').forEach(function (b) {
+      b.hidden = false;
+      b.addEventListener('click', function () {
+        var url = location.href.split('#')[0];
+        (navigator.clipboard ? navigator.clipboard.writeText(url) : Promise.reject()).then(function () { toast('Link copied'); }, function () { prompt('Copy this link:', url); });
+      });
+    });
     var cd = null; try { cd = JSON.parse(($('#calc-data') || {}).textContent || 'null'); } catch (e) { /* ignore */ }
     if (cd) calculator(cd);
     icons();

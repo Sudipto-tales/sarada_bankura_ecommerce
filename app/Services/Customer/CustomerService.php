@@ -209,6 +209,89 @@ final class CustomerService
         $q->delete();
     }
 
+    /**
+     * One address from the storefront account page (S5): add ($id null) or edit one of the
+     * customer's own. Throws ValidationException with keys line1 / pincode / … (form field names).
+     * $makeDefault, or the customer's first address → it becomes the only default.
+     *
+     * @param array<string,mixed> $in label, name, phone, address_line1, address_line2, area, post_office, city, district, state, pincode
+     */
+    public static function saveOwnAddress(int $cid, array $in, ?int $id = null, bool $makeDefault = false): int
+    {
+        if ($id !== null && !DB::table('customer_addresses')->where('id', $id)->where('customer_id', $cid)->exists()) {
+            throw new ValidationException(['address' => ['That address is no longer on your account.']]);
+        }
+        if ($id === null && (int) DB::table('customer_addresses')->where('customer_id', $cid)->count() >= self::MAX_ADDRESSES) {
+            throw new ValidationException(['address' => ['You can keep up to ' . self::MAX_ADDRESSES . ' addresses. Remove one first.']]);
+        }
+        [$rows, $err] = self::cleanAddresses(['a' => ['type' => 'both'] + $in], 'a');
+        $fields = [];
+        foreach ($err as $k => $m) {
+            $fields[str_replace('addresses.a.', '', $k)] = $m;
+        }
+        if ($rows === [] && $fields === []) {
+            $fields['address_line1'][] = 'Enter the house / street for this address.';
+        }
+        $a = $rows[0] ?? [];
+        if ($fields === [] && ($a['pincode'] ?? null) === null) {
+            $fields['pincode'][] = 'Enter the 6-digit pincode.';
+        }
+        if ($fields === [] && ($a['state'] ?? null) === null) {
+            $fields['state'][] = 'Pick the state.';
+        }
+        if ($fields) {
+            throw new ValidationException($fields);
+        }
+        unset($a['id'], $a['is_default']);
+        $now = date('Y-m-d H:i:s');
+
+        return DB::transaction(static function () use ($cid, $a, $id, $makeDefault, $now): int {
+            $first = !DB::table('customer_addresses')->where('customer_id', $cid)->where('is_default', 1)->exists();
+            if ($id !== null) {
+                DB::table('customer_addresses')->where('id', $id)->update($a + ['updated_at' => $now]);
+            } else {
+                $id = (int) DB::table('customer_addresses')->insertGetId($a + ['customer_id' => $cid, 'is_default' => 0, 'created_at' => $now, 'updated_at' => $now]);
+            }
+            if ($makeDefault || $first) {
+                self::makeDefaultAddress($cid, $id);
+            }
+
+            return $id;
+        });
+    }
+
+    /** The customer's own address becomes the default (others lose it). False when it isn't theirs. */
+    public static function makeDefaultAddress(int $cid, int $id): bool
+    {
+        if (!DB::table('customer_addresses')->where('id', $id)->where('customer_id', $cid)->exists()) {
+            return false;
+        }
+        DB::update('UPDATE customer_addresses SET is_default = CASE WHEN id = ? THEN 1 ELSE 0 END WHERE customer_id = ?', [$id, $cid]);
+
+        return true;
+    }
+
+    /**
+     * Remove one of the customer's own addresses. Orders keep their frozen copy (orders.*_address
+     * JSON), so history is unaffected. The next newest address becomes the default.
+     */
+    public static function deleteOwnAddress(int $cid, int $id): bool
+    {
+        $row = DB::selectOne('SELECT id, is_default FROM customer_addresses WHERE id = ? AND customer_id = ?', [$id, $cid]);
+        if ($row === null) {
+            return false;
+        }
+        DB::table('customer_addresses')->where('id', $id)->delete();
+        if ((int) $row['is_default'] === 1) {
+            $next = DB::table('customer_addresses')->where('customer_id', $cid)->orderBy('id', 'desc')->value('id');
+            if ($next !== null) {
+                self::makeDefaultAddress($cid, (int) $next);
+            }
+        }
+
+        return true;
+    }
+
     /** @param list<int> $tagIds */
     public static function syncTags(int $cid, array $tagIds): void
     {

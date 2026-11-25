@@ -14,6 +14,14 @@ if (!function_exists('store_url')) {
         return base_url($path === '/' ? '' : $path) ?: '/';
     }
 
+    /** /signin with a same-site "come back here" path (CustomerAuth::safeNext). */
+    function store_signin_url(?string $next = null, string $tab = ''): string
+    {
+        $n = \App\Services\Store\CustomerAuth::safeNext($next, '');
+
+        return store_url('/signin') . ($n !== '' ? '?next=' . rawurlencode($n) : '') . ($tab !== '' ? '#' . $tab : '');
+    }
+
     /** A file under public/assets/. */
     function store_asset(string $path): string
     {
