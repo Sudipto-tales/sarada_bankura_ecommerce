@@ -86,6 +86,24 @@ final class Checkout
      */
     public static function buildOrderInput(array $in, array $lines): array
     {
+        // ---- signed in (S5): the account's phone, and optionally one of its saved addresses ----
+        $customer = Context::customer();
+        $cid = (int) ($customer['customer_id'] ?? 0);
+        $savedAddress = null;
+        if ($cid > 0) {
+            $in['phone'] = (string) DB::table('customers')->where('id', $cid)->value('phone'); // the phone is the account; not editable here
+            $aid = (int) (is_scalar($in['address_id'] ?? null) ? $in['address_id'] : 0);
+            $savedAddress = $aid > 0 ? DB::selectOne('SELECT * FROM customer_addresses WHERE id = ? AND customer_id = ?', [$aid, $cid]) : null;
+            if ($savedAddress !== null) {
+                // Use the saved address as stored (the order links to it; no duplicate is created).
+                $in = array_merge($in, [
+                    'pincode' => (string) $savedAddress['pincode'], 'state' => (string) $savedAddress['state'],
+                    'city' => (string) ($savedAddress['city'] ?: $savedAddress['district']), 'area' => (string) ($savedAddress['area'] ?: $savedAddress['post_office']),
+                    'line1' => (string) $savedAddress['address_line1'], 'line2' => (string) $savedAddress['address_line2'], 'landmark' => '',
+                ]);
+            }
+        }
+
         $t = static fn(string $k, int $max): string => mb_substr(trim(preg_replace('/\s+/', ' ', is_scalar($in[$k] ?? null) ? (string) $in[$k] : '') ?? ''), 0, $max);
         $err = [];
 
@@ -138,7 +156,6 @@ final class Checkout
         }
 
         $rate = Cart::taxRate();
-        $customer = Context::customer();
         $input = [
             'delivery' => 'ship',
             'shipping_address_id' => 'new',
@@ -155,12 +172,16 @@ final class Checkout
             'buyer_note' => $note !== '' ? $note : null,
             'channel_detail' => 'website',
         ];
+        if ($savedAddress !== null) {
+            $input['shipping_address_id'] = (string) $savedAddress['id'];
+            unset($input['new_shipping']);
+        }
         if (!$billingSame) {
             $input['billing_address_id'] = 'new';
             $input['new_billing'] = $bill;
         }
-        if (!empty($customer['customer_id'])) {
-            $input['customer_id'] = (int) $customer['customer_id'];
+        if ($cid > 0) {
+            $input['customer_id'] = $cid;
         } else {
             $input['new_customer'] = ['name' => $name, 'phone' => $phone, 'email' => $email];
         }

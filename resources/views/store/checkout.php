@@ -6,7 +6,7 @@
  *
  * @var list<array> $lines @var array $totals @var list<array> $tax_rows @var list<string> $states
  * @var string $home_state @var int|float $advance_percent @var bool $tax_included @var bool $can_pay
- * @var array<string,string> $prefill
+ * @var array<string,string> $prefill @var array|null $account {customer, addresses} when signed in (S5)
  */
 use App\Services\Order\DocumentService as Docs;
 use App\Services\Store\Purchasable;
@@ -49,10 +49,20 @@ $stateSelect = static function (string $name, string $selected, string $id) use 
 
       <section class="bg-white rounded-[24px] border border-ink/5 p-6 sm:p-8">
         <h2 class="font-display text-[24px] flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-ink text-cream text-[14px] font-sans font-semibold grid place-items-center">1</span>Your details</h2>
+        <?php if ($account): ?>
+        <p class="mt-5 rounded-2xl bg-cream px-4 py-3 text-[13.5px] flex flex-wrap items-center gap-x-2 gap-y-1"><?= store_icon('badge-check', 'text-teal') ?> Signed in as <b><?= e((string) $account['customer']['name']) ?></b> · +91 <?= e(\App\Services\Customer\Phone::format((string) $account['customer']['phone'])) ?>
+          <button form="coSignout" class="ml-auto text-teal font-semibold">Not you? Sign out</button></p>
+        <?php endif; ?>
         <div class="mt-6 grid sm:grid-cols-2 gap-4">
+          <?php if ($account): ?>
+          <label class="block"><span class="lbl">Mobile number</span>
+            <span class="flex"><span class="h-11 px-3 grid place-items-center rounded-l-xl border border-r-0 border-ink/10 bg-cream text-[14px] text-ink-500">+91</span><input name="phone" id="phone" value="<?= e((string) $account['customer']['phone']) ?>" readonly class="field !rounded-l-none bg-cream-50 text-ink-500" aria-describedby="phoneNote"></span>
+            <span id="phoneNote" class="text-[12px] text-ink-400 mt-1 block">Your account’s number — we call it before delivery. To change it, contact us.</span></label>
+          <?php else: ?>
           <label class="block"><span class="lbl">Mobile number <span class="text-copper">*</span></span>
             <span class="flex"><span class="h-11 px-3 grid place-items-center rounded-l-xl border border-r-0 border-ink/10 bg-cream text-[14px] text-ink-500">+91</span><input name="phone" id="phone" value="<?= e($v('phone')) ?>" required inputmode="numeric" maxlength="14" placeholder="10-digit mobile" class="field !rounded-l-none" autocomplete="tel-national"<?= $inv('phone') ?>></span>
             <?= $err('phone') ?><span class="text-[12px] text-ink-400 mt-1 block">We use this to find your past orders and to call before delivery.</span></label>
+          <?php endif; ?>
           <label class="block"><span class="lbl">Full name <span class="text-copper">*</span></span><input name="name" id="name" value="<?= e($v('name')) ?>" required maxlength="120" class="field" autocomplete="name"<?= $inv('name') ?>><?= $err('name') ?></label>
           <label class="block sm:col-span-2"><span class="lbl">Email <span class="text-ink-400 font-normal">(optional — for your invoice)</span></span><input type="email" name="email" value="<?= e($v('email')) ?>" maxlength="160" class="field" autocomplete="email"<?= $inv('email') ?>><?= $err('email') ?></label>
         </div>
@@ -60,6 +70,22 @@ $stateSelect = static function (string $name, string $selected, string $id) use 
 
       <section class="bg-white rounded-[24px] border border-ink/5 p-6 sm:p-8">
         <h2 class="font-display text-[24px] flex items-center gap-3"><span class="w-8 h-8 rounded-full bg-ink text-cream text-[14px] font-sans font-semibold grid place-items-center">2</span>Delivery address</h2>
+        <?php if ($account && $account['addresses']):
+            $pick = (string) old('address_id', $prefill['address_id'] ?? ''); ?>
+        <fieldset class="mt-6"><legend class="lbl">Deliver to</legend>
+          <div class="grid sm:grid-cols-2 gap-3" id="addrPick">
+            <?php foreach ($account['addresses'] as $a): ?>
+            <label class="plan cursor-pointer rounded-2xl border border-ink/15 bg-cream-50 p-4 flex gap-3 transition">
+              <input type="radio" name="address_id" value="<?= (int) $a['id'] ?>"<?= $pick === (string) $a['id'] ? ' checked' : '' ?> class="mt-1 w-4 h-4 accent-[#15211F]"
+                data-addr="<?= e(store_json(['pincode' => $a['pincode'], 'state' => $a['state'], 'city' => $a['city'] ?: $a['district'], 'area' => $a['area'] ?: $a['post_office'], 'line1' => $a['address_line1'], 'line2' => $a['address_line2']])) ?>">
+              <span class="text-[13.5px] leading-snug"><b class="block text-[14px]"><?= e((string) ($a['label'] ?: ($a['name'] ?: 'Saved address'))) ?><?= (int) $a['is_default'] === 1 ? ' <span class="text-[11px] font-bold uppercase tracking-wide bg-teal-50 text-teal px-1.5 py-0.5 rounded-md align-middle">Default</span>' : '' ?></b>
+                <span class="text-ink-500"><?= e(\App\Services\Customer\CustomerService::shortAddress($a)) ?></span></span>
+            </label>
+            <?php endforeach; ?>
+            <label class="plan cursor-pointer rounded-2xl border border-dashed border-ink/20 p-4 flex gap-3 transition"><input type="radio" name="address_id" value=""<?= $pick === '' ? ' checked' : '' ?> class="mt-1 w-4 h-4 accent-[#15211F]" data-addr-new><span class="text-[14px] font-semibold">A new address<span class="block text-[12.5px] font-normal text-ink-500">Fill it in below — we’ll save it to your account.</span></span></label>
+          </div>
+        </fieldset>
+        <?php endif; ?>
         <div class="mt-6 grid sm:grid-cols-6 gap-4">
           <label class="block sm:col-span-2"><span class="lbl">Pincode <span class="text-copper">*</span></span>
             <span class="relative block"><input name="pincode" id="pin" value="<?= e($v('pincode')) ?>" required inputmode="numeric" maxlength="6" placeholder="6 digits" class="field pr-9" autocomplete="postal-code"<?= $inv('pincode') ?>><span id="pinSpin" hidden class="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 border-2 border-teal border-t-transparent rounded-full animate-spin"></span></span>
@@ -139,6 +165,7 @@ $stateSelect = static function (string $name, string $selected, string $id) use 
     </aside>
   </form>
 </div>
+<?php if ($account): ?><form id="coSignout" method="post" action="<?= e((string) route('store.signout')) ?>" hidden><?= csrf_field() ?></form><?php endif; ?>
 <?php if ($can_pay): ?>
 <?= store_partial('pay-window', [
     'start' => (string) route('store.checkout.start'), 'context' => 'checkout',

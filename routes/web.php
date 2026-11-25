@@ -52,13 +52,34 @@ $router->group(['middleware' => [\App\Middleware\StoreOpen::class, \App\Middlewa
     $router->get('/calculator', [\App\Controllers\Store\CartController::class, 'calculator'])->name('store.calculator');
     $router->get('/saved', [\App\Controllers\Store\SavedController::class, 'index'])->name('store.saved');
     $router->get('/saved/cards', [\App\Controllers\Store\SavedController::class, 'cards'])->name('store.saved.cards');
-    // S4 checkout → payment window → order; track / pay-a-balance lookup.
-    $router->get('/checkout', [\App\Controllers\Store\CheckoutController::class, 'show'])->name('store.checkout');
-    $router->post('/checkout/start', [\App\Controllers\Store\CheckoutController::class, 'start'])->name('store.checkout.start');
+    // S5: saving to the account needs sign-in; guests keep the browser list (merged at sign-in).
+    $router->post('/saved/toggle', [\App\Controllers\Store\SavedController::class, 'toggle'])->name('store.saved.toggle')->middleware(\App\Middleware\RequireCustomer::class);
+    // S4 checkout → payment window → order; track / pay-a-balance lookup. S5: checkout needs an account
+    // (sign in or create one on /signin?next=/checkout; the bag is kept). /checkout/done stays open so
+    // a submitted payment always lands on its order page even if the session ran out meanwhile.
+    $router->get('/checkout', [\App\Controllers\Store\CheckoutController::class, 'show'])->name('store.checkout')->middleware(\App\Middleware\RequireCustomer::class);
+    $router->post('/checkout/start', [\App\Controllers\Store\CheckoutController::class, 'start'])->name('store.checkout.start')->middleware(\App\Middleware\RequireCustomer::class);
     $router->post('/checkout/done', [\App\Controllers\Store\CheckoutController::class, 'done'])->name('store.checkout.done');
     $router->get('/checkout/pincode/{code}', [\App\Controllers\Store\CheckoutController::class, 'pincode'])->name('store.checkout.pincode')->middleware('throttle:30,1');
     $router->get('/track', [\App\Controllers\Store\TrackController::class, 'show'])->name('store.track');
     $router->post('/track', [\App\Controllers\Store\TrackController::class, 'find'])->name('store.track.find');
+    // S5 customer accounts (Store\CustomerAuth; staff never sign in here, they use /admin).
+    $acct = \App\Controllers\Store\AccountController::class;
+    $need = \App\Middleware\RequireCustomer::class;
+    $router->get('/signin', [$acct, 'signin'])->name('store.signin');
+    $router->post('/signin', [$acct, 'login'])->name('store.signin.post')->middleware('throttle:30,1');
+    $router->post('/register', [$acct, 'register'])->name('store.register')->middleware('throttle:10,1');
+    $router->post('/signin/forgot', [$acct, 'forgot'])->name('store.signin.forgot')->middleware('throttle:10,1');
+    $router->post('/signin/reset', [$acct, 'reset'])->name('store.signin.reset')->middleware('throttle:20,1');
+    $router->post('/signout', [$acct, 'logout'])->name('store.signout');
+    $router->get('/account', [$acct, 'show'])->name('store.account')->middleware($need);
+    $router->get('/account/{tab}', [$acct, 'show'])->name('store.account.tab')->middleware($need);
+    $router->post('/account/profile', [$acct, 'profile'])->name('store.account.profile')->middleware($need);
+    $router->post('/account/password', [$acct, 'password'])->name('store.account.password')->middleware([$need, 'throttle:10,1']);
+    $router->post('/account/addresses', [$acct, 'saveAddress'])->name('store.account.address.add')->middleware($need);
+    $router->post('/account/addresses/{id}', [$acct, 'saveAddress'])->name('store.account.address.update')->middleware($need);
+    $router->post('/account/addresses/{id}/default', [$acct, 'defaultAddress'])->name('store.account.address.default')->middleware($need);
+    $router->post('/account/addresses/{id}/delete', [$acct, 'deleteAddress'])->name('store.account.address.delete')->middleware($need);
 });
 
 $router->get('/hello/{name?}', [WelcomeController::class, 'hello'])->name('hello');
@@ -69,13 +90,13 @@ $router->post('/review/{slug}', [ReviewFormController::class, 'submit'])->name('
 
 // Public order pages (no login; unguessable tokens from QR codes / links sent to the customer).
 $router->get('/invoice/{token}', [PublicOrderController::class, 'invoice'])->name('invoice.public');
-$router->get('/order/{token}', [PublicOrderController::class, 'order'])->name('order.public');
+$router->get('/order/{token}', [PublicOrderController::class, 'order'])->name('order.public')->middleware(\App\Middleware\StoreCustomer::class);
 
 // Payment window (Stage 5): /pay/{order token} is the link sent by a payment request.
 $router->get('/pay/attempt/{token}', [PayController::class, 'status'])->name('pay.status');
 $router->post('/pay/attempt/{token}/submit', [PayController::class, 'submit'])->name('pay.submit');
 $router->post('/pay/attempt/{token}/close', [PayController::class, 'close'])->name('pay.close');
-$router->get('/pay/{token}', [PayController::class, 'show'])->name('pay.show');
+$router->get('/pay/{token}', [PayController::class, 'show'])->name('pay.show')->middleware(\App\Middleware\StoreCustomer::class);
 $router->post('/pay/{token}/start', [PayController::class, 'start'])->name('pay.start');
 
 // Admin access (docs/admin-access.md): login / forgot password stay public; every other /admin route

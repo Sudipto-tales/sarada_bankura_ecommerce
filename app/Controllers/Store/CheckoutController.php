@@ -48,6 +48,7 @@ class CheckoutController
             'tax_included' => (bool) business('tax.prices_include_tax', false),
             'can_pay' => Accounts::defaultUpi() !== null,
             'prefill' => self::prefill(),
+            'account' => self::account(),
         ], [
             'title' => 'Checkout',
             'layout' => 'minimal',
@@ -123,6 +124,20 @@ class CheckoutController
         return redirect((string) route('store.cart'));
     }
 
+    /** Signed-in customer (S5) → who they are + their saved addresses (default first) for the picker. */
+    private static function account(): ?array
+    {
+        $cid = (int) (Context::customer()['customer_id'] ?? 0);
+        if ($cid <= 0) {
+            return null;
+        }
+
+        return [
+            'customer' => DB::selectOne('SELECT name, phone, email FROM customers WHERE id = ?', [$cid]),
+            'addresses' => DB::select("SELECT * FROM customer_addresses WHERE customer_id = ? AND type IN ('shipping', 'both') ORDER BY is_default DESC, id DESC LIMIT 10", [$cid]),
+        ];
+    }
+
     /** Signed-in customer (S5) → their name / phone / email / default address. */
     private static function prefill(): array
     {
@@ -138,6 +153,7 @@ class CheckoutController
             'name' => $c['name'] ?? null, 'phone' => $c['phone'] ?? null, 'email' => $c['email'] ?? null,
             'pincode' => $a['pincode'] ?? null, 'state' => $a['state'] ?? null, 'city' => $a['city'] ?? ($a['district'] ?? null),
             'area' => $a['area'] ?? null, 'line1' => $a['address_line1'] ?? null, 'line2' => $a['address_line2'] ?? null,
+            'address_id' => isset($a['id']) ? (string) $a['id'] : null,
         ], fn ($v) => $v !== null && $v !== '');
     }
 }

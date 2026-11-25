@@ -32,16 +32,37 @@
     set: function (k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* ignore */ } }
   };
 
-  /* ---------- saved (guest shortlist; merged into the account at sign-in in S5) ---------- */
+  /* ---------- saved: guest list in localStorage; signed in = the account's list (S5) ----------
+     #store-account = {saved: [slugs], url} when signed in, else null. Signed in, the browser list
+     mirrors the account and every tap is sent to /saved/toggle. On a browser that was signed in and
+     now isn't (signed out), the mirrored list is cleared so the next person doesn't see it. */
+  var acct = null; try { acct = JSON.parse(($('#store-account') || {}).textContent || 'null'); } catch (e) { acct = null; }
+  if (acct && Array.isArray(acct.saved)) { store.set('ms.saved', acct.saved); store.set('ms.acct', 1); }
+  else if (store.get('ms.acct', 0)) { store.set('ms.saved', []); store.set('ms.acct', 0); }
   var saved = {
     all: function () { var a = store.get('ms.saved', []); return Array.isArray(a) ? a : []; },
     has: function (s) { return saved.all().indexOf(s) >= 0; },
     toggle: function (s) {
       var a = saved.all(), i = a.indexOf(s);
       if (i < 0) a.push(s); else a.splice(i, 1);
-      store.set('ms.saved', a); return i < 0;
+      store.set('ms.saved', a);
+      if (acct) syncSaved(s, i < 0);
+      return i < 0;
     }
   };
+  function syncSaved(slug, on) {
+    if (!window.fetch || !window.FormData) return;
+    var meta = $('meta[name=csrf-token]'), fd = new FormData();
+    fd.append('slug', slug); fd.append('on', on ? '1' : '0');
+    fetch(acct.url, { method: 'POST', body: fd, credentials: 'same-origin', headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': meta ? meta.content : '' } })
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (Array.isArray(d.slugs) && (d.ok || d.slugs.length)) { store.set('ms.saved', d.slugs); paintSaved(); }
+        if (!d.ok && d.message) toast(d.message);
+        if (d.signin && d.url) location.href = d.url;
+      })
+      .catch(function () { /* offline: the local mirror keeps the tap until the next page load */ });
+  }
   function paintSaved() {
     var n = saved.all().length;
     $$('[data-count=saved]').forEach(function (b) { b.textContent = n; b.classList.toggle('hidden', n === 0); b.classList.toggle('grid', n > 0); });
@@ -57,7 +78,8 @@
     if (!btn) return;
     e.preventDefault();
     var on = saved.toggle(btn.getAttribute('data-save'));
-    paintSaved(); toast(on ? 'Saved to your shortlist' : 'Removed from your shortlist');
+    paintSaved();
+    toast(on ? (acct ? 'Saved to your account' : 'Saved on this device — sign in to keep it on any device') : 'Removed from your shortlist');
   });
 
   /* ---------- mobile drawer ---------- */
@@ -602,6 +624,70 @@
     pin.addEventListener('input', lookup);
     if (pin.value.length === 6) lookup();
     plan(); taxRows();
+
+    /* Signed in (S5): pick a saved address → the fields fill in; typing in them → "a new address". */
+    var pick = $('#addrPick');
+    if (pick) {
+      var names = ['pincode', 'state', 'city', 'area', 'line1', 'line2', 'landmark'], filling = false;
+      pick.addEventListener('change', function (e) {
+        var r = e.target; if (!r || r.name !== 'address_id') return;
+        if (r.hasAttribute('data-addr-new')) { names.forEach(function (n) { var f = form.querySelector('[name="' + n + '"]'); if (f && f.tagName !== 'SELECT') f.value = ''; }); $('#state').value = ''; pin.focus(); taxRows(); return; }
+        var a = {}; try { a = JSON.parse(r.getAttribute('data-addr') || '{}'); } catch (x) { a = {}; }
+        filling = true;
+        names.forEach(function (n) { var f = form.querySelector('[name="' + n + '"]'); if (f) { f.value = a[n] || ''; clearErr(n); } });
+        var sel = $('#state'), want = String(a.state || '').toLowerCase();
+        Array.prototype.forEach.call(sel.options, function (o) { if (o.value.toLowerCase() === want) sel.value = o.value; });
+        last = pin.value; msg.textContent = ''; filling = false; taxRows();
+      });
+      form.addEventListener('input', function (e) {
+        if (filling || names.indexOf(e.target.name) < 0) return;
+        var n = pick.querySelector('[data-addr-new]'); if (n && !n.checked) n.checked = true;
+      });
+      form.addEventListener('change', function (e) { if (e.target.id === 'state' && !filling) { var n = pick.querySelector('[data-addr-new]'); if (n) n.checked = true; } });
+    }
+  }
+
+  /* ---------- account address form (S5): pincode → state + city + post offices ---------- */
+  function addressForm() {
+    var form = $('[data-address-form]'); if (!form || !window.fetch) return;
+    var pin = $('#pin', form), msg = $('#pinMsg', form), url = form.getAttribute('data-pincode-url'), last = '';
+    pin.addEventListener('input', function () {
+      var v = pin.value.replace(/\D/g, '').slice(0, 6); if (pin.value !== v) pin.value = v;
+      if (v.length < 6 || v === last) return;
+      last = v; msg.textContent = 'Looking up…';
+      fetch(url.replace('000000', v), { headers: { Accept: 'application/json' }, credentials: 'same-origin' })
+        .then(function (r) { return r.json(); })
+        .then(function (j) {
+          if (!j.ok) { msg.textContent = j.reason === 'invalid' ? 'A pincode is 6 digits and doesn’t start with 0.' : 'Couldn’t look this up — pick the state and type the city.'; return; }
+          var sel = $('#state', form), want = String(j.state || '').toLowerCase();
+          Array.prototype.forEach.call(sel.options, function (o) { if (o.value && o.value.toLowerCase() === want) sel.value = o.value; });
+          var city = $('#city', form); if (j.district && !city.value.trim()) city.value = j.district;
+          var list = $('#areaList', form); list.textContent = '';
+          (j.areas || []).forEach(function (a) { var o = document.createElement('option'); o.value = a; list.appendChild(o); });
+          msg.textContent = '✓ ' + [j.district, j.state].filter(Boolean).join(', ');
+        })
+        .catch(function () { msg.textContent = 'Couldn’t look this up — pick the state and type the city.'; });
+    });
+  }
+
+  /* ---------- sign-in page (S5): tabs, and the guest saved list travels with every sign-in form ---------- */
+  function authForms() {
+    document.addEventListener('submit', function (e) {
+      var f = e.target; if (!f || !f.hasAttribute || !f.hasAttribute('data-auth')) return;
+      var i = f.querySelector('input[name=saved]'); if (i) i.value = JSON.stringify(saved.all());
+    });
+    var tabs = $$('[data-auth-tab]'); if (!tabs.length) return;
+    function show(k) {
+      if (!$('[data-auth-panel="' + k + '"]')) k = 'in';
+      $$('[data-auth-panel]').forEach(function (p) { p.hidden = p.getAttribute('data-auth-panel') !== k; });
+      var tabKey = (k === 'up') ? 'up' : 'in';
+      $$('[role=tab][data-auth-tab]').forEach(function (t) { t.setAttribute('aria-selected', t.getAttribute('data-auth-tab') === tabKey ? 'true' : 'false'); });
+      var f = $('[data-auth-panel="' + k + '"] input:not([type=hidden])'); if (f && document.activeElement && document.activeElement.closest && document.activeElement.closest('[data-auth-tab],[data-auth-go]')) f.focus();
+    }
+    tabs.forEach(function (t) { t.addEventListener('click', function (e) { e.preventDefault(); var k = t.getAttribute('data-auth-tab'); history.replaceState(null, '', '#' + k); show(k); }); });
+    $$('[data-auth-go]').forEach(function (a) { a.addEventListener('click', function (e) { e.preventDefault(); var k = a.getAttribute('data-auth-go'); history.replaceState(null, '', '#' + k); show(k); }); });
+    var start = (location.hash || '').slice(1);
+    if (start) show(start);
   }
 
   document.addEventListener('DOMContentLoaded', function () {
@@ -616,7 +702,7 @@
     shop();
     var pd = null; try { pd = JSON.parse(($('#product-data') || {}).textContent || 'null'); } catch (e) { /* ignore */ }
     if (pd) product(pd);
-    cartForms(); cartPage(); savedPage(); checkoutPage();
+    cartForms(); cartPage(); savedPage(); checkoutPage(); authForms(); addressForm();
     $$('[data-copy-link]').forEach(function (b) {
       b.hidden = false;
       b.addEventListener('click', function () {

@@ -28,7 +28,7 @@ final class Cart
     public static function token(): ?string
     {
         if (self::$token !== null) {
-            return self::$token;
+            return self::$token === '' ? null : self::$token; // '' = let go of at sign-out
         }
         $t = (string) ($_COOKIE[Context::CART_COOKIE] ?? '');
 
@@ -177,6 +177,64 @@ final class Cart
     {
         DB::update("UPDATE carts SET status = 'converted', converted_order_id = ?, updated_at = ? WHERE id = ? AND status = 'active'", [$orderId, date('Y-m-d H:i:s'), $cartId]);
         Context::reset();
+    }
+
+    /**
+     * Sign-in (S5): the guest bag and the account's open bag become one. The bag in this browser
+     * (cookie) is kept and takes the account's lines (same product + variant → quantities added);
+     * the account's other open bags are closed. No guest bag → the account's bag comes to this browser.
+     * A cookie bag that already belongs to a different account is never taken over.
+     */
+    public static function adopt(int $userId, ?int $customerId): void
+    {
+        $guest = self::current();
+        if ($guest !== null && $guest['user_id'] !== null && (int) $guest['user_id'] !== $userId) {
+            $guest = null;
+            self::forgetCookie();
+        }
+        $now = date('Y-m-d H:i:s');
+        $others = DB::select("SELECT * FROM carts WHERE user_id = ? AND status = 'active'" . ($guest ? ' AND id <> ' . (int) $guest['id'] : '') . ' ORDER BY last_seen_at DESC, id DESC', [$userId]);
+        if ($guest === null) {
+            if ($others !== []) {
+                self::setToken((string) $others[0]['token']);
+                DB::update('UPDATE carts SET customer_id = ?, last_seen_at = ?, updated_at = ? WHERE id = ?', [$customerId, $now, $now, $others[0]['id']]);
+                $guest = $others[0];
+                $others = array_slice($others, 1);
+            } else {
+                return;
+            }
+        }
+        $gid = (int) $guest['id'];
+        DB::transaction(static function () use ($gid, $others, $userId, $customerId, $now): void {
+            DB::update('UPDATE carts SET user_id = ?, customer_id = ?, last_seen_at = ?, updated_at = ? WHERE id = ?', [$userId, $customerId, $now, $now, $gid]);
+            foreach ($others as $o) {
+                foreach (DB::select('SELECT * FROM cart_items WHERE cart_id = ? ORDER BY id', [$o['id']]) as $l) {
+                    $mine = DB::selectOne('SELECT id, quantity FROM cart_items WHERE cart_id = ? AND product_id = ? AND variant_id = ?', [$gid, $l['product_id'], $l['variant_id']]);
+                    if ($mine !== null) {
+                        DB::update('UPDATE cart_items SET quantity = ?, updated_at = ? WHERE id = ?', [min(9999999, round((float) $mine['quantity'] + (float) $l['quantity'], 3)), $now, $mine['id']]);
+                    } elseif ((int) DB::table('cart_items')->where('cart_id', $gid)->count() < self::MAX_LINES) {
+                        DB::table('cart_items')->insert([
+                            'cart_id' => $gid, 'product_id' => $l['product_id'], 'variant_id' => $l['variant_id'], 'quantity' => $l['quantity'],
+                            'price_at_add' => $l['price_at_add'], 'created_at' => $now, 'updated_at' => $now,
+                        ]);
+                    }
+                }
+                DB::update("UPDATE carts SET status = 'abandoned', updated_at = ? WHERE id = ?", [$now, $o['id']]);
+            }
+        });
+        Context::reset();
+    }
+
+    /** Sign-out: this browser lets go of the bag (it stays on the account for the next sign-in). */
+    public static function forgetCookie(): void
+    {
+        self::$token = '';
+        unset($_COOKIE[Context::CART_COOKIE]);
+        Context::reset();
+        if (self::$sendCookie && !headers_sent()) {
+            setcookie(Context::CART_COOKIE, '', ['expires' => time() - 3600, 'path' => '/', 'httponly' => true, 'samesite' => 'Lax',
+                'secure' => !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off']);
+        }
     }
 
     private static function ownLine(int $lineId): ?array

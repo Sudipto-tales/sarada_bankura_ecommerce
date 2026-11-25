@@ -136,6 +136,12 @@ return function (Assert $assert): void {
     // ---------------------------------------------------------------- HTTP: routes, pages, track
     $req = static fn(string $method, string $path, array $body = [], array $headers = []): Request => new Request($method, $path, [], $body, $headers, ['REMOTE_ADDR' => '10.0.3.1'], [], null);
     $assert->that('routes: checkout + track registered', route('store.checkout') !== null && route('store.checkout.start') !== null && route('store.checkout.done') !== null && route('store.track') !== null);
+    // S5: checkout needs an account — a guest is sent to sign in and comes back to /checkout.
+    $res = $router->dispatch($req('GET', '/checkout'));
+    $assert->that('GET /checkout as a guest → /signin?next=/checkout', $res->getStatus() === 302 && str_ends_with((string) ($res->getHeaders()['Location'] ?? ''), '/signin?next=%2Fcheckout'));
+    \App\Services\Store\CustomerAuth::$sendCookie = false;
+    \App\Services\Store\CustomerAuth::register(['name' => 'Ritika Sen', 'phone' => '9830012345', 'password' => 'stone-lover-1']);
+    \App\Services\Store\Context::setCustomer(\App\Services\Store\CustomerAuth::resolve());
     $res = $router->dispatch($req('GET', '/checkout'));
     $assert->that('GET /checkout with an empty bag → /cart', $res->getStatus() === 302 && str_ends_with((string) ($res->getHeaders()['Location'] ?? ''), '/cart'));
     Cart::reset();
@@ -147,7 +153,7 @@ return function (Assert $assert): void {
     $assert->that('GET /checkout shows IGST + CGST/SGST rows (GSTIN set)', str_contains($html, 'IGST @ 18%') && str_contains($html, 'CGST @ 9%'));
     $res = $router->dispatch($req('POST', '/checkout/start', ['name' => ''], ['Accept' => 'application/json']));
     $j = json_decode($res->getContent(), true);
-    $assert->that('POST /checkout/start (JSON) → 422 with field errors', $res->getStatus() === 422 && isset($j['errors']['phone'], $j['errors']['terms']));
+    $assert->that('POST /checkout/start (JSON) → 422 with field errors', $res->getStatus() === 422 && isset($j['errors']['name'], $j['errors']['terms']) && !isset($j['errors']['phone']));
     $res = $router->dispatch($req('POST', '/checkout/start', $form, ['Accept' => 'application/json']));
     $j = json_decode($res->getContent(), true);
     $assert->that('POST /checkout/start (JSON) → window payload', $res->getStatus() === 200 && $j['ok'] && isset($j['token'], $j['submit_url'], $j['upi']['uri']) && $j['amount'] === \App\Services\Order\PaymentService::advance(1062.0));
