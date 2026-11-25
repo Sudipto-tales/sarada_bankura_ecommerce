@@ -95,21 +95,38 @@ include __DIR__ . '/../partials/header.php';
     <?= csrf_field() ?>
     <div style="display:flex;gap:8px;flex-wrap:wrap">
       <a class="btn ghost" href="<?= route('admin.products.import') ?>"><i data-lucide="arrow-left" style="width:15px"></i>Start over</a>
+      <button type="button" class="btn" data-open-preview><i data-lucide="list" style="width:15px"></i>Review rows (<?= count($plan['rows']) ?>)</button>
       <?php if ($s['error'] || $s['skip']): ?><a class="btn" href="<?= route('admin.products.import.report', ['token' => $token]) ?>"><i data-lucide="download" style="width:15px"></i>Error report (CSV)</a><?php endif; ?>
     </div>
     <button class="btn gold" type="submit" <?= $ready ? '' : 'disabled' ?> id="commitBtn"><i data-lucide="check" style="width:16px"></i>Import <?= $ready ?> row<?= $ready === 1 ? '' : 's' ?><?= $s['error'] ? ' · skip ' . $s['error'] . ' with errors' : '' ?></button>
   </form>
 </div>
 
-<div class="card" style="padding:0">
-  <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;gap:10px;flex-wrap:wrap">
-    <b style="font-size:14px">Rows (<?= count($plan['rows']) ?>)</b>
-    <div class="rowfilter" id="rowFilter">
-      <button type="button" class="on" data-f="">All</button>
-      <?php foreach ($actLabel as $k => $l): if (!$s[$k]) continue; ?><button type="button" data-f="<?= $k ?>"><?= $l ?> (<?= $s[$k] ?>)</button><?php endforeach; ?>
+<div class="modal-backdrop" id="previewModal" role="dialog" aria-modal="true" aria-labelledby="previewTitle">
+  <div class="modal wide pvmodal">
+    <div class="modal-h">
+      <div>
+        <div class="eyebrow">Preview · nothing saved yet</div>
+        <h3 id="previewTitle">Check your <?= count($plan['rows']) ?> row<?= count($plan['rows']) === 1 ? '' : 's' ?></h3>
+        <p class="text-xs muted mt-1">
+          <span class="act create">New <?= $s['create'] ?></span> <span class="act update">Update <?= $s['update'] ?></span>
+          <?php if ($s['skip']): ?><span class="act skip">Skipped <?= $s['skip'] ?></span><?php endif; ?>
+          <span class="act error">Errors <?= $s['error'] ?></span>
+          <?= $s['error'] ? ' · rows with errors are skipped, the rest import.' : '' ?>
+        </p>
+      </div>
+      <button type="button" class="iconbtn" data-close title="Close"><i data-lucide="x"></i></button>
     </div>
-  </div>
-  <div class="tablewrap" style="border-radius:0 0 24px 24px;border-left:0;border-right:0;border-bottom:0">
+
+    <div class="pvbar">
+      <div class="rowfilter" id="rowFilter">
+        <button type="button" class="on" data-f="">All (<?= count($plan['rows']) ?>)</button>
+        <?php foreach ($actLabel as $k => $l): if (!$s[$k]) continue; ?><button type="button" data-f="<?= $k ?>"><?= $l ?> (<?= $s[$k] ?>)</button><?php endforeach; ?>
+      </div>
+      <input type="search" id="rowSearch" class="pvsearch" placeholder="Search SKU or name…" aria-label="Search rows">
+    </div>
+
+  <div class="tablewrap pvtable">
     <table class="data" id="planTable">
       <thead><tr><th>Line</th><th>SKU / product</th><th>Result</th><th>Details</th></tr></thead>
       <tbody>
@@ -153,10 +170,44 @@ include __DIR__ . '/../partials/header.php';
           </td>
         </tr>
       <?php endforeach; ?>
+        <tr class="pvempty hidden"><td colspan="4" class="muted" style="text-align:center;padding:22px">No rows match.</td></tr>
       </tbody>
     </table>
   </div>
+
+    <div class="pvpager" id="pvPager">
+      <span class="text-xs muted" id="pvInfo"></span>
+      <div class="pvpages" id="pvPages"></div>
+    </div>
+
+    <details class="pvformat">
+      <summary><i data-lucide="help-circle" style="width:15px"></i>Expected row format &amp; image names</summary>
+      <div style="margin-top:10px"><?php include __DIR__ . '/partials/import-example.php'; ?></div>
+    </details>
+
+    <div class="modal-f">
+      <?php if ($s['error'] || $s['skip']): ?><a class="btn" href="<?= route('admin.products.import.report', ['token' => $token]) ?>" style="margin-right:auto"><i data-lucide="download" style="width:15px"></i>Error report (CSV)</a><?php endif; ?>
+      <button type="button" class="btn" data-close>Close</button>
+      <button class="btn gold" type="submit" form="commitForm" <?= $ready ? '' : 'disabled' ?>><i data-lucide="check" style="width:16px"></i>Import <?= $ready ?> row<?= $ready === 1 ? '' : 's' ?></button>
+    </div>
+  </div>
 </div>
+<style>
+.pvmodal{width:min(1100px,100%);display:flex;flex-direction:column}
+.pvbar{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:14px 0 10px}
+.pvsearch{border:1px solid #eadcc5;border-radius:10px;padding:7px 11px;font:inherit;font-size:12.5px;background:#fff;min-width:200px}
+.pvtable{border-radius:14px;max-height:52vh;overflow:auto}
+.pvtable thead th{position:sticky;top:0;background:#f7f1e5;z-index:1}
+.pvpager{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
+.pvpages{display:flex;gap:4px;flex-wrap:wrap}
+.pvpages button{min-width:32px;height:32px;border:1px solid #eadcc5;background:#fffdf8;border-radius:9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer;color:inherit;padding:0 8px}
+.pvpages button.on{background:#2c281f;color:#fff;border-color:#2c281f}
+.pvpages button:disabled{opacity:.4;cursor:default}
+.pvpages .gap{padding:0 4px;align-self:center;color:#a3977f}
+.pvformat{margin-top:14px;font-size:12.5px}
+.pvformat>summary{cursor:pointer;font-weight:700;color:#7a6b52;display:flex;align-items:center;gap:6px}
+@media (max-width:640px){.pvsearch{min-width:0;width:100%}.pvtable{max-height:60vh}}
+</style>
 
 <?php else: /* ---------------------------------------------------------------- UPLOAD */ ?>
 <div class="card" style="margin-bottom:16px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;background:linear-gradient(135deg,#fff7dc,#fffdf8)">
@@ -205,6 +256,11 @@ include __DIR__ . '/../partials/header.php';
     <button class="btn gold" type="submit" id="previewBtn"><i data-lucide="scan-search" style="width:16px"></i>Check file &amp; preview</button>
   </div>
 </form>
+
+<div class="card" style="margin-top:16px">
+  <div class="sectionhead"><div class="sectionicon"><i data-lucide="file-check"></i></div><div><h2>Row format</h2><div class="text-xs muted">How one product row and its image names should look.</div></div></div>
+  <?php include __DIR__ . '/partials/import-example.php'; ?>
+</div>
 <?php endif; ?>
 
 <?php
@@ -232,10 +288,42 @@ $scripts = <<<JS
   });
   const cf=document.getElementById('commitForm');
   if(cf)cf.addEventListener('submit',()=>{const b=document.getElementById('commitBtn');setTimeout(()=>{b.disabled=true;b.lastChild.textContent=' Importing — downloading images may take a minute…';},0);});
-  const rf=document.getElementById('rowFilter');
-  if(rf)rf.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-    rf.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
-    document.querySelectorAll('#planTable tbody tr').forEach(tr=>tr.classList.toggle('hidden',!!b.dataset.f&&tr.dataset.act!==b.dataset.f));});
+  // Preview modal: filter + search + 20 rows per page.
+  const pm=document.getElementById('previewModal');
+  if(pm){
+    const PER=20,rows=[].slice.call(pm.querySelectorAll('#planTable tbody tr[data-act]')),empty=pm.querySelector('.pvempty');
+    const pages=document.getElementById('pvPages'),info=document.getElementById('pvInfo'),rf=document.getElementById('rowFilter'),rs=document.getElementById('rowSearch');
+    let filter='',q='',page=1;
+    rows.forEach(tr=>tr.dataset.q=tr.cells[1].textContent.toLowerCase());
+    function btn(label,p,on,dis){const b=document.createElement('button');b.type='button';b.textContent=label;if(on)b.className='on';b.disabled=!!dis;b.addEventListener('click',()=>{page=p;render();});return b;}
+    function render(){
+      const match=rows.filter(tr=>(!filter||tr.dataset.act===filter)&&(!q||tr.dataset.q.includes(q)));
+      const total=Math.max(1,Math.ceil(match.length/PER));page=Math.min(Math.max(1,page),total);
+      const from=(page-1)*PER,set=new Set(match.slice(from,from+PER));
+      rows.forEach(tr=>tr.classList.toggle('hidden',!set.has(tr)));
+      empty.classList.toggle('hidden',match.length>0);
+      info.textContent=match.length?('Showing '+(from+1)+'–'+Math.min(from+PER,match.length)+' of '+match.length+' row'+(match.length===1?'':'s')):'';
+      pages.innerHTML='';
+      if(total>1){
+        pages.appendChild(btn('‹',page-1,false,page===1));
+        let last=0;
+        for(let i=1;i<=total;i++){
+          if(i===1||i===total||Math.abs(i-page)<=1){if(last&&i-last>1){const g=document.createElement('span');g.className='gap';g.textContent='…';pages.appendChild(g);}pages.appendChild(btn(String(i),i,i===page));last=i;}
+        }
+        pages.appendChild(btn('›',page+1,false,page===total));
+      }
+      pm.querySelector('.pvtable').scrollTop=0;
+    }
+    rf.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;rf.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));filter=b.dataset.f;page=1;render();});
+    rs.addEventListener('input',()=>{q=rs.value.trim().toLowerCase();page=1;render();});
+    const open=()=>pm.classList.add('show'),close=()=>pm.classList.remove('show');
+    document.querySelectorAll('[data-open-preview]').forEach(b=>b.addEventListener('click',open));
+    pm.querySelectorAll('[data-close]').forEach(b=>b.addEventListener('click',close));
+    pm.addEventListener('click',e=>{if(e.target===pm)close();});
+    document.addEventListener('keydown',e=>{if(e.key==='Escape'&&pm.classList.contains('show'))close();});
+    pm.querySelector('[form=commitForm]')?.addEventListener('click',()=>setTimeout(close,0));
+    render();open();
+  }
 })();
 </script>
 JS;
