@@ -6,8 +6,7 @@ name: Android app
 #   - Manual run: same as a pull request, or a signed release when "release" is ticked.
 # Signing and Firebase config come only from repository secrets; the repo is public.
 on:
-  pull_request:
-    branches: [main]
+  pull_request:   # any base branch, so stacked app PRs are checked too
     paths: ['mobile/**', '.github/workflows/android.yml']
   push:
     tags: ['app-v*']
