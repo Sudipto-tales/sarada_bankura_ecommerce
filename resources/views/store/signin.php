@@ -1,7 +1,7 @@
 <?php
 /**
  * Sign in · create account · forgot / reset password (design: html/storefront/signin.html;
- * docs/storefront.md §11). One page, four panels; the server shows the right one ($tab) so it
+ * docs/storefront.md). One page, four panels; the server shows the right one ($tab) so it
  * works without JavaScript, store.js switches them in place. Every form carries `next` and the
  * guest saved list (`saved`, filled by store.js) so nothing is lost by signing in.
  *

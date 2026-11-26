@@ -169,7 +169,7 @@ $router->group(['prefix' => 'admin', 'middleware' => [\App\Middleware\AdminAuth:
     $router->post('/reviews/{id}/update', [ReviewController::class, 'update'])->name('admin.reviews.update');
     $router->post('/reviews/{id}/delete', [ReviewController::class, 'destroy'])->name('admin.reviews.delete');
 
-    // Storefront enquiries inbox (docs/storefront.md §4).
+    // Storefront enquiries inbox (docs/storefront.md).
     $router->get('/enquiries', [\App\Controllers\Admin\EnquiryController::class, 'index'])->name('admin.enquiries');
     $router->post('/enquiries/{id}/update', [\App\Controllers\Admin\EnquiryController::class, 'update'])->name('admin.enquiries.update');
 

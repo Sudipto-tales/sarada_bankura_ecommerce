@@ -6,7 +6,7 @@ use Vayu\Database\Schema\Blueprint;
 use Vayu\Database\Schema\Schema;
 
 /**
- * Stage 8 S5 storefront accounts (docs/storefront.md §11).
+ * Stage 8 S5 storefront accounts (docs/storefront.md).
  *
  *   users.email     NOT NULL → NULL. Customers register with a mobile number; email is optional.
  *                   The unique index stays (both MySQL and SQLite allow many NULLs in a unique index).

@@ -1,6 +1,6 @@
 <?php
 /**
- * Checkout (design: html/storefront/checkout.html; docs/storefront.md §3.6). The summary is the
+ * Checkout (design: html/storefront/checkout.html; docs/storefront.md). The summary is the
  * re-priced bag; "Place order" posts this form to /checkout/start through the payment window
  * (pay-window.js, checkout mode). The order is created only when the payment is submitted.
  *

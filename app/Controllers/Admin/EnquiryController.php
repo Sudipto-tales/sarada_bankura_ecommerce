@@ -10,7 +10,7 @@ use Vayu\Http\Request;
 use Vayu\Http\Response;
 
 /**
- * /admin/enquiries — storefront enquiries inbox (docs/storefront.md §4).
+ * /admin/enquiries — storefront enquiries inbox (docs/storefront.md).
  * Permissions (config/permissions.php): enquiries.view to see, enquiries.reply to change status /
  * notes, enquiries.assign to set the assignee. Writes go through App\Services\Store\Enquiries.
  */

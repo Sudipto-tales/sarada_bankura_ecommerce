@@ -8,7 +8,7 @@ use App\Services\Order\Money;
 use Vayu\Database\DB;
 
 /**
- * W3 hooks: automatic WhatsApp updates from the order and payment flows (docs/whatsapp.md §6).
+ * W3 hooks: automatic WhatsApp updates from the order and payment flows (docs/whatsapp.md).
  *
  * Rules:
  *  - Dormant → every hook is a no-op, so the flows behave exactly as before (wa.me links / email).

@@ -6,7 +6,7 @@ use App\Services\Order\PaymentService;
 use Vayu\Database\DB;
 
 /**
- * Read-only storefront queries (docs/storefront.md §2, §3.2). Never writes.
+ * Read-only storefront queries (docs/storefront.md). Never writes.
  *
  *   chrome()        header / mega menu / drawer / footer data, cached (config store.cache_ttl)
  *   cards($ids)     product cards in the given order: price, badges, images, rating, CTA state

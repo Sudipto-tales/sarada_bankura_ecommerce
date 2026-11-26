@@ -7,7 +7,7 @@ use Vayu\Database\DB;
 
 /**
  * The only class that talks to the Meta WhatsApp Cloud API and writes outgoing `whatsapp_messages`
- * (docs/whatsapp.md §3). Dormant-safe: until WHATSAPP_ENABLED=true and the five required .env values
+ * (docs/whatsapp.md). Dormant-safe: until WHATSAPP_ENABLED=true and the five required .env values
  * are set, send() never calls Meta and returns a wa.me fallback instead.
  *
  * Never logged anywhere: the access token and OTP codes (stored as ••••••).

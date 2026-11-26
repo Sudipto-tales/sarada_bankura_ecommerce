@@ -32,7 +32,7 @@ include __DIR__ . '/../partials/header.php';
 
 <?php if (!$isActive): ?>
 <div class="ord-warnbox wa-dormant"><i data-lucide="moon"></i><div><b>WhatsApp is dormant.</b> Everything keeps working as before: payment requests and the delivery OTP open <b>wa.me</b> in your own WhatsApp, and nothing is sent automatically.
-  It switches on when <code>WHATSAPP_ENABLED=true</code> and all five required values below are filled in <code>.env</code> on the server (see <code>docs/whatsapp.md</code> §9). Credentials are never entered here.</div></div>
+  It switches on when <code>WHATSAPP_ENABLED=true</code> and all five required values below are filled in <code>.env</code> on the server (see <code>docs/whatsapp.md</code>, "Owner activation checklist"). Credentials are never entered here.</div></div>
 <?php endif; ?>
 
 <div class="statstrip">

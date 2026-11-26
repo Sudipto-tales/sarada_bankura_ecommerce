@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Vayu\Database\Model;
 
-/** Writes go through App\Services\Payment (single writers, see docs/roadmap.md), not this model. */
+/** Writes go through App\Services\Payment (single writers, see docs/README.md), not this model. */
 class PaymentRefund extends Model
 {
     protected string $table = 'payment_refunds';

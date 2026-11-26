@@ -8,7 +8,7 @@ use Vayu\Database\Seeder;
  * so anything set in the admin later is never overwritten.
  *
  *   tags.icon                 Lucide icons + short copy for the "Shop by need" tiles (discovery tags)
- *   attribute_values.family   colour families for the shop's colour facet (owner default §6 Q2: yes)
+ *   attribute_values.family   colour families for the shop's colour facet
  *
  * Run: php vayu db:seed StorefrontSeeder
  */

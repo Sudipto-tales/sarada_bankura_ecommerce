@@ -6,7 +6,7 @@ use Vayu\Database\Schema\Blueprint;
 use Vayu\Database\Schema\Schema;
 
 /**
- * Stage 1: one central media system (docs/roadmap.md).
+ * Stage 1: one central media system (docs/README.md).
  *
  *   media        one row per physical file (its own MED-000123 number)
  *   media_links  who uses it: owner_type/owner_id + role (cover|gallery|video|logo|photo|proof|document)

@@ -60,7 +60,7 @@ final class Invites
         return base_url('admin/login?invite=' . rawurlencode($token));
     }
 
-    /** The message sent by email / WhatsApp (docs/admin-access.md §4.2). */
+    /** The message sent by email / WhatsApp (docs/admin-access.md). */
     public static function message(array $user, string $password, string $link, string $purpose): string
     {
         $roles = implode(', ', array_column(Roles::forUser((int) $user['id']), 'name')) ?: 'staff';

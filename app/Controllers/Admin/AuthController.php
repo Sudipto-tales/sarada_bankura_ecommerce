@@ -15,7 +15,7 @@ use Vayu\Http\Request;
 use Vayu\Http\Response;
 
 /**
- * Login / logout, first-password screen and "Forgot password?" (docs/admin-access.md §4.4–4.5).
+ * Login / logout, first-password screen and "Forgot password?" (docs/admin-access.md).
  * Errors are flashed by hand (never through ValidationException) so passwords are never kept as
  * "old input" in the session.
  */

@@ -8,7 +8,7 @@ use Vayu\Database\DB;
 use Vayu\Validation\ValidationException;
 
 /**
- * Staff accounts (docs/admin-access.md §4.1–4.3). Only writer of admin_users and admin_user_roles.
+ * Staff accounts (docs/admin-access.md). Only writer of admin_users and admin_user_roles.
  *
  * Rules kept here (not only in the screens):
  * - the actor needs staff.manage; only an Owner can give / take the Owner role or touch an Owner;
@@ -91,7 +91,7 @@ final class Staff
     }
 
     /**
-     * Admin reset (§4.3): needs the admin's own password; logs the person out everywhere.
+     * Admin reset: needs the admin's own password; logs the person out everywhere.
      * @return array{password:string,link:string}
      */
     public static function resetPassword(int $id, int $actorId, string $actorPassword): array

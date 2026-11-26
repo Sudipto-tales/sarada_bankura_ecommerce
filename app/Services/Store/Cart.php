@@ -6,7 +6,7 @@ use App\Services\Order\PaymentService;
 use Vayu\Database\DB;
 
 /**
- * The shopping bag (docs/storefront.md §3.5). Only writer of carts / cart_items.
+ * The shopping bag (docs/storefront.md). Only writer of carts / cart_items.
  *
  * A cart is a DB row found by a random token in the long-lived cookie `ms_cart` (30 days), created
  * lazily on the first add — never on a page visit. Lines store product + variant + quantity only;

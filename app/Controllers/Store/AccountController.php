@@ -15,7 +15,7 @@ use Vayu\Http\Response;
 use Vayu\Validation\ValidationException;
 
 /**
- * Customer accounts (docs/storefront.md §3.7, §11).
+ * Customer accounts (docs/storefront.md).
  *
  *   GET  /signin                 sign in · create account · forgot password (one page, tabs)
  *   POST /signin                 phone-or-email + password (+ remember) → next

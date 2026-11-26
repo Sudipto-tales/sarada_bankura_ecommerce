@@ -1,6 +1,6 @@
 <?php
 /**
- * Receiving accounts (docs/payments.md §5). Nothing sensitive is rendered here: the list arrives
+ * Receiving accounts (docs/payments.md). Nothing sensitive is rendered here: the list arrives
  * from POST /admin/payments/accounts/unlock after the OTP, and is held only for this page view.
  */
 $active = 'payments.accounts';

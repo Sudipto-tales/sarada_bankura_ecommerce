@@ -6,7 +6,7 @@ use App\Services\AdminAccess\Guard;
 use Vayu\Database\DB;
 
 /**
- * Per-request storefront state (docs/storefront.md §3.1): is the store open, is an admin
+ * Per-request storefront state (docs/storefront.md): is the store open, is an admin
  * previewing it, who is the signed-in customer, how many lines are in the bag.
  * Filled by the StoreOpen / StoreCustomer middleware; read by the layout and controllers.
  */

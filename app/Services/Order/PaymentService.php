@@ -7,7 +7,7 @@ use Vayu\Database\Schema\Schema;
 
 /**
  * The ONLY writer of the payment cache on `orders` (paid_amount, due_amount, payment_status,
- * pending_verification_amount, refund_due) — see the single-writer table in docs/roadmap.md.
+ * pending_verification_amount, refund_due) — see the single-writer table in docs/README.md.
  *
  * Recording, verification, refunds and voids live in App\Services\Payment\Ledger and the
  * payment window in App\Services\Payment\PayWindow; every one of them ends by calling syncOrder().

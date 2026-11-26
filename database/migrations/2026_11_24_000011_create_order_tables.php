@@ -5,7 +5,7 @@ use Vayu\Database\Schema\Blueprint;
 use Vayu\Database\Schema\Schema;
 
 /**
- * Stage 4: orders + documents (docs/orders.md, docs/roadmap.md).
+ * Stage 4: orders + documents (docs/orders.md).
  *
  *   orders                 one row per order; addresses + customer snapshotted; payment columns are a
  *                          cache written only by PaymentService::syncOrder (Stage 5 fills payments)

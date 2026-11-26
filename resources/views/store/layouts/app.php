@@ -1,6 +1,6 @@
 <?php
 /**
- * Storefront layout (docs/storefront.md §2). Vars: $content (rendered page), $page (meta), $chrome (Catalog::chrome() or null).
+ * Storefront layout (docs/storefront.md). Vars: $content (rendered page), $page (meta), $chrome (Catalog::chrome() or null).
  * @var string $content @var array $page @var array|null $chrome
  */
 use App\Services\Store\Context;

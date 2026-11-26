@@ -10,7 +10,7 @@ use Vayu\Database\DB;
 use Vayu\Validation\ValidationException;
 
 /**
- * Storefront customer accounts (docs/storefront.md §3.7, §11). The only writer of storefront
+ * Storefront customer accounts (docs/storefront.md). The only writer of storefront
  * `users` rows, customer_auth_codes and customer_remember_tokens. Staff log in separately
  * (admin_users, App\Services\AdminAccess\Guard); the two never share a session key or cookie.
  *

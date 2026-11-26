@@ -1,6 +1,6 @@
 <?php
 /**
- * "Sensitive changes: ask twice" (docs/roadmap.md). Include once per page, then call
+ * "Sensitive changes: ask twice" (docs/README.md). Include once per page, then call
  *   msSensitive({ title, changes: [{label, from, to}], typeName, danger, submit(otp, typedName) → Promise<{ok, message}> })
  * Step 1 reviews exactly what changes (values already masked by the caller), step 2 asks for the OTP
  * again. A wrong OTP (or any refusal) leaves the dialog open with the server's message; nothing is

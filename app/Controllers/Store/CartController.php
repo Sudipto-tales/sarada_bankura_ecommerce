@@ -11,7 +11,7 @@ use Vayu\Http\Request;
 use Vayu\Http\Response;
 
 /**
- * Bag + area calculator (docs/storefront.md §3.5, §3.9). Every write is a plain form post that
+ * Bag + area calculator (docs/storefront.md). Every write is a plain form post that
  * redirects back with a toast; store.js sends the same forms with fetch (Accept: application/json)
  * and gets JSON instead. Prices are never read from the request.
  */

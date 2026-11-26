@@ -1,6 +1,6 @@
 <?php
 /**
- * Area & cost calculator (design: html/storefront/calculator.html; docs/storefront.md §3.9).
+ * Area & cost calculator (design: html/storefront/calculator.html; docs/storefront.md).
  * The page lists buyable stones (Calculator::stones()); store.js does the room maths and fills the
  * hidden product_id / variant_id / qty of the "Add to bag" form, which /cart/add validates again.
  *

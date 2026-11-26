@@ -9,7 +9,7 @@ use App\Services\Order\DocumentNumber;
 use Vayu\Database\DB;
 
 /**
- * Storefront enquiries (docs/storefront.md §3.8). The only writer of the `enquiries` table.
+ * Storefront enquiries (docs/storefront.md). The only writer of the `enquiries` table.
  *
  *   Enquiries::submit($input, 'product', $ip, $ua)   public forms: contact / product / home / calculator
  *   Enquiries::update($id, [...], $by)               admin inbox: status, assignee, internal note

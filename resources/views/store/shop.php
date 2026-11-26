@@ -1,6 +1,6 @@
 <?php
 /**
- * Shop listing (design: html/storefront/shop.html; docs/storefront.md §3.3). Works without JS:
+ * Shop listing (design: html/storefront/shop.html; docs/storefront.md). Works without JS:
  * the filter panel is a GET form (Apply button), chips / categories / pages are links. store.js
  * only auto-submits on change, opens the mobile drawer and toggles the grid density.
  *

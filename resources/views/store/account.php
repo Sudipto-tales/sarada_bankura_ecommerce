@@ -1,6 +1,6 @@
 <?php
 /**
- * Customer account (design: html/storefront/account.html; docs/storefront.md §11).
+ * Customer account (design: html/storefront/account.html; docs/storefront.md).
  * Tabs are real pages (/account, /account/addresses, /account/profile); Saved is /saved.
  *
  * @var string $tab @var array $user @var array $tabs @var array|null $customer

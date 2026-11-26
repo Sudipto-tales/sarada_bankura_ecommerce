@@ -9,7 +9,7 @@ use Vayu\Http\Request;
 use Vayu\Http\Response;
 
 /**
- * Track an order / pay a balance (docs/storefront.md §3.8): order number + the mobile it was
+ * Track an order / pay a balance (docs/storefront.md): order number + the mobile it was
  * placed with → /order/{token} (or /pay/{token}). The same message for every miss (no way to
  * probe which order numbers exist), 10 lookups per hour per IP.
  */

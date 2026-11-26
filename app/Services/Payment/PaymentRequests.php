@@ -10,7 +10,7 @@ use App\Services\WhatsApp\WhatsAppService;
 use Vayu\Database\DB;
 
 /**
- * Admin → customer payment requests (docs/payments.md §6). The link is the order's /pay/{token},
+ * Admin → customer payment requests (docs/payments.md). The link is the order's /pay/{token},
  * which recomputes the due amount when opened, so an old link never over-asks.
  *
  *   email     real send through Mail (SMTP, MAIL_* in .env) → logged sent / failed

@@ -15,7 +15,7 @@ use Vayu\Http\UploadedFile;
 use Vayu\Validation\ValidationException;
 
 /**
- * The customer payment window (docs/payments.md §1): one attempt per opening, 6 minutes, the
+ * The customer payment window (docs/payments.md): one attempt per opening, 6 minutes, the
  * amount fixed by the server. The only writer of payment_attempts up to "submitted" (Ledger does
  * verify / reject).
  *

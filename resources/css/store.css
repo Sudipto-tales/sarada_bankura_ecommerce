@@ -1,4 +1,4 @@
-/* Storefront stylesheet source (docs/storefront.md §2). Build: bin/build-css.sh
+/* Storefront stylesheet source (docs/storefront.md). Build: bin/build-css.sh
    Never edit public/assets/css/store.css by hand. Fonts are vendored (no CDN). */
 
 @font-face { font-family: 'Fraunces'; font-style: normal; font-weight: 300 500; font-display: swap;

@@ -5,7 +5,7 @@ namespace App\Services\Store;
 use Vayu\Database\DB;
 
 /**
- * Data for the area & cost calculator (docs/storefront.md §3.9): every buyable stone with its
+ * Data for the area & cost calculator (docs/storefront.md): every buyable stone with its
  * buyable options (price, unit, pack size, minimum, step). The maths (rooms → sq ft → boxes,
  * wastage) runs in the browser; "Add to bag" posts to /cart/add, which checks everything again.
  * Same rules as Purchasable, done in two batched queries instead of one per product.

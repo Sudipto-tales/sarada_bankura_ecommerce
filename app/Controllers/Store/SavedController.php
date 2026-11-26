@@ -11,7 +11,7 @@ use Vayu\Http\Request;
 use Vayu\Http\Response;
 
 /**
- * Saved stones (docs/storefront.md §3.8). Guests keep the shortlist in the browser
+ * Saved stones (docs/storefront.md). Guests keep the shortlist in the browser
  * (localStorage `ms.saved`, product slugs). Signed in (S5), the account's list
  * (customer_saved_items via Store\Saved) is the truth: the layout hands it to store.js, which
  * mirrors it locally and sends each heart tap to POST /saved/toggle. The guest list is merged
