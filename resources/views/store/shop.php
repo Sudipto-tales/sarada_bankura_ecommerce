@@ -150,8 +150,9 @@ $sumCls = 'flex items-center justify-between gap-2 font-semibold cursor-pointer 
         <p class="text-[14px] text-ink-500"><b class="text-ink"><?= (int) $n ?></b> stone<?= $n === 1 ? '' : 's' ?></p>
       </div>
       <div class="flex items-center gap-2">
-        <label for="sort" class="text-[13px] text-ink-500 hidden sm:block">Sort</label>
-        <select id="sort" name="sort" form="facets" data-autosubmit class="h-10 pl-3 pr-8 rounded-full bg-white border border-ink/15 text-[13.5px] font-semibold outline-none focus:border-teal">
+        <span data-js-only hidden class="lg:hidden"><button type="button" data-sheet-open="sortSheet" aria-haspopup="dialog" class="h-10 px-4 rounded-full border border-ink/15 bg-white text-[13.5px] font-semibold flex items-center gap-2"><?= store_icon('arrow-up-down') ?> <?= e(Listing::SORTS[$state['sort']] ?? 'Sort') ?></button></span>
+        <label for="sort" class="text-[13px] text-ink-500 hidden sm:block" data-sort-native>Sort</label>
+        <select id="sort" name="sort" form="facets" data-autosubmit data-sort-native class="h-10 pl-3 pr-8 rounded-full bg-white border border-ink/15 text-[13.5px] font-semibold outline-none focus:border-teal">
           <?php foreach (Listing::SORTS as $k => $l): ?><option value="<?= e($k) ?>"<?= $state['sort'] === $k ? ' selected' : '' ?>><?= e($l) ?></option><?php endforeach; ?>
         </select>
         <noscript><button form="facets" class="h-10 px-4 rounded-full bg-ink text-cream text-[13px] font-semibold">Sort</button></noscript>
@@ -234,3 +235,9 @@ $sumCls = 'flex items-center justify-between gap-2 font-semibold cursor-pointer 
     <?php endif; ?>
   </div>
 </section>
+<?php
+ob_start(); ?>
+<div role="radiogroup" aria-label="Sort by">
+  <?php foreach (Listing::SORTS as $k => $l): ?><button type="button" role="radio" class="sheet-opt" data-sort-pick="<?= e($k) ?>" aria-checked="<?= $state['sort'] === $k ? 'true' : 'false' ?>"><?= e($l) ?><?= store_icon('check') ?></button><?php endforeach; ?>
+</div>
+<?= store_partial('sheet', ['id' => 'sortSheet', 'title' => 'Sort by', 'body' => (string) ob_get_clean()]) ?>

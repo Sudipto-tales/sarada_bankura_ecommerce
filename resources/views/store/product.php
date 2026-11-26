@@ -37,6 +37,7 @@ $selOver = $v ? ($overrides[$v['id']] ?? []) : [];
 $out = $p['stock'] === 'out';
 $roomOptions = array_map(fn ($r) => [$r['id'], $r['parent'] . ' · ' . $r['name']], $rooms);
 $cart = store_cart_ready();
+$picker = $groups !== [] && count($activeVariants) > 1;   // mobile buy bar opens the options in a bottom sheet
 $variantTitle = static fn(?array $x): string => $x ? $x['title'] : '';
 $waPhotos = store_wa_link('Hi, please send photos of ' . $p['name'] . ($v ? ' (' . $v['title'] . ')' : ''));
 $enq = static fn(string $kind, string $submit, bool $dark = false) => store_partial('enquiry-form', [
@@ -357,7 +358,9 @@ $crumbs = array_values(array_filter([
 <!-- mobile buy bar -->
 <div class="buybar lg:hidden fixed bottom-0 inset-x-0 z-20 px-4 pt-2.5 flex items-center gap-3">
   <?php if ($p['buyable']): ?>
-    <div class="leading-tight flex-1 min-w-0"><b class="text-[17px]" data-line><?= e(store_inr($line)) ?></b><p class="text-[11.5px] text-ink-500 truncate"><span data-qty-label><?= e($num($qty)) ?></span> <span data-unit><?= e($unit) ?></span><?= $v ? ' · <span data-variant-title>' . e($v['title']) . '</span>' : '' ?></p></div>
+    <div class="leading-tight flex-1 min-w-0"><b class="text-[17px]" data-line><?= e(store_inr($line)) ?></b>
+      <?php if ($picker): ?><a href="#options" data-sheet-open="optSheet" aria-haspopup="dialog" class="flex items-center gap-1 text-[11.5px] font-semibold text-teal min-w-0"><span class="truncate"><span data-qty-label><?= e($num($qty)) ?></span> <span data-unit><?= e($unit) ?></span><?= $v ? ' · <span data-variant-title>' . e($v['title']) . '</span>' : '' ?></span><?= store_icon('chevron-up', '!w-3.5 !h-3.5 shrink-0') ?><span class="sr-only">Change options</span></a>
+      <?php else: ?><p class="text-[11.5px] text-ink-500 truncate"><span data-qty-label><?= e($num($qty)) ?></span> <span data-unit><?= e($unit) ?></span><?= $v ? ' · <span data-variant-title>' . e($v['title']) . '</span>' : '' ?></p><?php endif; ?></div>
     <?php if ($cart): ?><button form="buyForm" class="btn btn-dark !h-11"><?= store_icon('shopping-bag') ?> Add</button>
     <?php else: ?><a href="#enquire" class="btn btn-dark !h-11"><?= store_icon('send') ?> Request</a><?php endif; ?>
   <?php else: ?>
@@ -365,6 +368,13 @@ $crumbs = array_values(array_filter([
   <?php endif; ?>
 </div>
 
+<?php if ($picker):
+    $optFoot = '<div class="flex items-center gap-3"><div class="leading-tight flex-1 min-w-0"><b class="text-[17px]" data-line>' . e(store_inr($line)) . '</b>'
+        . '<p class="text-[11.5px] text-ink-500 truncate"><span data-qty-label>' . e($num($qty)) . '</span> <span data-unit>' . e($unit) . '</span></p></div>'
+        . ($cart ? '<button form="buyForm" class="btn btn-dark !h-11">' . store_icon('shopping-bag') . ' Add to bag</button>'
+                 : '<button type="button" data-sheet-close class="btn btn-dark !h-11">Done</button>') . '</div>';
+    echo store_partial('sheet', ['id' => 'optSheet', 'title' => 'Choose options', 'body' => '<div data-sheet-slot></div>', 'foot' => $optFoot]);
+endif; ?>
 <script type="application/json" id="product-data"><?= store_json([
     'url' => $url,
     'selected' => $v['id'] ?? 0,
