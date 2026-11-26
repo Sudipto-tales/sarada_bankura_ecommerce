@@ -19,7 +19,9 @@ $customer = Context::customer();
 $tel = store_tel();
 $on = fn (string $k) => $active === $k ? ' bg-ink/5' : '';
 $q = (string) (request()->query('q') ?? '');
+$inApp = \App\Services\Store\AppMode::active();
 ?>
+<?php if (!$inApp): ?>
 <div class="bg-ink text-cream/80 text-[12.5px]"><div class="wrap h-9 flex items-center justify-between gap-4">
   <div class="flex items-center gap-5 overflow-x-auto no-scrollbar whitespace-nowrap">
     <span class="flex items-center gap-1.5"><?= store_icon('truck') ?> Delivery included in every price</span>
@@ -32,6 +34,7 @@ $q = (string) (request()->query('q') ?? '');
     <?php if ($tel !== ''): ?><a href="<?= e($tel) ?>" class="flex items-center gap-1.5 hover:text-cream"><?= store_icon('phone') ?> Showroom</a><?php endif; ?>
   </div>
 </div></div>
+<?php endif; ?>
 
 <header class="sticky top-0 z-30 bg-cream/90 backdrop-blur border-b border-ink/10">
   <div class="wrap h-[72px] flex items-center gap-4 lg:gap-8">
@@ -100,8 +103,8 @@ $q = (string) (request()->query('q') ?? '');
 
     <div class="flex items-center gap-1 ml-auto md:ml-0">
       <a href="<?= e(store_url('/shop')) ?>" class="md:hidden p-2.5 rounded-full hover:bg-ink/5" aria-label="Search"><?= store_icon('search') ?></a>
-      <a href="<?= e(store_url('/saved')) ?>" class="relative p-2.5 rounded-full hover:bg-ink/5" aria-label="Saved"><?= store_icon('heart') ?><b data-count="saved" class="hidden absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-teal text-white text-[10px] place-items-center">0</b></a>
-      <a href="<?= e(store_url('/cart')) ?>" class="relative p-2.5 rounded-full hover:bg-ink/5" aria-label="Bag<?= $cartCount ? ', ' . $cartCount . ' items' : '' ?>"><?= store_icon('shopping-bag') ?><b data-count="bag" class="<?= $cartCount ? 'grid' : 'hidden' ?> absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-copper text-white text-[10px] place-items-center"><?= (int) $cartCount ?></b></a>
+      <a href="<?= e(store_url('/saved')) ?>" class="app-hide relative p-2.5 rounded-full hover:bg-ink/5" aria-label="Saved"><?= store_icon('heart') ?><b data-count="saved" class="hidden absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-teal text-white text-[10px] place-items-center">0</b></a>
+      <a href="<?= e(store_url('/cart')) ?>" class="app-hide relative p-2.5 rounded-full hover:bg-ink/5" aria-label="Bag<?= $cartCount ? ', ' . $cartCount . ' items' : '' ?>"><?= store_icon('shopping-bag') ?><b data-count="bag" class="<?= $cartCount ? 'grid' : 'hidden' ?> absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-copper text-white text-[10px] place-items-center"><?= (int) $cartCount ?></b></a>
       <a href="<?= e(store_url($customer ? '/account' : '/signin')) ?>" class="hidden lg:flex items-center gap-2 ml-1 pl-3 pr-4 h-10 rounded-full border border-ink/15 hover:border-ink/40 text-[13.5px] font-medium<?= $active === 'account' ? ' border-ink/40' : '' ?>"><?= store_icon('user-round') ?> <?= $customer ? 'Account' : 'Sign in' ?></a>
     </div>
   </div>

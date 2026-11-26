@@ -31,6 +31,10 @@ use App\Controllers\PublicOrderController;
 use App\Controllers\ReviewFormController;
 use App\Controllers\WelcomeController;
 
+// App shell (docs/mobile-app.md): outside StoreOpen so the worker and offline page always load.
+$router->get('/service-worker', [\App\Controllers\Store\AppShellController::class, 'worker'])->name('store.sw');
+$router->get('/offline', [\App\Controllers\Store\AppShellController::class, 'offline'])->name('store.offline');
+
 // Storefront (Stage 8, docs/storefront.md). StoreOpen = launch switch (STOREFRONT_ENABLED; admins preview),
 // StoreCustomer = signed-in customer from the session. Fully-qualified names keep this block self-contained.
 $router->group(['middleware' => [\App\Middleware\StoreOpen::class, \App\Middleware\StoreCustomer::class]], function ($router): void {

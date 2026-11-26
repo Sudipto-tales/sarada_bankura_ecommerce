@@ -3,6 +3,7 @@
  * Storefront layout (docs/storefront.md). Vars: $content (rendered page), $page (meta), $chrome (Catalog::chrome() or null).
  * @var string $content @var array $page @var array|null $chrome
  */
+use App\Services\Store\AppMode;
 use App\Services\Store\Context;
 
 $siteName = (string) business('name', 'Maa Sarada Marble & Stone');
@@ -10,6 +11,8 @@ $title = $page['title'] ? $page['title'] . ' Â· ' . $siteName : $siteName . ' â€
 $description = $page['description'] ?: 'Italian and Indian marble, granite and onyx for floors, walls and countertops. Showroom in '
     . business('address.city', 'Bankura') . ', ' . business('address.state', 'West Bengal') . '. Delivery included, UPI payments.';
 $minimal = $page['layout'] === 'minimal';
+$inApp = AppMode::active();
+$tabbar = !$minimal && ($page['tabbar'] ?? true);
 $flash = [];
 foreach (['success', 'error', 'warning', 'info'] as $k) {
     if (session()->has($k)) {
@@ -17,10 +20,11 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
     }
 }
 ?><!doctype html>
-<html lang="en-IN">
+<html lang="en-IN"<?= $inApp ? ' class="is-app"' : '' ?> data-sw="<?= e(store_url('/service-worker')) ?>">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover<?= $inApp ? ', maximum-scale=1, user-scalable=no' : '' ?>">
+<?php if ($inApp): ?><meta name="format-detection" content="telephone=no"><?php endif; ?>
 <title><?= e($title) ?></title>
 <meta name="description" content="<?= e($description) ?>">
 <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
@@ -34,9 +38,17 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <link rel="preload" href="<?= e(base_url('assets/vendor/fonts/manrope-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="<?= e(base_url('assets/vendor/fonts/fraunces-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="<?= e(store_asset('css/store.css')) ?>">
+<script type="speculationrules"><?= store_json(['prefetch' => [[
+    'where' => ['and' => [
+        ['href_matches' => '/*'],
+        ['not' => ['href_matches' => ['/checkout*', '/pay/*', '/order/*', '/cart*', '/account*', '/signin*', '/signout', '/admin*', '/app/download*']]],
+        ['not' => ['selector_matches' => '[rel~=nofollow], [data-no-prefetch], [target], [download]']],
+    ]],
+    'eagerness' => 'moderate',
+]]]) ?></script>
 <?= $page['head'] ?>
 </head>
-<body class="font-sans text-[15px]<?= $minimal ? '' : ' pb-16 lg:pb-0' ?>"<?= !empty($page['body_attrs']) ? ' ' . $page['body_attrs'] : '' ?>>
+<body class="font-sans text-[15px]<?= $tabbar ? ' has-tabbar' : ($minimal ? '' : ' pb-20 lg:pb-0') ?>"<?= !empty($page['body_attrs']) ? ' ' . $page['body_attrs'] : '' ?>>
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-ink text-cream px-3 py-2 rounded">Skip to content</a>
 <?php if (Context::previewing()): ?>
 <div class="bg-copper text-white text-[12.5px]"><div class="wrap py-2 flex flex-wrap items-center justify-between gap-2">
@@ -47,6 +59,7 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <?= store_partial($minimal ? 'header-minimal' : 'header', ['chrome' => $chrome, 'active' => $page['active']]) ?>
 <main id="main"><?= $content ?></main>
 <?= store_partial($minimal ? 'footer-minimal' : 'footer', ['chrome' => $chrome, 'active' => $page['active']]) ?>
+<?= store_partial('app-shell', ['tabbar' => $tabbar, 'active' => $page['active']]) ?>
 <div id="toast" class="toast" role="status" aria-live="polite"></div>
 <script type="application/json" id="store-flash"><?= store_json($flash) ?></script>
 <?php $acct = Context::customer(); ?>

@@ -36,6 +36,7 @@ final class View
             'head' => '',
             'scripts' => '',
             'chrome' => true,
+            'tabbar' => true,
         ];
         $base = app()->basePath('resources/views/');
         $content = self::renderFile($base . str_replace('.', '/', $view) . '.php', $data + ['page' => &$page]);
