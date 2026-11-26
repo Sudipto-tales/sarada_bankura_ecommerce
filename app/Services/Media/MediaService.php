@@ -134,6 +134,9 @@ final class MediaService
 
         $width = $dims ? (int) $dims[0] : null;
         $height = $dims ? (int) $dims[1] : null;
+        if ($kind === 'image' && $dims && self::exifOrientation($source, $ext) >= 5) {
+            [$width, $height] = [$height, $width]; // shown rotated 90°
+        }
         $written = false;
         if ($kind === 'image') {
             $res = self::processImage($source, $fileAbs, $ext, $dims ?: null);
@@ -608,36 +611,60 @@ final class MediaService
      * @param array<int|string,mixed>|null $dims
      * @return array{0:int,1:int}|null
      */
+    /** JPEG/WebP quality for stored images that have to be re-encoded (downscaled). */
+    public const IMAGE_QUALITY = 95;
+
+    /**
+     * Images within MAX_EDGE are kept byte-for-byte (browsers apply EXIF rotation themselves);
+     * only larger ones are rotated upright, downscaled and re-encoded. Returns the stored
+     * [width, height] as displayed, or null when the original was not rewritten.
+     */
     private static function processImage(string $src, string $dest, string $ext, ?array $dims): ?array
     {
         if (!extension_loaded('gd') || $dims === null || $ext === 'gif' || $ext === 'avif') {
             return null; // GIFs may be animated; GD has no AVIF here. Keep as-is.
         }
         [$w, $h] = [(int) $dims[0], (int) $dims[1]];
-        $orientation = 1;
-        if ($ext === 'jpg' && function_exists('exif_read_data')) {
-            $exif = @exif_read_data($src);
-            $orientation = (int) ($exif['Orientation'] ?? 1);
-        }
-        if (max($w, $h) <= self::MAX_EDGE && $orientation === 1) {
+        if (max($w, $h) <= self::MAX_EDGE) {
             return null;
         }
         $img = self::gdLoad($src, $ext);
         if (!$img) {
             return null;
         }
-        $img = match ($orientation) {
+        $img = self::orient($img, self::exifOrientation($src, $ext));
+        $img = self::fit($img, self::MAX_EDGE);
+        $ok = self::gdSave($img, $dest, $ext, self::IMAGE_QUALITY);
+        $out = [imagesx($img), imagesy($img)];
+        imagedestroy($img);
+
+        return $ok ? $out : null;
+    }
+
+    private static function exifOrientation(string $path, string $ext): int
+    {
+        if ($ext !== 'jpg' || !function_exists('exif_read_data')) {
+            return 1;
+        }
+        $exif = @exif_read_data($path);
+
+        return (int) ($exif['Orientation'] ?? 1);
+    }
+
+    private static function orient(\GdImage $img, int $orientation): \GdImage
+    {
+        $out = match ($orientation) {
             3 => imagerotate($img, 180, 0),
             6 => imagerotate($img, -90, 0),
             8 => imagerotate($img, 90, 0),
             default => $img,
         };
-        $img = self::fit($img, self::MAX_EDGE);
-        $ok = self::gdSave($img, $dest, $ext, 86);
-        $out = [imagesx($img), imagesy($img)];
-        imagedestroy($img);
+        if ($out !== $img && $out !== false) {
+            imagedestroy($img);
+            return $out;
+        }
 
-        return $ok ? $out : null;
+        return $img;
     }
 
     private static function makeThumb(string $fileAbs, string $dirRel, string $dirAbs, string $base): ?string
@@ -655,6 +682,8 @@ final class MediaService
         if (!$img) {
             return null;
         }
+        // Kept originals may still carry an EXIF rotation flag; GD ignores it, so apply it here.
+        $img = self::orient($img, self::exifOrientation($fileAbs, $ext));
         if (!is_dir($dirAbs . '/thumbs')) {
             @mkdir($dirAbs . '/thumbs', 0775, true);
         }
