@@ -77,6 +77,7 @@ The server's CLI `php` is older than 8.3: run commands with the alt-PHP 8.3 bina
 ```
 php vayu migrate                         # done by the deploy itself
 php vayu admin:install                   # roles + first Owner, password printed once
+php vayu store:demo-account --phone=…    # Play reviewer login (before Play submission), password printed once
 php vayu db:seed ProductCatalogSeeder
 php vayu db:seed AttributeLibrarySeeder
 php vayu db:seed CatalogExtrasSeeder

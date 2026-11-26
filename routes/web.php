@@ -76,6 +76,10 @@ $router->group(['middleware' => [\App\Middleware\StoreOpen::class, \App\Middlewa
     $router->post('/signin/forgot', [$acct, 'forgot'])->name('store.signin.forgot')->middleware('throttle:10,1');
     $router->post('/signin/reset', [$acct, 'reset'])->name('store.signin.reset')->middleware('throttle:20,1');
     $router->post('/signout', [$acct, 'logout'])->name('store.signout');
+    // Play requirement: delete the account from inside it, plus a public page for doing it without the app.
+    $router->get('/account/delete', [$acct, 'deleteForm'])->name('store.account.delete')->middleware($need);
+    $router->post('/account/delete', [$acct, 'destroy'])->name('store.account.destroy')->middleware([$need, 'throttle:10,1']);
+    $router->get('/account-deletion', [\App\Controllers\Store\PageController::class, 'accountDeletion'])->name('store.account.deletion');
     $router->get('/account', [$acct, 'show'])->name('store.account')->middleware($need);
     $router->get('/account/{tab}', [$acct, 'show'])->name('store.account.tab')->middleware($need);
     $router->post('/account/profile', [$acct, 'profile'])->name('store.account.profile')->middleware($need);

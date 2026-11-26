@@ -1,6 +1,6 @@
 # Android app
 
-**Status: phase 1 built (web side, branches `feature/app-native-feel` + `feature/app-skeleton-sheets`); phases 2–4 planned.** A Capacitor Android app for the storefront, published on
+**Status: phases 1–2 built (web side, branches `feature/app-native-feel`, `feature/app-skeleton-sheets`, `feature/play-prereqs`); phases 3–4 planned.** A Capacitor Android app for the storefront, published on
 Google Play and also offered as a direct APK download from `/app`. Releases are managed from the
 admin panel.
 
@@ -88,18 +88,38 @@ handler calls it before navigating back.
 
 ## Phase 2: Play Store prerequisites (web side)
 
-- **Account deletion (Play requirement for apps with sign-up):**
-  - `/account/delete` inside the account area: confirm with the password, then anonymise the user
-    and their remember tokens through `Store\CustomerAuth`;
-  - a public `/account-deletion` page that explains how to request deletion without the app.
-  - Orders and invoices are kept for GST record-keeping. The privacy policy says this.
-- **Privacy policy:** expand `/policy/privacy`. It must say what the app collects:
-  - name, phone, email and addresses;
-  - order and payment details (UTR, payment screenshot);
-  - the device push token.
-  - It must also say why, how long the data is kept, and how to delete it.
-- **Reviewer access:** a demo customer account for Play's "App access" form, because checkout needs
-  a sign-in.
+**Built** (branch `feature/play-prereqs`, tests: `tests/account_deletion_test.php`):
+
+| Piece | Where |
+| --- | --- |
+| `/account/delete`: lists what is deleted and kept, warns about orders still in progress, then asks for the password and a confirm box | `AccountController::deleteForm/destroy`, `account-delete.php`; linked from Account → Profile |
+| Deletion itself, in one transaction, then sign-out | `CustomerAuth::deleteAccount()` |
+| Public `/account-deletion` page (the URL for Play's "Delete account" form): in-app steps, how to ask without signing in, what's deleted / kept | `PageController::accountDeletion`, `account-deletion.php` |
+| Privacy policy (`/policy#privacy`; `/policy/privacy` redirects there) | `policy.php` (`$privacyUpdated` holds the date) |
+| Play reviewer login: `php vayu store:demo-account --phone=<spare shop SIM>` | `StoreDemoAccountCommand` |
+
+**What deletion does:**
+
+| Data | Result |
+| --- | --- |
+| `users` row | Emptied: name → "Deleted customer", phone / email / password cleared, `status = deleted`, every session ended. The row stays as an id tombstone |
+| Remember tokens, reset codes, saved stones, bag | Deleted |
+| Reviews (matched by customer or phone) | Stay published as "A customer"; email / phone cleared |
+| Enquiries (matched by customer or phone) | Name, phone and email cleared |
+| Customer record the website created (`source = online`) | Emptied (name, phone → `deleted-<id>`, email, company, GSTIN, notes), addresses / tags / segments removed, `inactive` |
+| Customer record the showroom had first | Only unlinked (`user_id`, `is_online`, marketing consent cleared). It's the shop's own file. The public page says customers can ask for it to be removed |
+| Orders, items, payments, refunds, screenshots | **Kept** (GST record-keeping, about six years). Orders hold their own name / phone / address snapshot |
+
+An `audit_logs` row (`customer_account`, `delete`, orders kept) records each deletion. The same
+mobile number can register again and gets a fresh customer record. **Phase 4:** delete the device push
+tokens in `deleteAccount()`.
+
+**Play Console values:**
+- Privacy policy URL: `https://<domain>/policy#privacy`
+- Delete account URL: `https://<domain>/account-deletion`
+- App access: run `store:demo-account` on the server and paste the printed mobile and password. The
+  customer is tagged **Google Play review** in admin, so reject any order it places. If a reviewer
+  deletes the account, run the command again and update the form.
 
 ## Phase 3: release management (admin + storefront)
 

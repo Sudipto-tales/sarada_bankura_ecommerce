@@ -156,6 +156,12 @@ $channel = static fn(array $o): string => $o['channel'] === 'online' ? 'Website'
           <div class="sm:col-span-2"><button class="btn btn-dark">Change password</button></div>
         </form>
       </section>
+
+      <section id="delete" class="mt-4 rounded-[24px] border border-copper/20 bg-copper-50/40 p-6 sm:p-8 max-w-2xl scroll-mt-28">
+        <h2 class="font-display text-[26px]">Delete account</h2>
+        <p class="text-ink-500 text-[14px] mt-1">Removes your sign-in, addresses and saved stones. Orders and invoices are kept because GST law requires it.</p>
+        <a href="<?= e(store_url('/account/delete')) ?>" class="btn btn-line mt-5 !border-copper/40 !text-copper"><?= store_icon('trash-2') ?> Delete my account</a>
+      </section>
     <?php endif; ?>
     </div>
   </div>

@@ -24,6 +24,7 @@ use Vayu\Validation\ValidationException;
  *   POST /signin/reset           email + code + new password → signed in
  *   POST /signout
  *   GET  /account[/{tab}]        orders · addresses · profile          (RequireCustomer)
+ *   GET|POST /account/delete     delete the account (password), then /account-deletion?done=1
  *   POST /account/profile | /account/password | /account/addresses[/{id}[/default|/delete]]
  *
  * Every sign-in form carries `next` (same-site path) and `saved` (the guest saved list from
@@ -183,6 +184,46 @@ class AccountController
         session()->flash('success', 'Password changed. Other devices have been signed out.');
 
         return redirect(store_url('/account/profile'));
+    }
+
+    /** GET /account/delete: what goes, what stays, confirm with the password. */
+    public function deleteForm(): Response
+    {
+        View::loadHelpers();
+        $u = Context::customer();
+        $cid = (int) ($u['customer_id'] ?? 0);
+        $count = static fn(string $where): int => $cid ? (int) (DB::selectOne("SELECT COUNT(*) AS n FROM orders WHERE customer_id = ?{$where}", [$cid])['n'] ?? 0) : 0;
+
+        return View::page('store.account-delete', [
+            'user' => $u,
+            'orders' => $count(''),
+            'open' => $count(" AND order_status NOT IN ('delivered', 'cancelled', 'rejected')"),
+        ], [
+            'title' => 'Delete your account',
+            'active' => 'account',
+            'head' => '<meta name="robots" content="noindex">',
+        ]);
+    }
+
+    /** POST /account/delete */
+    public function destroy(Request $request): Response
+    {
+        View::loadHelpers();
+        if ($request->input('confirm') !== '1') {
+            return $this->back(new ValidationException(['confirm' => ['Tick the box to confirm you want to delete your account.']]), [], store_url('/account/delete'));
+        }
+        try {
+            CustomerAuth::deleteAccount((int) Context::customer()['id'], (string) $request->input('password', ''), $request->ip());
+        } catch (ValidationException $e) {
+            return $this->back($e, [], store_url('/account/delete'));
+        } catch (AuthException $e) {
+            session()->flash('error', $e->getMessage());
+
+            return redirect(store_url('/account/delete'));
+        }
+        session()->flash('success', 'Your account is deleted and you’re signed out. Thank you for shopping with us.');
+
+        return redirect(store_url('/account-deletion') . '?done=1');
     }
 
     public function saveAddress(Request $request, ?string $id = null): Response
