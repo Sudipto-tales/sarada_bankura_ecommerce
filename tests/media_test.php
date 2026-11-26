@@ -36,6 +36,7 @@ return function (Assert $assert): void {
     $assert->that('store: file exists under public uploads', is_file(Media::absolutePath($a)) && str_contains($a['path'], 'assets/uploads/media/'));
     $assert->that('store: thumbnail written', !empty($a['thumb_path']) && is_file(Media::absolutePath($a, true)));
     $assert->equals('store: width kept', 600, (int) $a['width']);
+    $assert->equals('store: original under MAX_EDGE kept byte-for-byte', sha1_file($tmp . '/small.png'), sha1_file(Media::absolutePath($a)));
     $assert->equals('store: title from file name', 'Small Slab', $a['title']);
 
     // Resize to MAX_EDGE
