@@ -5,7 +5,7 @@ namespace App\Services\AdminAccess;
 use Vayu\Database\DB;
 
 /**
- * 6-digit password codes (docs/admin-access.md §4.5): email only for now. Valid 10 minutes, 5 wrong
+ * 6-digit password codes (docs/admin-access.md): email only for now. Valid 10 minutes, 5 wrong
  * tries, resend after 60 s, at most 5 codes an hour. Stored as HMAC-SHA256 (APP_KEY), never plain.
  * Only writer of admin_otps. A WhatsApp provider plugs in later as another OtpChannel.
  */

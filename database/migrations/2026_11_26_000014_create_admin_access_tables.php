@@ -5,7 +5,7 @@ use Vayu\Database\Schema\Blueprint;
 use Vayu\Database\Schema\Schema;
 
 /**
- * Admin access (docs/admin-access.md §5). Staff accounts are separate from the customers'
+ * Admin access (docs/admin-access.md). Staff accounts are separate from the customers'
  * `users` table.
  *
  *   admin_users            staff logins (email and/or phone, ≥1), status invited|active|disabled

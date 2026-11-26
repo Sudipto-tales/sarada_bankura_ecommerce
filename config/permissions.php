@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Admin permissions (docs/admin-access.md §2) and the 8 starting roles (§3).
+ * Admin permissions (docs/admin-access.md) and the 8 starting roles.
  *
  * Permissions live here in code, grouped by section; only role ↔ permission links are stored in
  * the database (role_permissions). New modules add their permissions to 'sections'.

@@ -5,7 +5,7 @@ use Vayu\Database\Schema\Blueprint;
 use Vayu\Database\Schema\Schema;
 
 /**
- * Stage 8 storefront (docs/storefront.md §1). The only storefront migration.
+ * Stage 8 storefront (docs/storefront.md). The only storefront migration.
  *
  * ALTER (all nullable, no data change):
  *   tags.icon                              Lucide icon name for discovery chips

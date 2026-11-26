@@ -5,7 +5,7 @@
  * Read it with business('name'), business('address.city'), business('tax.gst_rate').
  *
  * Placeholder until System / Payment settings are planned. Values come from .env so the
- * production copy can differ without code changes. No DB table on purpose (see docs/roadmap.md 0.7).
+ * production copy can differ without code changes. No DB table on purpose (see docs/README.md).
  */
 return [
     'name' => env('BUSINESS_NAME', 'Maa Sarada Marble & Stone'),

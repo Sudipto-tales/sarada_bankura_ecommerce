@@ -9,7 +9,7 @@ use Vayu\Http\Request;
 use Vayu\Http\Response;
 
 /**
- * Shop listing (docs/storefront.md §3.3): /shop, /shop/{space}, /shop/{space}/{room}.
+ * Shop listing (docs/storefront.md): /shop, /shop/{space}, /shop/{space}/{room}.
  * Filters come from the query string (Listing::fromQuery whitelists them); the page works without
  * JS: facets are a GET form, chips and pages are links.
  */

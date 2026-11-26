@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Storefront view helpers (docs/storefront.md §2). Loaded by App\Services\Store\View.
+ * Storefront view helpers (docs/storefront.md). Loaded by App\Services\Store\View.
  * Everything that prints user/DB text escapes it with e().
  */
 

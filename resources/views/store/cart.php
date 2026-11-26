@@ -1,6 +1,6 @@
 <?php
 /**
- * Bag (design: html/storefront/cart.html; docs/storefront.md §3.5). Server-rendered from
+ * Bag (design: html/storefront/cart.html; docs/storefront.md). Server-rendered from
  * Cart::lines() (re-priced from the DB on every view). Every control is a form post; store.js
  * only adds "Save for later" to the local shortlist before the remove form submits.
  *

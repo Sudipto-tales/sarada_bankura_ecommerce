@@ -1,4 +1,10 @@
-# Vayu
+# Maa Sarada Marble & Stone — on Vayu
+
+Admin panel + storefront for Maa Sarada Marble & Stone, built on Vayu. Project docs (modules,
+status, deployment) start at [`docs/README.md`](docs/README.md). The rest of this file describes
+the framework.
+
+## Vayu
 
 A lightweight, production-capable PHP micro-framework. Vayu gives you modern
 routing, a middleware pipeline, an Active-Record ORM, validation, sessions/CSRF,
@@ -24,7 +30,8 @@ php vayu setup          # app key, storage dirs, migrations (add --seed for demo
 php vayu run            # http://127.0.0.1:8000
 ```
 
-Then open `http://127.0.0.1:8000/` and `http://127.0.0.1:8000/contact`.
+Then open `http://127.0.0.1:8000/` (storefront) and `http://127.0.0.1:8000/admin`
+(create the first staff login with `php vayu admin:install`).
 
 ## Project structure
 
@@ -100,7 +107,7 @@ Query builder, Active-Record models, schema/migrations and seeders live under
 ## Forms, APIs, cache, events
 
 - **Validation / CSRF:** `FormRequest` classes, `Validator`, flashed errors and
-  old input, `csrf_field()`. See the `/contact` demo.
+  old input, `csrf_field()`.
 - **APIs:** token auth (`auth` middleware, Bearer or session), rate limiting
   (`throttle:max,minutes`), JSON helpers. See the `/api/*` demos.
 - **Cache:** `cache()->remember(...)` over file/array/redis stores.
@@ -140,7 +147,9 @@ A zero-dependency runner: each `tests/*_test.php` returns a
 
 ## Documentation
 
-- [`docs/usage.md`](docs/usage.md) — day-to-day usage.
+- [`docs/README.md`](docs/README.md) — project overview, status and module docs.
+- [`docs/deployment.md`](docs/deployment.md) — CI and the Hostinger deploy.
+- [`docs/usage.md`](docs/usage.md) — day-to-day framework usage.
 - [`docs/architecture.md`](docs/architecture.md) — how the pieces fit.
 - [`docs/realtime.md`](docs/realtime.md) — WebSockets & broadcasting.
 

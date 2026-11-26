@@ -5,7 +5,7 @@ namespace App\Services\AdminAccess;
 use Vayu\Database\DB;
 
 /**
- * Admin login session (docs/admin-access.md §4.4). Only writer of admin_login_attempts and
+ * Admin login session (docs/admin-access.md). Only writer of admin_login_attempts and
  * admin_remember_tokens.
  *
  * - Login ID = email or 10-digit mobile. 5 wrong tries for one account (email + phone together)

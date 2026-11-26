@@ -6,7 +6,7 @@ use Vayu\Database\DB;
 use Vayu\Http\UploadedFile;
 
 /**
- * The single writer for media + media_links (docs/roadmap.md, Stage 1).
+ * The single writer for media + media_links (docs/README.md).
  *
  *   store*()          validate → (resize + thumbnail via GD) → checksum → one `media` row (MED-000123)
  *   attach()/detach() owners point at media through links; a file is deleted only when no links remain

@@ -8,7 +8,7 @@ use Vayu\Http\Request;
 use Vayu\Http\Response;
 
 /**
- * /webhooks/whatsapp — Meta Cloud API webhook (docs/whatsapp.md §4). Public, CSRF-exempt
+ * /webhooks/whatsapp — Meta Cloud API webhook (docs/whatsapp.md). Public, CSRF-exempt
  * ("webhooks" prefix in VerifyCsrfToken), protected by the verify token (GET) and the
  * X-Hub-Signature-256 HMAC of the raw body (POST). 404 while the channel is dormant.
  */

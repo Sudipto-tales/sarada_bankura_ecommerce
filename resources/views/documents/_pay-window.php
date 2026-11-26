@@ -1,6 +1,6 @@
 <?php
 /**
- * The customer payment window (docs/payments.md §1) — one component for the order page, the public
+ * The customer payment window (docs/payments.md) — one component for the order page, the public
  * invoice (floating button) and the /pay link page.
  *
  * Needs: $o (order row). Optional: $payContext (order|invoice|request), $payFloating (default true:

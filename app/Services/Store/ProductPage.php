@@ -6,7 +6,7 @@ use App\Services\Order\PaymentService;
 use Vayu\Database\DB;
 
 /**
- * Everything the product page shows (docs/storefront.md §3.4). Read-only.
+ * Everything the product page shows (docs/storefront.md). Read-only.
  *
  *   ProductPage::load('statuario-marble', 'STA-18-POL')   // ?v= SKU picks the variant
  *

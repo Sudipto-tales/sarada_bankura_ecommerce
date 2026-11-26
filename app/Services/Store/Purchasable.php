@@ -5,14 +5,14 @@ namespace App\Services\Store;
 use Vayu\Database\DB;
 
 /**
- * One rule (docs/storefront.md §3.2): can this product / variant be bought online, at what price,
+ * One rule (docs/storefront.md): can this product / variant be bought online, at what price,
  * and in which quantities. Everything comes from the DB, never from the request.
  *
  *   buyable = products.status = 'active' AND is_enquiry_only = 0 AND show_price = 1 AND price > 0
  *             AND (no active variants OR an active variant of this product is chosen)
  *
  * Price = variant price ?? product price (the same rule as OrderService::cleanItems, which re-prices
- * the order in S4). Stock never blocks (owner rule §6 Q1).
+ * the order in S4). Stock never blocks (owner rule).
  */
 final class Purchasable
 {

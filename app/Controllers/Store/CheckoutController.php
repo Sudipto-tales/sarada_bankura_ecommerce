@@ -16,7 +16,7 @@ use Vayu\Http\Response;
 use Vayu\Validation\ValidationException;
 
 /**
- * Checkout (docs/storefront.md §3.6).
+ * Checkout (docs/storefront.md).
  *
  *   GET  /checkout                    details form + summary (bag empty / blocked → /cart)
  *   POST /checkout/start              validate + open the 6-minute payment window → JSON for pay-window.js

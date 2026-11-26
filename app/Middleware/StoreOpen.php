@@ -8,7 +8,7 @@ use Vayu\Http\Response;
 use Vayu\Middleware\MiddlewareInterface;
 
 /**
- * Storefront launch switch (docs/storefront.md §3.1, owner default §6 Q4).
+ * Storefront launch switch (docs/storefront.md).
  * STOREFRONT_ENABLED=false → "/" shows the coming-soon page and every other storefront page
  * redirects to "/". A logged-in admin sees the real storefront with a preview bar.
  */

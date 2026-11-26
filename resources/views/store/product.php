@@ -1,6 +1,6 @@
 <?php
 /**
- * Product page (design: html/storefront/product.html; docs/storefront.md §3.4).
+ * Product page (design: html/storefront/product.html; docs/storefront.md).
  * Server renders the selected variant (?v=SKU) completely; without JS the variant table rows and a
  * <select> switch variants by link / GET. store.js swaps price, SKU, images and specs in place from
  * the JSON block at the end, and keeps ?v= in the address bar.

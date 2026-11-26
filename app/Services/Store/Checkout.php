@@ -10,7 +10,7 @@ use Vayu\Database\DB;
 use Vayu\Validation\ValidationException;
 
 /**
- * Storefront checkout (docs/storefront.md §3.6): bag → server-built order input → PayWindow.
+ * Storefront checkout (docs/storefront.md): bag → server-built order input → PayWindow.
  *
  *   start()   validate the form, build the OrderService::create input from the re-priced bag
  *             (prices from the DB, never the request), open a 6-minute checkout attempt and

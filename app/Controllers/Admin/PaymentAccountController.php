@@ -10,7 +10,7 @@ use Vayu\Http\Request;
 use Vayu\Http\Response;
 
 /**
- * Receiving accounts (docs/payments.md §5). The page loads empty behind an OTP overlay; the
+ * Receiving accounts (docs/payments.md). The page loads empty behind an OTP overlay; the
  * account details are sent only after POST /unlock accepts the OTP, so they are never in the page
  * source. Every change goes through the "ask twice" dialog (review old → new, then OTP again),
  * and the OTP is re-checked on the server by Accounts. The OTP is the fixed 123456 placeholder

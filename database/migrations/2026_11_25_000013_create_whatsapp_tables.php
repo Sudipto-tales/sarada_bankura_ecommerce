@@ -5,7 +5,7 @@ use Vayu\Database\Schema\Blueprint;
 use Vayu\Database\Schema\Schema;
 
 /**
- * Stage 7: WhatsApp channel (docs/whatsapp.md §5).
+ * Stage 7: WhatsApp channel (docs/whatsapp.md).
  *
  *   whatsapp_messages    every message we send (api or wa.me fallback) and every message a customer
  *                        sends us (webhook). Written only by App\Services\WhatsApp\WhatsAppService

@@ -8,7 +8,7 @@ use App\Services\Store\View;
 use Vayu\Http\Request;
 use Vayu\Http\Response;
 
-/** Product page (docs/storefront.md §3.4): /product/{slug}?v={variant sku}. Works without JS. */
+/** Product page (docs/storefront.md): /product/{slug}?v={variant sku}. Works without JS. */
 class ProductController
 {
     public function show(Request $request, string $slug): Response

@@ -1,5 +1,5 @@
 <?php
-/** Track an order / pay a balance (design: html/storefront/track.html; docs/storefront.md §3.8). */
+/** Track an order / pay a balance (design: html/storefront/track.html; docs/storefront.md). */
 $go = (string) old('go', '');
 $num = static fn(string $for): string => $go === $for ? (string) old('order_number', '') : '';
 ?>

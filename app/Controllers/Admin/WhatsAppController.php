@@ -8,7 +8,7 @@ use Vayu\Http\Request;
 use Vayu\Http\Response;
 
 /**
- * /admin/settings/whatsapp — read-only channel status (docs/whatsapp.md §7): which .env values are
+ * /admin/settings/whatsapp — read-only channel status (docs/whatsapp.md): which .env values are
  * filled (✅ / ❌ only, never the values), connection + template check against Meta, a test send,
  * the month's cost estimate and the message log. Nothing here edits configuration.
  */

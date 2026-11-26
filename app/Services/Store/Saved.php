@@ -5,7 +5,7 @@ namespace App\Services\Store;
 use Vayu\Database\DB;
 
 /**
- * Signed-in saved stones (docs/storefront.md §3.8). Only writer of customer_saved_items.
+ * Signed-in saved stones (docs/storefront.md). Only writer of customer_saved_items.
  * Guests keep their list in the browser (localStorage `ms.saved`, product slugs); at sign-in
  * that list is merged here once, and from then on the browser mirrors the account's list.
  * Saving is per product (variant_id 0) — the heart sits on product cards.

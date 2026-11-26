@@ -5,7 +5,7 @@ namespace App\Services\Store;
 use Vayu\Database\DB;
 
 /**
- * Shop listing (docs/storefront.md §3.3): filters, facet counts, search, sort and pages.
+ * Shop listing (docs/storefront.md): filters, facet counts, search, sort and pages.
  *
  *   $state  = Listing::fromQuery($request->query, $category);   // whitelist + clean the query string
  *   $result = Listing::run($state);                              // ids for this page, total, facets, chips

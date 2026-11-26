@@ -9,7 +9,7 @@ use Vayu\Http\Response;
 use Vayu\Middleware\MiddlewareInterface;
 
 /**
- * Loads the signed-in storefront customer (docs/storefront.md §3.1, §11): session('customer'),
+ * Loads the signed-in storefront customer (docs/storefront.md): session('customer'),
  * else a valid "stay signed in" cookie. Never blocks a page — RequireCustomer does that.
  */
 class StoreCustomer implements MiddlewareInterface

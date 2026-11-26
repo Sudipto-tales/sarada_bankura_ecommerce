@@ -9,7 +9,7 @@ use Vayu\Validation\ValidationException;
  * Receiving accounts (payment_accounts) — the only writer. Every change is "sensitive": the caller
  * must pass the confirmation OTP, and the change is written to audit_logs with values masked.
  *
- * Honest limit (docs/payments.md §5): the OTP is the fixed placeholder 123456 until a real
+ * Honest limit (docs/payments.md): the OTP is the fixed placeholder 123456 until a real
  * server-side OTP exists. It is checked here on the server as well, so swapping in a real OTP
  * later only changes checkOtp().
  */

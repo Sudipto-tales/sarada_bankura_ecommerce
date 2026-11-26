@@ -5,7 +5,7 @@ namespace App\Services\Store;
 use Vayu\Http\Response;
 
 /**
- * Renders a storefront page inside a layout (docs/storefront.md §2):
+ * Renders a storefront page inside a layout (docs/storefront.md):
  *
  *   View::page('store.home', $data, ['title' => …, 'description' => …, 'active' => 'home'])
  *

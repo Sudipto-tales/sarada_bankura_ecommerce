@@ -8,7 +8,7 @@ use Vayu\Http\Response;
 use Vayu\Middleware\MiddlewareInterface;
 
 /**
- * Protects the /admin area (docs/admin-access.md §6). Not logged in → /admin/login?next=…
+ * Protects the /admin area (docs/admin-access.md). Not logged in → /admin/login?next=…
  * (JSON callers get 401). Logged in with a temporary password → only the "Set your password"
  * screen and Log out are reachable until a real password is set.
  * The login / invite / forgot-password routes are registered outside this middleware.

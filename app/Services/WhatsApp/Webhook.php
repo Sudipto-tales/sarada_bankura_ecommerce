@@ -7,7 +7,7 @@ use App\Services\NotificationService;
 use Vayu\Database\DB;
 
 /**
- * Meta webhook for /webhooks/whatsapp (docs/whatsapp.md §4): verification handshake, HMAC
+ * Meta webhook for /webhooks/whatsapp (docs/whatsapp.md): verification handshake, HMAC
  * signature check, delivery statuses and incoming messages (incl. STOP opt-out).
  * Idempotent on wamid — Meta retries, so a repeated delivery is a no-op.
  */
