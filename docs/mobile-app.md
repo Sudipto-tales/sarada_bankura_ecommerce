@@ -1,6 +1,6 @@
 # Android app
 
-**Status: phases 1–2 built (web side, branches `feature/app-native-feel`, `feature/app-skeleton-sheets`, `feature/play-prereqs`); phases 3–4 planned.** A Capacitor Android app for the storefront, published on
+**Status: phases 1–3 built (web side, branches `feature/app-native-feel`, `feature/app-skeleton-sheets`, `feature/play-prereqs`, `feature/app-releases`); phase 4 (the Capacitor shell) planned.** A Capacitor Android app for the storefront, published on
 Google Play and also offered as a direct APK download from `/app`. Releases are managed from the
 admin panel.
 
@@ -123,36 +123,55 @@ tokens in `deleteAccount()`.
 
 ## Phase 3: release management (admin + storefront)
 
-**Table `app_releases`**
+**Built** (branch `feature/app-releases`, tests: `tests/app_releases_test.php`).
+
+**Table `app_releases`** (migration 000018). The single writer is `App\Services\AppReleases`.
 
 | Columns | |
 | --- | --- |
-| Version | `version_name`, `version_code` (unique; must keep increasing) |
+| Version | `version_name`, `version_code` (unique; every upload must be higher than all earlier ones) |
 | File | `file_path`, `size_bytes`, `sha256` |
 | Notes | `changelog` |
-| Update control | `min_supported_code` (forces the update for older builds) |
-| State | `status` (`draft` / `published` / `archived`), `published_at`, `published_by` |
-| Stats | `downloads` |
+| Update control | `min_supported_code` (builds below it are told to update; 0 = off) |
+| State | `status` (`draft` / `published` / `archived`), `published_at`, `published_by`, `uploaded_by` |
+| Stats | `downloads` (public `/app/download` only) |
 
-The single writer is `App\AppReleases`. Files live in `shared/storage/app/`, so deploys don't wipe
-them. The Play listing URL lives in config (`APP_PLAY_URL`). Permission: `app_releases.manage`.
+APKs live in `storage/uploads/app/`. That folder is already a link to `shared/storage/uploads`, so
+deploys keep the files and no deploy change was needed. Files never sit under `public/`. The Play
+listing URL is `APP_PLAY_URL` (`config('store.app_play_url')`); only `https://play.google.com/…`
+links are used. Permission: `app_releases.manage` (sensitive, Owner by default). Every action is
+audit-logged (`app_release`).
 
-**Admin → App releases**
-- Upload the APK, then enter the version, changelog and minimum supported code.
-- The release starts as a **Draft**: only staff can download it, for testing on a phone.
-- **Publish** makes it the latest release and archives the previous one.
-- One APK per request (Vayu parses single uploads only), well under the 64M upload limit.
+**Admin → Settings → Android app** (`/admin/app-releases`, `AppReleaseController`)
+- Upload the signed release APK (not the `.aab`) with the version name, version code, minimum
+  supported code and "What's new". The upload is checked: `.apk`, ZIP header, 1 KB–60 MB.
+- The release starts as a **Draft**. Staff can download any release to test it on a phone; those
+  downloads aren't counted.
+- **Publish** makes it the public release and archives the previous one. Publishing a lower code
+  than the current public release is refused, because phones can't go back.
+- **Take down** archives the public release, so `/app` offers no APK until the next publish.
+  Drafts and archived releases can be deleted, which deletes their file too.
 
 **Storefront**
-- `/app` page:
-  - Google Play badge (primary) and direct APK download (secondary);
+- `/app` page (`AppController::page`, `store/app.php`):
+  - Google Play button first (when `APP_PLAY_URL` is set), direct APK second;
   - version, size, date, changelog and SHA-256;
   - sideload install steps;
-  - a QR code for desktop visitors.
-- `/app/download` streams the latest published APK as
-  `application/vnd.android.package-archive` and counts the download.
-- `/app/version.json` returns `{latest_code, min_code, name, notes, url}`.
-- A dismissible "Get the app" banner on the mobile site, plus a footer link.
+  - a QR code for desktop visitors (vendored `qrcode.min.js`, loaded on this page only);
+  - "Coming soon" when there's neither a release nor a Play link.
+  - The Play button is styled text for now. Swap in Google's official badge image before launch
+    (brand rules).
+- `/app/download` streams the published APK (`App\Http\FileResponse`, which doesn't load it into
+  memory) as `application/vnd.android.package-archive` and counts it. It is throttled to 20 a
+  minute, kept out of prefetch and the service worker, and redirects to `/app` when nothing is
+  published.
+- `/app/version` returns `{latest_code, min_code, name, notes, url, size, sha256, play_url}` with
+  `no-store`. It has no extension, for the same reason as `/service-worker`: no host `.json` cache
+  rule can pin a stale copy.
+- Both run outside the store-open switch, so installed apps always reach them.
+- A dismissible "Get the app" banner under the header: mobile web, Android browsers only, not in
+  the app and not on `/app`. Closing it hides it for 30 days (`ms.appBanner` in browser storage).
+  There's also a footer link. Both appear only once there's a public release or a Play link.
 
 ## Phase 4: the Capacitor shell (`mobile/`, excluded from rsync deploys)
 
@@ -169,7 +188,7 @@ In app mode the pay window shows a **Pay with UPI app** button in place of the Q
 
 **Updates**
 - If Play installed the app: use the Play In-App Updates API only.
-- If the APK was sideloaded: read `/app/version.json` and link to `/app`.
+- If the APK was sideloaded: read `/app/version` and link to `/app`.
 - The app never downloads or installs an APK itself. Play forbids self-updating, so the app never
   asks for `REQUEST_INSTALL_PACKAGES`.
 
@@ -270,8 +289,8 @@ Payments are for physical goods through UPI, so Play Billing does not apply.
    12 testers / 14 days) ──► Production, staged rollout 20% → 50% → 100%
 4. Play Console ▸ App bundle explorer ▸ download the signed universal APK
    (Google's signing key, so a sideloaded install can later update from Play and vice versa)
-5. Admin ▸ App releases ▸ upload that APK + version + changelog ──► Draft ──► test ──► Publish
-6. /app page and version.json update; Play users get the in-app update prompt from Play
+5. Admin ▸ Settings ▸ Android app ▸ upload that APK + version + changelog ──► Draft ──► test ──► Publish
+6. /app page and /app/version update; Play users get the in-app update prompt from Play
 ```
 
 - **Rollback:** Android blocks a lower versionCode. Rebuild the previous code as a new version with

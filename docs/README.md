@@ -58,6 +58,7 @@ Only the listed class may write these tables or columns. Controllers never updat
 | `admin_users` + roles links / login attempts + remember tokens | `AdminAccess\Staff` / `AdminAccess\Guard` |
 | `whatsapp_messages` (outgoing) | `WhatsApp\WhatsAppService` |
 | carts / saved items / enquiries / storefront `users` + auth tables | `Store\Cart` / `Store\Saved` / `Store\Enquiries` / `Store\CustomerAuth` |
+| `app_releases` + APKs in `storage/uploads/app/` | `AppReleases` |
 
 ## Migrations
 
@@ -74,6 +75,7 @@ Only the listed class may write these tables or columns. Controllers never updat
 | 000013 | WhatsApp messages + campaigns |
 | 000014 | admin users, roles, invites, OTPs, remember tokens, login attempts |
 | 000016–000017 | storefront: carts, saved items, enquiries, customer auth; nullable `users.email` |
+| 000018 | Android app releases (`app_releases`) |
 
 (000015 was reserved for returns and never used.)
 

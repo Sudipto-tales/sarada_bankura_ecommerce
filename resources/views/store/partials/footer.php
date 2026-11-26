@@ -76,6 +76,7 @@ if (\App\Services\Store\AppMode::active()):
         <li><a href="<?= e(store_url('/policy')) ?>#returns" class="hover:text-cream">Returns &amp; replacements</a></li>
         <li><a href="<?= e(store_url('/policy')) ?>#delivery" class="hover:text-cream">Delivery</a></li>
         <li><a href="<?= e(store_url('/contact')) ?>" class="hover:text-cream">Contact &amp; visit</a></li>
+        <?php if (\App\Services\AppReleases::available()): ?><li class="app-hide"><a href="<?= e(store_url('/app')) ?>" class="hover:text-cream">Get the Android app</a></li><?php endif; ?>
       </ul>
     </div>
   </div>

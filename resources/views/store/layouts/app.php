@@ -57,6 +57,14 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 </div></div>
 <?php endif; ?>
 <?= store_partial($minimal ? 'header-minimal' : 'header', ['chrome' => $chrome, 'active' => $page['active']]) ?>
+<?php if (!$minimal && !$inApp && ($page['active'] ?? '') !== 'app' && \App\Services\AppReleases::available()): ?>
+<div id="appBanner" class="lg:hidden" hidden><div class="wrap pt-3"><div class="flex items-center gap-3 rounded-2xl bg-white border border-ink/5 shadow-card px-3 py-2.5">
+  <img src="<?= e(store_asset('image/logo.webp')) ?>" alt="" class="w-10 h-10 rounded-xl object-contain bg-cream" width="40" height="40">
+  <p class="flex-1 min-w-0 leading-tight"><b class="text-[14px] block truncate">Get the <?= e(business('name')) ?> app</b><span class="text-[12px] text-ink-500">Faster, and works on a weak signal</span></p>
+  <a href="<?= e(store_url('/app')) ?>" class="btn btn-dark !h-9 !px-4 text-[13px]">Get</a>
+  <button type="button" data-app-banner-close class="w-8 h-8 -mr-1 rounded-full grid place-items-center text-ink-400 hover:bg-ink/5" aria-label="Not now"><?= store_icon('x') ?></button>
+</div></div></div>
+<?php endif; ?>
 <main id="main"><?= $content ?></main>
 <?= store_partial($minimal ? 'footer-minimal' : 'footer', ['chrome' => $chrome, 'active' => $page['active']]) ?>
 <?= store_partial('app-shell', ['tabbar' => $tabbar, 'active' => $page['active']]) ?>

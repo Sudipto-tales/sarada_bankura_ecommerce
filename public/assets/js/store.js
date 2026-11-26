@@ -824,6 +824,19 @@
   }
 
   /* ---------- app shell (docs/mobile-app.md) ---------- */
+  /* ---------- Get the app (docs/mobile-app.md phase 3): Android-only banner, QR on /app ---------- */
+  function appPromo() {
+    var b = $('#appBanner'), DAY = 864e5;
+    if (b && /Android/i.test(navigator.userAgent) && Date.now() - (+store.get('ms.appBanner', 0) || 0) > 30 * DAY) {
+      b.hidden = false;
+      b.addEventListener('click', function (e) {
+        if (!e.target.closest('[data-app-banner-close]')) return;
+        b.hidden = true; store.set('ms.appBanner', Date.now());          // ask again in 30 days
+      });
+    }
+    var qr = $('#appQr');
+    if (qr && window.QRCode) new QRCode(qr, { text: qr.getAttribute('data-url'), width: 184, height: 184, colorDark: '#15211F', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+  }
   function haptic() {
     var h = window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Haptics;
     if (h) h.impact({ style: 'LIGHT' }).catch(function () {});
@@ -940,6 +953,7 @@
   document.addEventListener('DOMContentLoaded', function () {
     icons();
     appShell();
+    appPromo();
     offlinePage();
     drawer();
     paintSaved();

@@ -82,6 +82,9 @@ return [
             'media.view' => ['View media library', 'view'],
             'media.edit' => ['Upload / edit media', 'act'],
         ]],
+        'app' => ['label' => 'Android app', 'permissions' => [
+            'app_releases.manage' => ['Upload / publish app releases', 'sensitive'],
+        ]],
     ],
 
     // Seeded by Roles::sync() (admin:install). Existing roles are never overwritten — the owner may
