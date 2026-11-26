@@ -7,7 +7,7 @@ use App\Services\Store\View;
 use Vayu\Application;
 use Vayu\Http\Request;
 
-/** Android app phase 1 (docs/mobile-app.md): app mode, glass tab bar, service worker, offline page. */
+/** Android app phase 1 (docs/mobile-app.md): app mode, glass tab bar, service worker, offline page, skeleton shop grid. */
 return function (Assert $assert): void {
     $app = new Application(dirname(__DIR__));
     $app->config()->set('database.default', 'sqlite');
@@ -69,6 +69,22 @@ return function (Assert $assert): void {
         && str_contains($js, '/offline"'));
     $assert->that('worker: never caches checkout, pay, cart, account, sign-in, admin', (bool) preg_match('#const NEVER = /\^\\\\/\(checkout\|pay\|order\|cart\|account\|signin\|signout\|register\|admin#', $js));
     $assert->equals('worker: same version on every request', $js, $router->dispatch($req('/service-worker'))->getContent());
+
+    // Skeleton shop grid: the grid carries the shop base for store.js; the placeholders are styled in the build.
+    $now = date('Y-m-d H:i:s');
+    $pid = (int) \Vayu\Database\DB::table('products')->insertGetId(['product_type_id' => 1, 'status' => 'active', 'sku' => 'SKU-SKEL', 'name' => 'Skel Marble',
+        'slug' => 'skel-marble', 'brand_id' => 0, 'is_enquiry_only' => 0, 'show_price' => 1, 'is_featured' => 0, 'is_bestseller' => 0, 'created_at' => $now, 'updated_at' => $now]);
+    \Vayu\Database\DB::table('product_pricing')->insert(['product_id' => $pid, 'price' => 100, 'compare_at_price' => null, 'currency' => 'INR', 'unit' => 'sq ft']);
+    $html = $router->dispatch($req('/shop'))->getContent();
+    $assert->that('shop: results grid carries the shop base and announces updates', (bool) preg_match('#id="results"[^>]*data-grid data-shop="[^"]*/shop" aria-live="polite"#', $html)
+        && str_contains($html, 'Skel Marble'));
+    $root = dirname(__DIR__);
+    $css = (string) file_get_contents($root . '/public/assets/css/store.css');
+    $assert->that('skeleton: built CSS hides cards while busy and has the placeholder blocks', str_contains($css, '[data-grid][aria-busy=true]>.card')
+        && str_contains($css, '.skel-card') && str_contains($css, '.skel-img') && str_contains($css, '@keyframes skel'));
+    $sj = (string) file_get_contents($root . '/public/assets/js/store.js');
+    $assert->that('skeleton: store.js swaps in placeholders and undoes them on pageshow', str_contains($sj, "grid.setAttribute('aria-busy', 'true')")
+        && str_contains($sj, "grid.removeAttribute('aria-busy')"));
 
     $app->config()->set('store.enabled', false);
     $res = $router->dispatch($req('/offline'));

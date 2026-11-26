@@ -2,7 +2,8 @@
 /**
  * Shop listing (design: html/storefront/shop.html; docs/storefront.md). Works without JS:
  * the filter panel is a GET form (Apply button), chips / categories / pages are links. store.js
- * only auto-submits on change, opens the mobile drawer and toggles the grid density.
+ * only auto-submits on change, opens the mobile drawer, toggles the grid density and shows a skeleton
+ * grid while the next results page loads.
  *
  * @var array $state @var array $result @var list<array> $cards @var string $path @var array|null $top @var array|null $room
  * @var array $hero @var list<array> $subChips @var list<array> $tree @var list<array> $origins @var int $total @var list<array> $others
@@ -171,7 +172,7 @@ $sumCls = 'flex items-center justify-between gap-2 font-semibold cursor-pointer 
     <?php endif; ?>
 
     <?php if ($cards !== []): ?>
-    <div id="results" class="mt-5 grid gap-3 sm:gap-5 grid-cols-2 md:grid-cols-3 2xl:grid-cols-4" data-grid>
+    <div id="results" class="mt-5 grid gap-3 sm:gap-5 grid-cols-2 md:grid-cols-3 2xl:grid-cols-4" data-grid data-shop="<?= e(store_url('/shop')) ?>" aria-live="polite">
       <?php foreach ($cards as $c): ?><?= store_card($c) ?><?php endforeach; ?>
     </div>
     <?php else: ?>

@@ -137,7 +137,22 @@
   .is-app input, .is-app textarea, .is-app [contenteditable], .is-app .selectable, .is-app .prose-policy { -webkit-user-select: text; user-select: text; }
   .is-app img { -webkit-user-drag: none; }
   .is-app header.sticky { padding-top: env(safe-area-inset-top); }
+
+  /* Skeleton shop grid: placeholders while the next results page loads (shop() in store.js). */
+  [data-grid][aria-busy="true"] > .card { display: none; }
+  .skel-card { display: flex; flex-direction: column; overflow: hidden; border-radius: 20px; background: #fff; border: 1px solid rgba(21,33,31,.05); }
+  .skel-body { display: flex; flex-direction: column; gap: 9px; padding: 14px; }
+  .skel { display: block; height: 10px; border-radius: 999px;
+    background: linear-gradient(90deg, #EDE6D9 25%, #F6F2EA 50%, #EDE6D9 75%) 0 0 / 300% 100%; animation: skel 1.4s ease-in-out infinite; }
+  .skel-img { height: auto; aspect-ratio: 1 / 1; border-radius: 0; }
+  .skel-t { height: 16px; width: 78%; }
+  .skel-s { height: 8px; width: 38%; }
+  .skel-m { width: 58%; }
+  .skel-p { height: 14px; width: 46%; margin-top: 4px; }
+  .skel-b { height: 40px; margin-top: 8px; }
+  @media (min-width: 640px) { .skel-body { padding: 16px; } }
 }
+@keyframes skel { from { background-position: 100% 0; } to { background-position: 0 0; } }
 @keyframes ptr-spin { to { transform: rotate(360deg); } }
 
 @view-transition { navigation: auto; }

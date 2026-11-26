@@ -224,6 +224,8 @@
     function send() {
       $$('input[type=number]', form).forEach(function (i) { if (i.value === '') i.disabled = true; });
       var so = $('#sort'); if (so && so.value === 'featured') so.disabled = true;
+      if (panel && panel.classList.contains('open')) { panel.classList.remove('open'); document.body.style.overflow = ''; }
+      skeleton();
       form.submit();
     }
     form.addEventListener('submit', function (e) { e.preventDefault(); send(); });
@@ -237,6 +239,36 @@
     $$('[data-filters-close]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); panel.classList.remove('open'); document.body.style.overflow = ''; }); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && panel.classList.contains('open')) { panel.classList.remove('open'); document.body.style.overflow = ''; } });
     var grid = $('[data-grid]');
+    // Skeleton grid: on a filter, sort, chip, category or page change, swap the cards for placeholders
+    // until the next page arrives. The short delay keeps prefetched (instant) pages from flashing it.
+    var skelT = null, SKEL = '<div class="skel-card" aria-hidden="true"><span class="skel skel-img"></span><div class="skel-body">'
+      + '<span class="skel skel-s"></span><span class="skel skel-t"></span><span class="skel skel-m"></span><span class="skel skel-p"></span>'
+      + '<span class="skel skel-b"></span></div></div>';
+    function skeleton() {
+      if (!grid || grid.getAttribute('aria-busy') === 'true') return;
+      clearTimeout(skelT);
+      skelT = setTimeout(function () {
+        var n = Math.min(Math.max(grid.querySelectorAll('.card').length, 4), 8), html = '';
+        for (var i = 0; i < n; i++) html += SKEL;
+        grid.insertAdjacentHTML('beforeend', html);
+        grid.setAttribute('aria-busy', 'true');
+      }, 120);
+    }
+    var shopPath = grid ? new URL(grid.getAttribute('data-shop'), location.href).pathname.replace(/\/$/, '') : '';
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!grid || !a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (a.target || a.hasAttribute('download') || a.origin !== location.origin || a.closest('.card')) return;
+      if (a.pathname === location.pathname && a.search === location.search) return;   // same page (#filters, #enquire …)
+      if (a.pathname === shopPath || a.pathname.indexOf(shopPath + '/') === 0) skeleton();
+    });
+    // Back/forward restores this page from the bfcache: drop the placeholders and re-enable the
+    // inputs send() disabled, so the restored filters submit normally again.
+    window.addEventListener('pageshow', function () {
+      clearTimeout(skelT);
+      if (grid) { $$('.skel-card', grid).forEach(function (el) { el.remove(); }); grid.removeAttribute('aria-busy'); }
+      $$('input[type=number]', form).concat($$('#sort')).forEach(function (i) { i.disabled = false; });
+    });
     function dense(on) {
       if (!grid) return;
       grid.className = 'mt-5 grid gap-3 sm:gap-5 ' + (on ? 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6' : 'grid-cols-2 md:grid-cols-3 2xl:grid-cols-4');

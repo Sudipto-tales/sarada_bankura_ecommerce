@@ -38,14 +38,14 @@ These changes also improve the mobile website.
 | Product page: no tab bar, glass buy bar at the bottom | `product.php` (`'tabbar' => false`) |
 | View Transitions, card → product image move, Speculation Rules prefetch | `store.css`, `layouts/app.php` |
 | Service worker (`/service-worker`) + `/offline` page with "saved on this device" list | `AppShellController`, `resources/sw/sw.js` |
+| Skeleton shop grid: placeholder cards while the next filter / sort / page loads (120 ms delay so prefetched pages don't flash it; cleared on back/forward) | `shop()` in `store.js`, `.skel*` in `store.css` |
 
 The worker is served extensionless so no host-level `.js` cache rule can pin an old version. It
 skips any response marked `no-store` / `private` (signed-in pages, admin preview) on top of the path
 list. Images are capped at 400 entries. Signing out clears the saved pages. Tests:
 `tests/app_shell_test.php`.
 
-**Not done yet (follow-up PR):** the skeleton shop grid, and bottom sheets for the variant picker
-and sort.
+**Not done yet (follow-up PR):** bottom sheets for the variant picker and sort.
 
 **Plan:**
 
