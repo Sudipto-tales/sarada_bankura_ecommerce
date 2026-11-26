@@ -15,7 +15,7 @@ PHP framework. Production runs on Hostinger with **MariaDB/MySQL**. SQLite is fo
 | [admin-access.md](admin-access.md) | Staff login, roles & permissions, invites, OTP | phases 1–4 built |
 | [whatsapp.md](whatsapp.md) | Meta Cloud API channel (dormant until `.env` is filled) | W1–W3 built |
 | [storefront.md](storefront.md) | Public shop, cart, checkout, customer accounts | S1–S5 built |
-| [mobile-app.md](mobile-app.md) | Android app (Capacitor), Play Store, offline, APK release workflow | planned |
+| [mobile-app.md](mobile-app.md) | Android app (Capacitor), Play Store, offline, push, APK release workflow | phases 1–4 built; Play submission next |
 | [usage.md](usage.md) · [architecture.md](architecture.md) · [features.md](features.md) · [realtime.md](realtime.md) | The Vayu framework itself | reference |
 
 Design references: `html/admin/` (Veylix admin mockups) and `html/storefront/` (storefront
@@ -59,6 +59,7 @@ Only the listed class may write these tables or columns. Controllers never updat
 | `whatsapp_messages` (outgoing) | `WhatsApp\WhatsAppService` |
 | carts / saved items / enquiries / storefront `users` + auth tables | `Store\Cart` / `Store\Saved` / `Store\Enquiries` / `Store\CustomerAuth` |
 | `app_releases` + APKs in `storage/uploads/app/` | `AppReleases` |
+| `app_devices` (push tokens) | `Push\Devices` |
 
 ## Migrations
 
@@ -76,6 +77,7 @@ Only the listed class may write these tables or columns. Controllers never updat
 | 000014 | admin users, roles, invites, OTPs, remember tokens, login attempts |
 | 000016–000017 | storefront: carts, saved items, enquiries, customer auth; nullable `users.email` |
 | 000018 | Android app releases (`app_releases`) |
+| 000019 | Android app push devices (`app_devices`) |
 
 (000015 was reserved for returns and never used.)
 

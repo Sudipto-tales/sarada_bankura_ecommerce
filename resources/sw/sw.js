@@ -5,7 +5,7 @@ const IMAGES = 'ms-img-v1';
 const PRECACHE = __PRECACHE__;
 const OFFLINE = __OFFLINE__;
 const BASE = new URL(self.registration.scope).pathname.replace(/\/$/, '');
-const NEVER = /^\/(checkout|pay|order|cart|account|signin|signout|register|admin|track|enquiry|review|saved\/|app\/download)(\/|$)/;
+const NEVER = /^\/(checkout|pay|order|cart|account|signin|signout|register|admin|track|enquiry|review|saved\/|app\/(download|version|devices)|\.well-known)(\/|$)/;
 const MAX_PAGES = 80;
 const MAX_IMAGES = 400;
 const BLANK = '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1 1"/>';

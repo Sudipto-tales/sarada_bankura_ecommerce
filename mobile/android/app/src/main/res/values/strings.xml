@@ -1,0 +1,9 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Maa Sarada</string>
+    <string name="title_activity_main">Maa Sarada</string>
+    <string name="package_name">com.maasarada.store</string>
+    <string name="custom_url_scheme">com.maasarada.store</string>
+    <!-- Storefront host: App Links, must match server.url in capacitor.config.json -->
+    <string name="app_host" translatable="false">maasaradamarbleandsanitation.com</string>
+</resources>

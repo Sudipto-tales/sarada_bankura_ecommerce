@@ -1,0 +1,30 @@
+{
+  "name": "maa-sarada-app",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Android shell for the Maa Sarada storefront (docs/mobile-app.md phase 4)",
+  "scripts": {
+    "sync": "cap sync android",
+    "assets": "capacitor-assets generate --android --iconBackgroundColor '#F6F2EA' --iconBackgroundColorDark '#15211F' --splashBackgroundColor '#F6F2EA' --splashBackgroundColorDark '#15211F' && php tools/make-assets.php"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.3",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/browser": "8.0.5",
+    "@capacitor/core": "8.6.3",
+    "@capacitor/haptics": "8.0.2",
+    "@capacitor/keyboard": "8.0.6",
+    "@capacitor/network": "8.0.1",
+    "@capacitor/push-notifications": "8.1.3",
+    "@capacitor/share": "8.0.3",
+    "@capacitor/splash-screen": "8.0.2",
+    "@capawesome/capacitor-app-update": "8.1.1"
+  },
+  "devDependencies": {
+    "@capacitor/assets": "4.0.0",
+    "@capacitor/cli": "8.6.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

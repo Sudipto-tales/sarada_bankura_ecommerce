@@ -8,7 +8,7 @@ use Vayu\Http\Response;
 /** Service worker + offline page (docs/mobile-app.md). */
 class AppShellController
 {
-    public const PRECACHE = ['css/store.css', 'js/store.js', 'vendor/lucide/lucide-0.544.0.min.js', 'image/logo.webp'];
+    public const PRECACHE = ['css/store.css', 'js/store.js', 'js/app-bridge.js', 'vendor/lucide/lucide-0.544.0.min.js', 'image/logo.webp'];
     public const FONTS = ['manrope-latin.woff2', 'fraunces-latin.woff2'];
 
     public function worker(): Response

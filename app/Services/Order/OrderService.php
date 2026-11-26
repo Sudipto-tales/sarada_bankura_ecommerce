@@ -480,6 +480,7 @@ final class OrderService
         }
         // WhatsApp (Stage 7): customer update + delivery OTP; no-op while dormant, never throws.
         $otpSent = \App\Services\WhatsApp\FlowNotifier::orderTransition($orderId, $to, $otp);
+        \App\Services\Push\OrderPush::transition($orderId, $to); // app push (dispatched / delivered), never throws
 
         return ['otp' => $otp, 'warnings' => $warnings, 'otp_sent' => $otpSent];
     }

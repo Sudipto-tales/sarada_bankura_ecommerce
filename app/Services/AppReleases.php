@@ -23,6 +23,7 @@ final class AppReleases
     public const MAX_BYTES = 60 * 1024 * 1024;        // the server's upload limit is 64M
     public const MAX_CODE = 2100000000;               // Google Play's versionCode ceiling
     public const MIME = 'application/vnd.android.package-archive';
+    public const PACKAGE = 'com.maasarada.store';            // permanent (owner decision 2026-11-27)
 
     /* ================================================================ reads */
 

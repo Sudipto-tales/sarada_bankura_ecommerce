@@ -1,0 +1,6 @@
+node_modules/
+# Signing material and Firebase config come from CI secrets, never the public repo.
+*.jks
+*.keystore
+keystore.properties
+android/app/google-services.json

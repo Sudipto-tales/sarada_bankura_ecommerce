@@ -1,0 +1,41 @@
+{
+  "appId": "com.maasarada.store",
+  "appName": "Maa Sarada",
+  "webDir": "www",
+  "server": {
+    "url": "https://maasaradamarbleandsanitation.com",
+    "errorPath": "offline.html",
+    "androidScheme": "https"
+  },
+  "android": {
+    "appendUserAgent": "MaaSaradaApp/1.0.0",
+    "backgroundColor": "#F6F2EA",
+    "allowMixedContent": false,
+    "captureInput": true,
+    "webContentsDebuggingEnabled": false
+  },
+  "plugins": {
+    "SplashScreen": {
+      "launchAutoHide": true,
+      "launchShowDuration": 3000,
+      "backgroundColor": "#F6F2EA",
+      "showSpinner": false,
+      "androidScaleType": "CENTER_INSIDE"
+    },
+    "Keyboard": {
+      "resizeOnFullScreen": true
+    },
+    "PushNotifications": {
+      "presentationOptions": [
+        "badge",
+        "sound",
+        "alert"
+      ]
+    },
+    "SystemBars": {
+      "insetsHandling": "native",
+      "initialViewportFitValueHint": "cover",
+      "style": "LIGHT"
+    }
+  }
+}

@@ -51,7 +51,7 @@ jobs:
           mkdir -p "$RUNNER_TEMP/release"
           rsync -a ./ "$RUNNER_TEMP/release/" \
             --exclude='.git/' --exclude='.github/' --exclude='tests/' --exclude='docs/' \
-            --exclude='html/' --exclude='tools/' --exclude='node_modules/' --exclude='agent/' \
+            --exclude='html/' --exclude='tools/' --exclude='node_modules/' --exclude='agent/' --exclude='mobile/' \
             --exclude='.env' --exclude='.env.*' --exclude='*.sqlite' \
             --exclude='tailwind*.config.js' --exclude='README.md' \
             --exclude='/storage/logs/***' --exclude='/storage/cache/***' --exclude='/storage/media/***' \
