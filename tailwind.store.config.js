@@ -8,6 +8,8 @@ module.exports = {
     './app/Services/Store/**/*.php',
     './app/Controllers/Store/**/*.php',
     './public/assets/js/store.js',
+    './public/assets/js/app-bridge.js',
+    './public/assets/js/pay-window.js',
   ],
   theme: {
     extend: {

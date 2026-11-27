@@ -249,6 +249,7 @@ final class CustomerAuth
 
     public static function logout(): void
     {
+        \App\Services\Push\Devices::forgetSessionDevice(); // before the session is regenerated
         $raw = (string) ($_COOKIE[self::COOKIE] ?? '');
         if (preg_match('/^([a-f0-9]{24}):/', $raw, $m)) {
             DB::delete('DELETE FROM customer_remember_tokens WHERE selector = ?', [$m[1]]);
@@ -274,7 +275,7 @@ final class CustomerAuth
      * unlinked: it is the shop's own customer file, not data collected by the account.
      * Kept: orders, order items, payments, refunds and payment screenshots. Orders carry their own
      * name / phone / address snapshot, which GST law requires us to keep.
-     * Phase 4 adds push tokens: delete them here too.
+     * The app's push tokens (app_devices) are deleted too.
      *
      * @return array{orders: int} orders kept
      */
@@ -321,6 +322,7 @@ final class CustomerAuth
             }
             DB::delete('DELETE FROM customer_remember_tokens WHERE user_id = ?', [$userId]);
             DB::delete('DELETE FROM customer_auth_codes WHERE user_id = ?', [$userId]);
+            \App\Services\Push\Devices::forgetUser($userId);
             DB::update('UPDATE users SET name = ?, email = NULL, phone = NULL, password = NULL, status = ?, session_version = session_version + 1,
                 email_verified_at = NULL, phone_verified_at = NULL, last_login_at = NULL, updated_at = ? WHERE id = ?', [self::DELETED_NAME, 'deleted', $now, $userId]);
         });

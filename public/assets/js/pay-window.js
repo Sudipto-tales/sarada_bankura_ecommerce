@@ -13,6 +13,9 @@
   var $ = function (s) { return root.querySelector(s); };
   var $$ = function (s) { return Array.prototype.slice.call(root.querySelectorAll(s)); };
   var mobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+  // Android app (docs/mobile-app.md): a QR can't be scanned by the phone showing it, so the app
+  // shows one big "Pay with UPI app" button; the app hands upi:// to a chooser of UPI apps.
+  var inApp = document.documentElement.classList.contains('is-app');
 
   function state(name) {
     $$('[data-pw-state]').forEach(function (el) { el.hidden = el.dataset.pwState !== name; });
@@ -72,8 +75,10 @@
     if (a.upi) {
       $('[data-pw-vpa]').textContent = a.upi.id;
       $('[data-pw-payee]').textContent = a.upi.payee;
-      if (window.QRCode) new QRCode(qr, { text: a.upi.uri, width: 168, height: 168, colorDark: '#111111', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
+      qr.hidden = inApp;
+      if (window.QRCode && !inApp) new QRCode(qr, { text: a.upi.uri, width: 168, height: 168, colorDark: '#111111', colorLight: '#ffffff', correctLevel: QRCode.CorrectLevel.M });
       var app = $('[data-pw-app]'); app.href = a.upi.uri; app.hidden = !mobile;
+      if (inApp) { app.textContent = 'Pay with UPI app'; app.classList.add('w-full'); }
     }
     var bank = $('[data-pw-bank]');
     bank.hidden = !a.bank;

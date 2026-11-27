@@ -37,6 +37,7 @@ $router->get('/offline', [\App\Controllers\Store\AppShellController::class, 'off
 // Android app releases (phase 3): installed apps must always reach the update check and the APK.
 $router->get('/app/download', [\App\Controllers\Store\AppController::class, 'download'])->name('store.app.download')->middleware('throttle:20,1');
 $router->get('/app/version', [\App\Controllers\Store\AppController::class, 'version'])->name('store.app.version');
+$router->get('/.well-known/assetlinks.json', [\App\Controllers\Store\AppController::class, 'assetLinks'])->name('store.app.assetlinks');
 
 // Storefront (Stage 8, docs/storefront.md). StoreOpen = launch switch (STOREFRONT_ENABLED; admins preview),
 // StoreCustomer = signed-in customer from the session. Fully-qualified names keep this block self-contained.
@@ -84,6 +85,7 @@ $router->group(['middleware' => [\App\Middleware\StoreOpen::class, \App\Middlewa
     $router->post('/account/delete', [$acct, 'destroy'])->name('store.account.destroy')->middleware([$need, 'throttle:10,1']);
     $router->get('/account-deletion', [\App\Controllers\Store\PageController::class, 'accountDeletion'])->name('store.account.deletion');
     $router->get('/app', [\App\Controllers\Store\AppController::class, 'page'])->name('store.app');
+    $router->post('/app/devices', [\App\Controllers\Store\AppController::class, 'registerDevice'])->name('store.app.devices')->middleware([$need, 'throttle:30,1']);
     $router->get('/account', [$acct, 'show'])->name('store.account')->middleware($need);
     $router->get('/account/{tab}', [$acct, 'show'])->name('store.account.tab')->middleware($need);
     $router->post('/account/profile', [$acct, 'profile'])->name('store.account.profile')->middleware($need);

@@ -24,7 +24,9 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover<?= $inApp ? ', maximum-scale=1, user-scalable=no' : '' ?>">
-<?php if ($inApp): ?><meta name="format-detection" content="telephone=no"><?php endif; ?>
+<?php if ($inApp): ?><meta name="format-detection" content="telephone=no">
+<?php if (Context::customer() !== null): ?><meta name="ms-push" content="<?= e(store_url('/app/devices')) ?>" data-reg="<?= e(\App\Services\Push\Devices::sessionTag()) ?>"><?php endif; ?>
+<?php endif; ?>
 <title><?= e($title) ?></title>
 <meta name="description" content="<?= e($description) ?>">
 <meta name="csrf-token" content="<?= e(csrf_token()) ?>">
@@ -74,6 +76,7 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <script type="application/json" id="store-account"><?= store_json($acct && $acct['customer_id'] ? ['saved' => \App\Services\Store\Saved::slugs((int) $acct['customer_id']), 'url' => (string) route('store.saved.toggle')] : null) ?></script>
 <script src="<?= e(store_asset('vendor/lucide/lucide-0.544.0.min.js')) ?>" defer></script>
 <script src="<?= e(store_asset('js/store.js')) ?>" defer></script>
+<?php if ($inApp): ?><script src="<?= e(store_asset('js/app-bridge.js')) ?>" defer></script><?php endif; ?>
 <?= $page['scripts'] ?>
 </body>
 </html>

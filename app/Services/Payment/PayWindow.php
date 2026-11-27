@@ -201,6 +201,7 @@ final class PayWindow
         if ($a['context'] === 'checkout' && $order) {
             NotificationService::notify('order.new', 'New website order ' . $order['order_number'],
                 Money::inr($a['amount']) . ' paid by UPI, waiting for verification. ' . $who, route('admin.orders.show', ['id' => $order['id']]), 'info', ['order_id' => (int) $order['id']]);
+            \App\Services\Push\OrderPush::placed((int) $order['id'], $a['amount']); // app push, never throws
         }
         NotificationService::notify('payment.submitted',
             'Verify ' . Money::inr($a['amount']) . ($order ? ' · ' . $order['order_number'] : ' · no order'),

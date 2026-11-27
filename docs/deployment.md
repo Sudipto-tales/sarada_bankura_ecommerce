@@ -21,7 +21,7 @@ A branch cut before a CI fix must merge `main` in to pick it up.
 ## Deploy (`.github/workflows/deploy.yml` + `bin/deploy/activate.sh`)
 
 1. Build the release on the runner: code + production `vendor/` (no tests, docs, `html/`, tools,
-   `.env*`, SQLite files). Release id = `YYYYMMDD-HHMMSS-<sha7>` (IST).
+   `mobile/` (the Android app, built by `android.yml`), `.env*`, SQLite files). Release id = `YYYYMMDD-HHMMSS-<sha7>` (IST).
 2. `rsync` it to `releases/<id>/` over SSH.
 3. On the server, `activate.sh`:
    1. links `shared/.env`, `shared/storage/*` and `shared/uploads` into the release;
@@ -69,6 +69,10 @@ Start from `.env.production.example`. Key points:
   Meta account is ready (see whatsapp.md).
 - `APP_PLAY_URL`: the app's Google Play listing. Leave it empty until the app is live on Play
   (see mobile-app.md). APKs uploaded in Admin → Settings → Android app go to `shared/storage/uploads/app/`.
+- `FCM_SERVICE_ACCOUNT`: absolute path to the Firebase service-account JSON for app push, e.g.
+  `<DEPLOY_PATH>/shared/firebase-sa.json` (`chmod 600`, outside `public/`). Empty = push off.
+- `APP_CERT_SHA256`: the app signing certificate's SHA-256 (Play Console → App integrity), served
+  at `/.well-known/assetlinks.json` so shop links open in the app. Empty = links open in the browser.
 - After changing `.env`, run `php vayu optimize` again (the config cache freezes env values).
 
 The server's CLI `php` is older than 8.3: run commands with the alt-PHP 8.3 binary

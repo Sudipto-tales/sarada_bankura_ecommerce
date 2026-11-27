@@ -1,6 +1,6 @@
 # Android app
 
-**Status: phases 1–3 built (web side, branches `feature/app-native-feel`, `feature/app-skeleton-sheets`, `feature/play-prereqs`, `feature/app-releases`); phase 4 (the Capacitor shell) planned.** A Capacitor Android app for the storefront, published on
+**Status: phases 1–4 built (branches `feature/app-native-feel`, `feature/app-skeleton-sheets`, `feature/play-prereqs`, `feature/app-releases`, `feature/app-shell`). Next: the owner's accounts (Play Console, Firebase, upload key) and the first Play submission.** A Capacitor Android app for the storefront, published on
 Google Play and also offered as a direct APK download from `/app`. Releases are managed from the
 admin panel.
 
@@ -111,8 +111,8 @@ handler calls it before navigating back.
 | Orders, items, payments, refunds, screenshots | **Kept** (GST record-keeping, about six years). Orders hold their own name / phone / address snapshot |
 
 An `audit_logs` row (`customer_account`, `delete`, orders kept) records each deletion. The same
-mobile number can register again and gets a fresh customer record. **Phase 4:** delete the device push
-tokens in `deleteAccount()`.
+mobile number can register again and gets a fresh customer record. Deletion also removes every push
+token of the login (`app_devices`, phase 4).
 
 **Play Console values:**
 - Privacy policy URL: `https://<domain>/policy#privacy`
@@ -175,31 +175,106 @@ audit-logged (`app_release`).
 
 ## Phase 4: the Capacitor shell (`mobile/`, excluded from rsync deploys)
 
-**Plugins**
-- `@capacitor/app` handles the back button (history back; on Home, "press back again to exit") and
-  `appUrlOpen` deep links.
-- `@capacitor/splash-screen` is hidden from web JS on first paint, so there's no white flash.
-- Also: `status-bar`, `network`, `haptics`, `share`, `keyboard`.
-- `@capacitor/push-notifications` with Firebase Cloud Messaging (FCM).
-- In-app updates through the Play In-App Updates API, e.g. `@capawesome/capacitor-app-update`.
+**Built** (branch `feature/app-shell`, tests: `tests/app_push_test.php`; the Android build itself runs
+in `.github/workflows/android.yml`).
 
-**External intents:** `upi://`, `tel:`, `mailto:` and `https://wa.me` open outside the WebView.
-In app mode the pay window shows a **Pay with UPI app** button in place of the QR code.
+### The project (`mobile/`)
 
-**Updates**
-- If Play installed the app: use the Play In-App Updates API only.
-- If the APK was sideloaded: read `/app/version` and link to `/app`.
-- The app never downloads or installs an APK itself. Play forbids self-updating, so the app never
-  asks for `REQUEST_INSTALL_PACKAGES`.
+| Piece | Where |
+| --- | --- |
+| Capacitor 8 config: package `com.maasarada.store`, name "Maa Sarada", `server.url` = the live store, local `offline.html` when the first load fails | `capacitor.config.json`, `www/offline.html` |
+| Native Android project (committed, regenerated parts come from `npx cap sync`) | `android/` |
+| Version in one place: `version.properties` (`versionName`, `versionCode = major·10000 + minor·100 + patch`) plus the `MaaSaradaApp/<versionName>` UA token | `tools/set-version.mjs 1.2.0` (CI runs it from the tag) |
+| Release signing from env only (`ANDROID_KEYSTORE_FILE` + passwords) | `android/app/build.gradle` |
+| UPI / tel / mailto / sms / whatsapp links leave the WebView (UPI opens a "Pay with" chooser; no app → `noApp` event → toast); `intent:` / `file:` / `content:` links are blocked; `info()` reports the installer (Play or sideload) and version code | `MsShellPlugin.java` |
+| Manifest: `INTERNET`, `POST_NOTIFICATIONS`, `<queries>` for upi / tel / mailto / sms / https, App Links for `/product/`, `/shop`, `/order/`, `/pay/`, `/account`, `/saved`, `/cart`, `/brands`, no backup, FCM icon + `orders` channel | `AndroidManifest.xml` |
+| Icons: adaptive (crest on cream) + monochrome (themed icons) + round/legacy, white status-bar icon for push, splash light/dark | `tools/make-assets.php` via `npm run assets` |
 
-**Push notifications**
-- Table `app_devices`: customer id, FCM token, platform, last seen.
-- PHP sends through the FCM HTTP v1 API, using a service-account JWT signed with openssl (no SDK).
-- Triggers hook into the order notifications (status change, payment verified, out for delivery).
-- Push tokens live in `app_devices`, so the push code never writes to `notifications`.
+Plugins: `app`, `splash-screen`, `keyboard`, `network`, `haptics`, `share`, `browser`,
+`push-notifications` and `@capawesome/capacitor-app-update`. Status bar and edge-to-edge come from
+Capacitor 8's built-in `SystemBars` (`insetsHandling: native`, so the site's
+`env(safe-area-inset-*)` padding works), so `@capacitor/status-bar` isn't used.
 
-**Identity:** app name and package ID, adaptive + monochrome icon and splash. **The package ID is
-permanent.**
+### Web side (`public/assets/js/app-bridge.js`, loaded only in app mode)
+
+The app loads the live site, so each page is a fresh JS context and the bridge re-adds its native
+listeners on every page.
+
+| Feature | Behaviour |
+| --- | --- |
+| Splash | Hidden on first paint (fallback: auto-hide after 3 s, e.g. on the offline screen) |
+| Back button | Closes, in order: a bottom sheet (`msSheet.close()`), the pay window, the menu drawer, an app card. Then `history.back()`. On Home: "Press back again to exit" |
+| Deep links | `appUrlOpen` → same-site path only |
+| Share | `[data-copy-link]` / `[data-share]` buttons open the Android share sheet (the WebView has no `navigator.share`) |
+| Keyboard | `html.kb-open` hides the tab bar |
+| Pay window | No QR in the app; one full-width **Pay with UPI app** button (`pay-window.js`) |
+| Push | See below |
+| Updates | Play install → Play In-App Updates (flexible; immediate when below `min_code`). Sideloaded → `/app/version`; "New version" card (skippable) or a blocking "Please update" card below `min_code`; **Download** opens `/app` in a Custom Tab. The app never installs APKs itself |
+
+### Push notifications
+
+- **Table `app_devices`** (migration 000019, single writer `Push\Devices`): `user_id`, `customer_id`,
+  unique `token`, `platform`, `app_version`, `last_seen_at`, `failures`.
+- **Registering:** the layout adds `<meta name="ms-push">` for a signed-in customer in the app. The
+  bridge then registers with FCM when permission is already granted, and `POST /app/devices` stores
+  the token (CSRF + `RequireCustomer`, throttled). The meta carries `data-reg`, a 16-hex sha256 tag
+  of the token this server session registered, and the bridge posts only when its token's tag
+  differs. So a sign-out / sign-in or a remember-me login re-registers the phone without an app
+  restart, and every other page skips the POST. A token moves to whoever
+  registered it last, so a shared phone never gets the previous customer's updates. At most 10
+  phones per login. Sending matches a phone by `customer_id` or by the login linked to the customer
+  (`customers.user_id`), because a phone often registers before the first checkout creates the
+  customer record.
+- **Asking:** never at launch. The first time a signed-in customer opens an order page, a card asks
+  "Get order updates on this phone?" and only **Turn on** shows Android's permission prompt. It is
+  asked once (`ms.pushAsked`).
+- **Removing:** sign-out deletes this phone's token (kept in the session); account deletion deletes
+  all of the login's tokens; FCM's `UNREGISTERED` / 404 deletes a token; 5 failures in a row too.
+- **Sending:** `Push\Fcm`, FCM HTTP v1 with a service-account JWT signed by openssl (RS256), the
+  OAuth token cached until 5 minutes before expiry, 6 s timeout. `FCM_SERVICE_ACCOUNT` unset = off.
+  Sending runs inside the request, so each event has an 8 s budget (`OrderPush::$budget`). Phones
+  past it miss that one update, and a slow FCM can't stall "Mark dispatched".
+- **Triggers** (`Push\OrderPush`, after the flow's transaction, never throws):
+
+  | Event | Hook | Message |
+  | --- | --- | --- |
+  | Order placed | `PayWindow::submit` (checkout) | "Order … placed", checking the payment |
+  | Payment verified / recorded | `Ledger::verify`, `Ledger::record` | amount, balance or "Fully paid" |
+  | Dispatched | `OrderService::transition` | "on its way", keep the OTP ready |
+  | Delivered | `OrderService::transition` | thanks, invoice on the order page |
+
+  Tapping opens `/order/<token>`. Notifications of one order share a tag, so a newer one replaces
+  the older one. Push never writes to `notifications` (the admin bell).
+
+### App Links
+
+`/.well-known/assetlinks.json` lists `APP_CERT_SHA256` (comma-separated; Play Console ▸ App integrity ▸
+App signing key certificate, and the upload key's if you test signed builds outside Play). Empty →
+`[]`, and links keep opening in the browser. The host in `AndroidManifest.xml` comes from
+`@string/app_host`; change it together with `server.url` if the domain changes.
+
+### Building (`.github/workflows/android.yml`)
+
+| Trigger | Result |
+| --- | --- |
+| Pull request touching `mobile/` | Unsigned debug APK (proves it builds; push off without Firebase config) |
+| Tag `app-v1.2.0` | Version 1.2.0 / code 10200, signed **AAB** (for Play) + APK, as a workflow artifact |
+| Manual run, "release" ticked | Signed build with the version in `version.properties` |
+
+Secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
+`ANDROID_KEY_PASSWORD`, `GOOGLE_SERVICES_JSON` (the file's JSON text). A release build fails when any is
+missing. Locally (Node 22, JDK 21, Android SDK 36): `cd mobile && npm ci && npx cap sync android &&
+cd android && ./gradlew assembleDebug`.
+
+### Before the first release (owner)
+
+1. Play Console organisation account (D-U-N-S), Firebase project with an Android app
+   `com.maasarada.store`, upload key (see *Signing* below), and the five GitHub secrets.
+2. Server: the service-account JSON in `shared/`, `FCM_SERVICE_ACCOUNT` and (after Play App Signing is
+   set up) `APP_CERT_SHA256` in `shared/.env`, then `php vayu optimize`.
+3. A sharper icon: the crest is cut from the 560 px web logo. Put a 1024 px crest in
+   `tools/make-assets.php`'s source and run `npm run assets`.
+4. Tag `app-v1.0.0` and follow the release workflow below.
 
 ## Android permissions
 

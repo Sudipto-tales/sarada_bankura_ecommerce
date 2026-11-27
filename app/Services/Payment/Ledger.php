@@ -73,6 +73,7 @@ final class Ledger
         });
         NotificationService::markReadByKey('payment:submitted:' . $a['id']);
         FlowNotifier::paymentReceived((int) $res['payment_id']); // WhatsApp (Stage 7), no-op while dormant
+        \App\Services\Push\OrderPush::paymentReceived((int) $res['payment_id']); // app push, never throws
 
         return $res + ['difference' => (float) ((PaymentService::cents($v['amount']) - PaymentService::cents($a['amount'])) / 100)];
     }
@@ -175,6 +176,7 @@ final class Ledger
             return ['payment_id' => $pid, 'payment_number' => $number];
         });
         FlowNotifier::paymentReceived((int) $res['payment_id']); // WhatsApp (Stage 7), no-op while dormant
+        \App\Services\Push\OrderPush::paymentReceived((int) $res['payment_id']); // app push, never throws
 
         return $res;
     }
