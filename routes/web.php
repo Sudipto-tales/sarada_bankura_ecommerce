@@ -34,6 +34,9 @@ use App\Controllers\WelcomeController;
 // App shell (docs/mobile-app.md): outside StoreOpen so the worker and offline page always load.
 $router->get('/service-worker', [\App\Controllers\Store\AppShellController::class, 'worker'])->name('store.sw');
 $router->get('/offline', [\App\Controllers\Store\AppShellController::class, 'offline'])->name('store.offline');
+// Android app releases (phase 3): installed apps must always reach the update check and the APK.
+$router->get('/app/download', [\App\Controllers\Store\AppController::class, 'download'])->name('store.app.download')->middleware('throttle:20,1');
+$router->get('/app/version', [\App\Controllers\Store\AppController::class, 'version'])->name('store.app.version');
 
 // Storefront (Stage 8, docs/storefront.md). StoreOpen = launch switch (STOREFRONT_ENABLED; admins preview),
 // StoreCustomer = signed-in customer from the session. Fully-qualified names keep this block self-contained.
@@ -80,6 +83,7 @@ $router->group(['middleware' => [\App\Middleware\StoreOpen::class, \App\Middlewa
     $router->get('/account/delete', [$acct, 'deleteForm'])->name('store.account.delete')->middleware($need);
     $router->post('/account/delete', [$acct, 'destroy'])->name('store.account.destroy')->middleware([$need, 'throttle:10,1']);
     $router->get('/account-deletion', [\App\Controllers\Store\PageController::class, 'accountDeletion'])->name('store.account.deletion');
+    $router->get('/app', [\App\Controllers\Store\AppController::class, 'page'])->name('store.app');
     $router->get('/account', [$acct, 'show'])->name('store.account')->middleware($need);
     $router->get('/account/{tab}', [$acct, 'show'])->name('store.account.tab')->middleware($need);
     $router->post('/account/profile', [$acct, 'profile'])->name('store.account.profile')->middleware($need);
@@ -312,6 +316,15 @@ $router->get('/webhooks/whatsapp', [\App\Controllers\WhatsAppWebhookController::
 $router->post('/webhooks/whatsapp', [\App\Controllers\WhatsAppWebhookController::class, 'receive'])->name('webhooks.whatsapp.receive');
 $router->group(['prefix' => 'admin', 'middleware' => [\App\Middleware\AdminAuth::class]], function ($router): void {
     $router->get('/settings/whatsapp', [\App\Controllers\Admin\WhatsAppController::class, 'index'])->name('admin.settings.whatsapp');
+    // Android app releases (docs/mobile-app.md phase 3; app_releases.manage).
+    $rel = \App\Controllers\Admin\AppReleaseController::class;
+    $router->get('/app-releases', [$rel, 'index'])->name('admin.app-releases');
+    $router->post('/app-releases', [$rel, 'store'])->name('admin.app-releases.store');
+    $router->post('/app-releases/{id}/update', [$rel, 'update'])->name('admin.app-releases.update');
+    $router->post('/app-releases/{id}/publish', [$rel, 'publish'])->name('admin.app-releases.publish');
+    $router->post('/app-releases/{id}/archive', [$rel, 'archive'])->name('admin.app-releases.archive');
+    $router->post('/app-releases/{id}/delete', [$rel, 'destroy'])->name('admin.app-releases.delete');
+    $router->get('/app-releases/{id}/download', [$rel, 'download'])->name('admin.app-releases.download');
     $router->post('/settings/whatsapp/check', [\App\Controllers\Admin\WhatsAppController::class, 'check'])->name('admin.settings.whatsapp.check');
     $router->post('/settings/whatsapp/test', [\App\Controllers\Admin\WhatsAppController::class, 'test'])->name('admin.settings.whatsapp.test');
 });

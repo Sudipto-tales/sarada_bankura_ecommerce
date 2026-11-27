@@ -67,6 +67,8 @@ Start from `.env.production.example`. Key points:
 - `BUSINESS_*` (name, address, GSTIN…) feed invoices; `ADMIN_EMAIL` / `ADMIN_PHONE` feed
   `admin:install`; `STOREFRONT_ENABLED` is the launch switch; `WHATSAPP_*` stay empty until the
   Meta account is ready (see whatsapp.md).
+- `APP_PLAY_URL`: the app's Google Play listing. Leave it empty until the app is live on Play
+  (see mobile-app.md). APKs uploaded in Admin → Settings → Android app go to `shared/storage/uploads/app/`.
 - After changing `.env`, run `php vayu optimize` again (the config cache freezes env values).
 
 The server's CLI `php` is older than 8.3: run commands with the alt-PHP 8.3 binary

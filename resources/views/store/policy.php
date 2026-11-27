@@ -68,7 +68,7 @@ $sections = ['delivery' => 'Delivery', 'payments' => 'Payments', 'orders' => 'Or
         <h3>Cookies and storage on your device</h3>
         <ul>
           <li>A sign-in session cookie, a “stay signed in” cookie (30 days) and a bag cookie (30 days). These are needed for the shop to work.</li>
-          <li>Your saved list and grid size preference are kept in your browser’s storage.</li>
+          <li>Your saved list, grid size preference and whether you closed the “Get the app” banner are kept in your browser’s storage.</li>
           <li>To work offline, the site and app save the pages and images you’ve viewed on your device. Signing out clears the saved pages.</li>
         </ul>
 
