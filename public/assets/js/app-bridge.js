@@ -101,13 +101,26 @@
   var pushMeta = $('meta[name="ms-push"]');     // present only for a signed-in customer
   var csrf = $('meta[name="csrf-token"]');
 
+  // The server prints data-reg = the first 16 hex of sha256(token) this session registered. Sending
+  // only when it differs re-registers the phone after a sign-out / sign-in (a sessionStorage flag
+  // would survive the sign-out and leave the new login without updates) and skips it otherwise.
+  function tag(token) {
+    var s = window.crypto && window.crypto.subtle;
+    if (!s || !window.TextEncoder) return Promise.resolve(null);
+    return s.digest('SHA-256', new TextEncoder().encode(token)).then(function (b) {
+      return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join('').slice(0, 16);
+    }).catch(function () { return null; });
+  }
   function sendToken(token) {
     if (!pushMeta || !token) return;
-    if (store.sget('ms.pushSent') === token) return; // once per app session
-    var fd = new FormData(); fd.append('token', token);
-    fetch(pushMeta.content, { method: 'POST', body: fd, credentials: 'same-origin',
-      headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf ? csrf.content : '' } })
-      .then(function (r) { if (r.ok) store.sset('ms.pushSent', token); }).catch(noop);
+    var reg = pushMeta.getAttribute('data-reg') || '';
+    tag(token).then(function (t) {
+      if (t !== null ? t === reg : (reg !== '' && store.sget('ms.pushSent') === token + '|' + reg)) return;
+      var fd = new FormData(); fd.append('token', token);
+      return fetch(pushMeta.content, { method: 'POST', body: fd, credentials: 'same-origin',
+        headers: { 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf ? csrf.content : '' } })
+        .then(function (r) { if (r.ok) store.sset('ms.pushSent', token + '|' + reg); });
+    }).catch(noop);
   }
   function registerPush() {
     call('PushNotifications', 'createChannel', { id: 'orders', name: 'Order updates', description: 'Order, payment and delivery updates', importance: 4, visibility: 1 })

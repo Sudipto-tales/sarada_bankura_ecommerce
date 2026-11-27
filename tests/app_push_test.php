@@ -65,6 +65,11 @@ return function (Assert $assert): void {
     $assert->that('register again: same row, no duplicate', DB::table('app_devices')->count() === 1);
     Devices::register($uid, $cid, $tok('b'));
     $assert->equals('second phone: two rows', 2, Devices::countFor($uid));
+    Devices::register($uid, null, $tok('z')); // registered before the first checkout made the customer record
+    $assert->that('phone registered without a customer id still gets the customer\'s pushes (via customers.user_id)',
+        in_array($tok('z'), Devices::tokensForCustomer($cid), true) && count(Devices::tokensForCustomer($cid)) === 3);
+    Devices::forgetToken($tok('z'));
+    session()->put(Devices::SESSION, $tok('b'));
 
     // ---------------------------------------------------------------- page bits in app mode
     $html = $router->dispatch($req('GET', '/brands'))->getContent();
@@ -72,6 +77,15 @@ return function (Assert $assert): void {
     AppMode::force(true);
     $html = $router->dispatch($req('GET', '/brands'))->getContent();
     $assert->that('app, signed in: bridge script + push endpoint meta', str_contains($html, 'js/app-bridge.js') && str_contains($html, 'name="ms-push" content="') && str_contains($html, '/app/devices"'));
+    $assert->that('push meta: data-reg = tag of the token this session registered', str_contains($html, 'data-reg="' . Devices::tag($tok('b')) . '"')
+        && strlen(Devices::tag($tok('b'))) === 16 && Devices::tag($tok('b')) === substr(hash('sha256', $tok('b')), 0, 16));
+    $saved = session()->get(Devices::SESSION);
+    session()->forget(Devices::SESSION);
+    $html = $router->dispatch($req('GET', '/brands'))->getContent();
+    $assert->that('push meta: new session (after sign-out / remember-me) → empty data-reg, so the app re-sends', str_contains($html, 'data-reg=""'));
+    session()->put(Devices::SESSION, $saved);
+    $bridge = (string) file_get_contents(dirname(__DIR__) . '/public/assets/js/app-bridge.js');
+    $assert->that('bridge: resend is keyed to data-reg, not a per-app-session flag', str_contains($bridge, "getAttribute('data-reg')") && str_contains($bridge, "digest('SHA-256'"));
     AppMode::force(false);
     $sw = $router->dispatch($req('GET', '/service-worker'))->getContent();
     $assert->that('service worker: precaches the bridge, never caches /app/devices or /.well-known', str_contains($sw, 'js/app-bridge.js') && str_contains($sw, 'app\/(download|version|devices)') && str_contains($sw, '\.well-known'));
@@ -129,6 +143,12 @@ return function (Assert $assert): void {
     $calls = [];
     $assert->that('packed / accepted: no push (owner list: placed, paid, dispatched, delivered)', OrderPush::transition($oid, 'packed') === 0 && OrderPush::transition($oid, 'accepted') === 0 && $calls === []);
     $assert->that('placed: amount from the payment attempt', OrderPush::placed($oid, '1250.00') === 1 && str_contains($calls[0][2], '₹1,250'));
+    Devices::register($uid, $cid, $tok('c'));
+    OrderPush::$budget = -1.0; // already used up after the first phone
+    $calls = [];
+    $assert->that('time budget: a slow FCM stops after the first phone instead of stalling the request', OrderPush::transition($oid, 'delivered') === 1 && count($calls) === 1);
+    OrderPush::$budget = 8.0;
+    Devices::forgetToken($tok('c'));
     $calls = [];
     $pid = (int) DB::table('payments')->insertGetId(['payment_number' => 'PAY/26-27/0001', 'order_id' => $oid, 'customer_id' => $cid, 'method' => 'upi', 'amount' => 900,
         'received_at' => $now, 'status' => 'received', 'created_at' => $now, 'updated_at' => $now]);

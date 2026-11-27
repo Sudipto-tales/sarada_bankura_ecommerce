@@ -15,6 +15,13 @@ use Vayu\Database\DB;
  */
 final class OrderPush
 {
+    /**
+     * Seconds one event may spend on FCM. Sending runs inside the admin's (or the customer's)
+     * request, and each call can wait up to 6 s, so a slow or down FCM must not stall "Mark
+     * dispatched" for a minute across ten phones. Phones past the budget miss that one update.
+     */
+    public static float $budget = 8.0;
+
     /** After a checkout payment is submitted and its order created (PayWindow::submit). */
     public static function placed(int $orderId, float|string $amount): int
     {
@@ -80,7 +87,12 @@ final class OrderPush
             }
             [$title, $body] = $text($o);
             $data = ['url' => '/order/' . $o['public_token'], 'tag' => 'order-' . $orderId];
-            foreach ($tokens as $token) {
+            $start = microtime(true);
+            foreach ($tokens as $i => $token) {
+                if ($i > 0 && microtime(true) - $start > self::$budget) {
+                    error_log('[push] time budget used up, skipped ' . (count($tokens) - $i) . ' device(s) for order ' . $orderId);
+                    break;
+                }
                 $sent += Fcm::send($token, $title, $body, $data) === 'sent' ? 1 : 0;
             }
         } catch (\Throwable $e) {

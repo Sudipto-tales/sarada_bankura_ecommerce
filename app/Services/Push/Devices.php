@@ -48,6 +48,27 @@ final class Devices
         }
     }
 
+    /**
+     * Short hash of the token this session registered ('' = none yet). The layout prints it so the
+     * app re-sends its token after a sign-out / sign-in or a remember-me login (a new session),
+     * and skips the POST on every other page.
+     */
+    public static function sessionTag(): string
+    {
+        try {
+            $token = session()->get(self::SESSION);
+        } catch (\Throwable) {
+            return '';
+        }
+
+        return is_string($token) && $token !== '' ? self::tag($token) : '';
+    }
+
+    public static function tag(string $token): string
+    {
+        return substr(hash('sha256', $token), 0, 16);
+    }
+
     public static function forgetToken(string $token): void
     {
         DB::delete('DELETE FROM app_devices WHERE token = ?', [$token]);
@@ -73,10 +94,18 @@ final class Devices
         DB::delete('DELETE FROM app_devices WHERE user_id = ?', [$userId]);
     }
 
-    /** @return list<string> tokens of the customer's signed-in phones */
+    /**
+     * Tokens of the customer's signed-in phones. Also matched through the login linked to the
+     * customer (customers.user_id): a phone often registers before the first checkout creates the
+     * customer record, so its row has customer_id NULL until the next app session.
+     *
+     * @return list<string>
+     */
     public static function tokensForCustomer(int $customerId): array
     {
-        return array_column(DB::select('SELECT token FROM app_devices WHERE customer_id = ? ORDER BY last_seen_at DESC LIMIT ' . self::MAX_PER_USER, [$customerId]), 'token');
+        return array_column(DB::select('SELECT token FROM app_devices WHERE customer_id = ?'
+            . ' OR user_id IN (SELECT user_id FROM customers WHERE id = ? AND user_id IS NOT NULL)'
+            . ' ORDER BY last_seen_at DESC LIMIT ' . self::MAX_PER_USER, [$customerId, $customerId]), 'token');
     }
 
     /** FCM said the token is gone (app uninstalled / data cleared). */

@@ -217,9 +217,14 @@ listeners on every page.
   unique `token`, `platform`, `app_version`, `last_seen_at`, `failures`.
 - **Registering:** the layout adds `<meta name="ms-push">` for a signed-in customer in the app. The
   bridge then registers with FCM when permission is already granted, and `POST /app/devices` stores
-  the token (once per app session; CSRF + `RequireCustomer`, throttled). A token moves to whoever
+  the token (CSRF + `RequireCustomer`, throttled). The meta carries `data-reg`, a 16-hex sha256 tag
+  of the token this server session registered, and the bridge posts only when its token's tag
+  differs. So a sign-out / sign-in or a remember-me login re-registers the phone without an app
+  restart, and every other page skips the POST. A token moves to whoever
   registered it last, so a shared phone never gets the previous customer's updates. At most 10
-  phones per login.
+  phones per login. Sending matches a phone by `customer_id` or by the login linked to the customer
+  (`customers.user_id`), because a phone often registers before the first checkout creates the
+  customer record.
 - **Asking:** never at launch. The first time a signed-in customer opens an order page, a card asks
   "Get order updates on this phone?" and only **Turn on** shows Android's permission prompt. It is
   asked once (`ms.pushAsked`).
@@ -227,6 +232,8 @@ listeners on every page.
   all of the login's tokens; FCM's `UNREGISTERED` / 404 deletes a token; 5 failures in a row too.
 - **Sending:** `Push\Fcm`, FCM HTTP v1 with a service-account JWT signed by openssl (RS256), the
   OAuth token cached until 5 minutes before expiry, 6 s timeout. `FCM_SERVICE_ACCOUNT` unset = off.
+  Sending runs inside the request, so each event has an 8 s budget (`OrderPush::$budget`). Phones
+  past it miss that one update, and a slow FCM can't stall "Mark dispatched".
 - **Triggers** (`Push\OrderPush`, after the flow's transaction, never throws):
 
   | Event | Hook | Message |

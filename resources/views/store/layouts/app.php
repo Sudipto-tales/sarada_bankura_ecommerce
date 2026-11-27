@@ -25,7 +25,7 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover<?= $inApp ? ', maximum-scale=1, user-scalable=no' : '' ?>">
 <?php if ($inApp): ?><meta name="format-detection" content="telephone=no">
-<?php if (Context::customer() !== null): ?><meta name="ms-push" content="<?= e(store_url('/app/devices')) ?>"><?php endif; ?>
+<?php if (Context::customer() !== null): ?><meta name="ms-push" content="<?= e(store_url('/app/devices')) ?>" data-reg="<?= e(\App\Services\Push\Devices::sessionTag()) ?>"><?php endif; ?>
 <?php endif; ?>
 <title><?= e($title) ?></title>
 <meta name="description" content="<?= e($description) ?>">
