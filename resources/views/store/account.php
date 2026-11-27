@@ -1,10 +1,10 @@
 <?php
 /**
  * Customer account (design: html/storefront/account.html; docs/storefront.md).
- * Tabs are real pages (/account, /account/addresses, /account/profile); Saved is /saved.
+ * Tabs are real pages (/account, /account/notifications, /account/addresses, /account/profile); Saved is /saved.
  *
  * @var string $tab @var array $user @var array $tabs @var array|null $customer
- * @var list<array> $orders @var list<array> $addresses @var list<string> $states @var int $editId
+ * @var list<array> $orders @var list<array> $notes @var list<array> $addresses @var list<string> $states @var int $editId
  */
 use App\Services\Customer\CustomerService;
 use App\Services\Customer\Phone;
@@ -74,6 +74,29 @@ $channel = static fn(array $o): string => $o['channel'] === 'online' ? 'Website'
             <a href="<?= e((string) route('order.public', ['token' => $o['public_token']])) ?>" class="btn btn-line !h-10 !px-4 text-[13.5px]">View</a>
           </div>
         </article>
+        <?php endforeach; ?>
+      </section>
+      <?php endif; ?>
+
+    <?php elseif ($tab === 'notifications'): ?>
+      <?php if ($notes === []): ?>
+      <section class="bg-white rounded-[24px] border border-ink/5 p-8 text-center">
+        <span class="mx-auto w-14 h-14 rounded-2xl bg-cream grid place-items-center text-teal"><?= store_icon('bell', '!w-6 !h-6') ?></span>
+        <h2 class="font-display text-[26px] mt-4">No notifications yet</h2>
+        <p class="text-ink-500 mt-1">Updates on your orders (payment received, dispatched, delivered) show up here.</p>
+      </section>
+      <?php else: ?>
+      <section class="bg-white rounded-[24px] border border-ink/5 divide-y divide-ink/5 overflow-hidden">
+        <?php foreach ($notes as $n): $new = $n['read_at'] === null; $tag = $n['url'] ? 'a' : 'div'; ?>
+        <<?= $tag ?><?= $n['url'] ? ' href="' . e(store_url((string) $n['url'])) . '"' : '' ?> class="flex gap-3.5 p-5<?= $n['url'] ? ' hover:bg-cream/60' : '' ?><?= $new ? ' bg-teal-50/40' : '' ?>">
+          <span class="shrink-0 w-10 h-10 rounded-xl bg-cream grid place-items-center text-teal"><?= store_icon('package') ?></span>
+          <span class="min-w-0 flex-1">
+            <span class="flex items-start justify-between gap-3"><b class="text-[14.5px]"><?= e((string) $n['title']) ?></b>
+              <?php if ($new): ?><span class="shrink-0 mt-1.5 w-2 h-2 rounded-full bg-copper" aria-label="New"></span><?php endif; ?></span>
+            <span class="block text-[13.5px] text-ink-500 mt-0.5"><?= e((string) $n['body']) ?></span>
+            <span class="block text-[12px] text-ink-400 mt-1"><?= e(date('j M Y, g:i a', strtotime((string) $n['created_at']))) ?></span>
+          </span>
+        </<?= $tag ?>>
         <?php endforeach; ?>
       </section>
       <?php endif; ?>

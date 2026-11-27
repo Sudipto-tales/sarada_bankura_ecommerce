@@ -3,15 +3,17 @@
 namespace App\Services\Push;
 
 use App\Services\Order\Money;
+use App\Services\Store\Inbox;
 use Vayu\Database\DB;
 
 /**
  * Order updates as push notifications to the customer's app (docs/mobile-app.md phase 4).
  * Triggers (owner, 2026-11-27): order placed, payment verified, dispatched, delivered.
  *
+ * Every update is also stored in the customer's in-app inbox (Store\Inbox), which works without FCM.
  * Like the WhatsApp hooks, these run after the flow's own transaction and never throw. With push
- * off (no FCM_SERVICE_ACCOUNT) or no app device for the customer, they return before any lookup
- * beyond one indexed query. Tapping a notification opens the order page in the app.
+ * off (no FCM_SERVICE_ACCOUNT) or no app device for the customer, only the inbox row is written.
+ * Tapping a notification opens the order page in the app.
  */
 final class OrderPush
 {
@@ -68,25 +70,31 @@ final class OrderPush
 
     /**
      * @param \Closure(array<string,mixed>):array{0:string,1:string} $text
-     * @return int notifications sent
+     * @return int push notifications sent (the inbox row is written either way)
      */
     private static function forOrder(int $orderId, \Closure $text): int
     {
         $sent = 0;
         try {
-            if (!Fcm::configured()) {
-                return 0;
-            }
             $o = DB::selectOne('SELECT * FROM orders WHERE id = ?', [$orderId]);
             if ($o === null || !$o['customer_id']) {
+                return 0;
+            }
+            [$title, $body] = $text($o);
+            $data = ['url' => '/order/' . $o['public_token'], 'tag' => 'order-' . $orderId];
+            // The in-app inbox gets every update, with or without push.
+            try {
+                Inbox::add((int) $o['customer_id'], $title, $body, $data['url'], $data['tag']);
+            } catch (\Throwable $e) {
+                error_log('[inbox] order ' . $orderId . ': ' . $e->getMessage());
+            }
+            if (!Fcm::configured()) {
                 return 0;
             }
             $tokens = Devices::tokensForCustomer((int) $o['customer_id']);
             if ($tokens === []) {
                 return 0;
             }
-            [$title, $body] = $text($o);
-            $data = ['url' => '/order/' . $o['public_token'], 'tag' => 'order-' . $orderId];
             $start = microtime(true);
             foreach ($tokens as $i => $token) {
                 if ($i > 0 && microtime(true) - $start > self::$budget) {

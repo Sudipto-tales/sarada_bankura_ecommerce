@@ -7,6 +7,7 @@ use App\Services\Store\AuthException;
 use App\Services\Store\Checkout;
 use App\Services\Store\Context;
 use App\Services\Store\CustomerAuth;
+use App\Services\Store\Inbox;
 use App\Services\Store\Saved;
 use App\Services\Store\View;
 use Vayu\Database\DB;
@@ -23,7 +24,8 @@ use Vayu\Validation\ValidationException;
  *   POST /signin/forgot          email → 6-digit code (same answer whether the account exists)
  *   POST /signin/reset           email + code + new password → signed in
  *   POST /signout
- *   GET  /account[/{tab}]        orders · addresses · profile          (RequireCustomer)
+ *   GET  /account[/{tab}]        orders · notifications · addresses · profile   (RequireCustomer)
+ *   GET  /account/notifications/new?after=ID   JSON for the page's poller (store.js)
  *   GET|POST /account/delete     delete the account (password), then /account-deletion?done=1
  *   POST /account/profile | /account/password | /account/addresses[/{id}[/default|/delete]]
  *
@@ -32,7 +34,7 @@ use Vayu\Validation\ValidationException;
  */
 class AccountController
 {
-    public const TABS = ['orders' => ['package', 'Orders'], 'addresses' => ['map-pin', 'Addresses'], 'profile' => ['user-round', 'Profile']];
+    public const TABS = ['orders' => ['package', 'Orders'], 'notifications' => ['bell', 'Notifications'], 'addresses' => ['map-pin', 'Addresses'], 'profile' => ['user-round', 'Profile']];
 
     /* ================================================================ sign in / register */
 
@@ -146,6 +148,9 @@ class AccountController
         $data = ['tab' => $tab, 'user' => $u, 'tabs' => self::TABS, 'customer' => $cid ? DB::selectOne('SELECT * FROM customers WHERE id = ?', [$cid]) : null];
         if ($tab === 'orders') {
             $data['orders'] = $cid ? self::orders($cid) : [];
+        } elseif ($tab === 'notifications') {
+            $data['notes'] = Inbox::latest($cid); // read before marking, so this view still shows what was new
+            Inbox::markAllRead($cid);
         } elseif ($tab === 'addresses') {
             $data['addresses'] = $cid ? DB::select('SELECT * FROM customer_addresses WHERE customer_id = ? ORDER BY is_default DESC, id DESC', [$cid]) : [];
             $data['states'] = Checkout::STATES;
@@ -157,6 +162,20 @@ class AccountController
             'active' => 'account',
             'head' => '<meta name="robots" content="noindex">',
         ]);
+    }
+
+    /** GET /account/notifications/new?after=ID: unread count + up to 5 rows added since the page rendered. */
+    public function newNotifications(Request $request): Response
+    {
+        View::loadHelpers();
+        $cid = (int) (Context::customer()['customer_id'] ?? 0);
+        $items = Inbox::since($cid, (int) $request->query('after', 0));
+        foreach ($items as &$n) {
+            $n['url'] = $n['url'] !== null ? store_url($n['url']) : null;
+        }
+        unset($n);
+
+        return (new Response())->json(['unread' => Inbox::unread($cid), 'items' => $items], 200, ['Cache-Control' => 'no-store']);
     }
 
     public function profile(Request $request): Response

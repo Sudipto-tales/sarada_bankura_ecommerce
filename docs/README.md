@@ -60,6 +60,7 @@ Only the listed class may write these tables or columns. Controllers never updat
 | carts / saved items / enquiries / storefront `users` + auth tables | `Store\Cart` / `Store\Saved` / `Store\Enquiries` / `Store\CustomerAuth` |
 | `app_releases` + APKs in `storage/uploads/app/` | `AppReleases` |
 | `app_devices` (push tokens) | `Push\Devices` |
+| `customer_notifications` (in-app inbox) | `Store\Inbox` |
 
 ## Migrations
 
@@ -78,6 +79,7 @@ Only the listed class may write these tables or columns. Controllers never updat
 | 000016–000017 | storefront: carts, saved items, enquiries, customer auth; nullable `users.email` |
 | 000018 | Android app releases (`app_releases`) |
 | 000019 | Android app push devices (`app_devices`) |
+| 000020 | Customer in-app notifications (`customer_notifications`) |
 
 (000015 was reserved for returns and never used.)
 

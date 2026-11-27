@@ -87,6 +87,7 @@ $router->group(['middleware' => [\App\Middleware\StoreOpen::class, \App\Middlewa
     $router->get('/app', [\App\Controllers\Store\AppController::class, 'page'])->name('store.app');
     $router->post('/app/devices', [\App\Controllers\Store\AppController::class, 'registerDevice'])->name('store.app.devices')->middleware([$need, 'throttle:30,1']);
     $router->get('/account', [$acct, 'show'])->name('store.account')->middleware($need);
+    $router->get('/account/notifications/new', [$acct, 'newNotifications'])->name('store.account.notifications.new')->middleware([$need, 'throttle:60,1']);
     $router->get('/account/{tab}', [$acct, 'show'])->name('store.account.tab')->middleware($need);
     $router->post('/account/profile', [$acct, 'profile'])->name('store.account.profile')->middleware($need);
     $router->post('/account/password', [$acct, 'password'])->name('store.account.password')->middleware([$need, 'throttle:10,1']);
