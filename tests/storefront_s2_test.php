@@ -231,8 +231,11 @@ return function (Assert $assert): void {
     $assert->that('view pdp: selected variant rendered server-side (works without JS)', str_contains($html, 'STA-POL-8') && str_contains($html, '₹700'));
     $assert->that('view pdp: variant rows are links (?v=SKU), inactive row is not', str_contains($html, '?v=STA-HON-8') && !str_contains($html, '?v=STA-HON-4'));
     $assert->that('view pdp: no-JS variant select', str_contains($html, '<noscript>') && str_contains($html, 'name="v"'));
+    $assert->that('view pdp: buy bar opens the options sheet (link to #options without JS)', str_contains($html, 'href="#options" data-sheet-open="optSheet"')
+        && str_contains($html, 'id="optSheet" role="dialog" aria-modal="true"') && str_contains($html, 'data-sheet-slot') && substr_count($html, 'id="opts"') === 1);
     $onyxHtml = View::html('store.product', ProductPage::load('honey-onyx') + ['stamp' => Enquiries::stamp(), 'enquiry' => ['errors' => [], 'old' => [], 'thanks' => null]], []);
     $assert->that('view pdp: enquiry-only shows the quote form, no price', str_contains($onyxHtml, 'name="kind" value="quote"') && !str_contains($onyxHtml, '₹2,400'));
+    $assert->that('view pdp: no options sheet without option groups', !str_contains($onyxHtml, 'id="optSheet"') && !str_contains($onyxHtml, 'data-sheet-open'));
     $soonHtml = View::html('store.product', ProductPage::load('soon-granite') + ['stamp' => Enquiries::stamp(), 'enquiry' => ['errors' => [], 'old' => [], 'thanks' => 'ENQ/26-27/0009']], []);
     $assert->that('view pdp: after sending, the thank-you replaces the form', str_contains($soonHtml, 'ENQ/26-27/0009') && !str_contains($soonHtml, 'name="kind" value="notify"'));
 
@@ -241,6 +244,9 @@ return function (Assert $assert): void {
     $shopHtml = View::html('store.shop', ['state' => $state, 'result' => $res, 'cards' => \App\Services\Store\Catalog::cards($res['ids']), 'path' => '/shop', 'top' => null, 'room' => null,
         'hero' => ['title' => 'All stone', 'title_plain' => 'Shop', 'kicker' => 'Shop', 'copy' => 'x', 'image' => null], 'subChips' => [], 'tree' => [], 'origins' => [], 'total' => 5, 'others' => []], []);
     $assert->that('view shop: filter form is a GET form with the checked value', str_contains($shopHtml, 'id="facets" method="get"') && preg_match('#name="attr\[colour\]\[\]" value="white" checked#', $shopHtml) === 1);
+    $assert->that('view shop: sort sheet lists every sort, current one checked; native select kept', str_contains($shopHtml, 'id="sortSheet" role="dialog"')
+        && substr_count($shopHtml, 'data-sort-pick=') === count(Listing::SORTS) && str_contains($shopHtml, 'data-sort-pick="featured" aria-checked="true"')
+        && str_contains($shopHtml, 'data-sheet-open="sortSheet"') && str_contains($shopHtml, '<select id="sort" name="sort" form="facets"'));
     $assert->that('view shop: results + chip', str_contains($shopHtml, 'Statuario Marble') && !str_contains($shopHtml, 'Nero Marquina</a>') && str_contains($shopHtml, 'Remove filter White'));
 
     // ---------------------------------------------------------------- enquiries

@@ -215,16 +215,90 @@
   /* ---------- shared: elements that only make sense with JS ---------- */
   function jsOnly() { $$('[data-js-only]').forEach(function (el) { el.hidden = false; }); }
 
-  /* ---------- shop: filters auto-submit, mobile drawer, grid density ---------- */
+  /* ---------- bottom sheets (partials/sheet.php): one open at a time ----------
+     Opening pushes a history entry, so the back button (browser or Android) closes the sheet
+     instead of leaving the page. Fires sheet:open / sheet:close / sheet:hidden on the sheet. */
+  var sheet = (function () {
+    var cur = null, opener = null, overflow = '', lg = window.matchMedia('(min-width:1024px)');
+    function emit(el, name) { el.dispatchEvent(new CustomEvent(name)); }
+    function panel(el) { return el.querySelector('.sheet-panel'); }
+    function show(el, from) {
+      if (!el || cur) return;
+      cur = el; opener = from || document.activeElement;
+      emit(el, 'sheet:open');
+      el.hidden = false; void el.offsetWidth; el.classList.add('on');
+      overflow = document.body.style.overflow; document.body.style.overflow = 'hidden';
+      if (history.pushState) history.pushState({ sheet: el.id }, '', location.href);
+      var first = el.querySelector('[aria-checked="true"], input:checked:not([disabled])');
+      (first || panel(el)).focus({ preventScroll: true });
+      haptic();
+    }
+    // fromHistory: the entry is already gone (back button) or is about to be replaced by a navigation.
+    function hide(fromHistory) {
+      var el = cur; if (!el) return;
+      if (!fromHistory && history.state && history.state.sheet === el.id) { history.back(); return; }   // popstate finishes it
+      cur = null;
+      el.classList.remove('on', 'drag'); panel(el).style.transform = '';
+      document.body.style.overflow = overflow;
+      emit(el, 'sheet:close');
+      setTimeout(function () { if (cur !== el) { el.hidden = true; emit(el, 'sheet:hidden'); } }, 340);
+      if (opener && opener.focus && document.contains(opener)) opener.focus({ preventScroll: true });
+    }
+    document.addEventListener('click', function (e) {
+      var o = e.target.closest && e.target.closest('[data-sheet-open]');
+      if (o && !lg.matches) { e.preventDefault(); show(document.getElementById(o.getAttribute('data-sheet-open')), o); return; }
+      if (cur && e.target.closest && e.target.closest('[data-sheet-close]') && cur.contains(e.target)) { e.preventDefault(); hide(); }
+    });
+    document.addEventListener('keydown', function (e) {
+      if (!cur) return;
+      if (e.key === 'Escape') { e.preventDefault(); hide(); return; }
+      if (e.key !== 'Tab') return;                                            // keep focus inside the sheet
+      var f = $$('a[href], button:not([disabled]), input:not([disabled]), select, textarea', cur).filter(function (x) { return x.offsetParent !== null; });
+      if (!f.length) return;
+      var a = f[0], z = f[f.length - 1];
+      if (e.shiftKey && (document.activeElement === a || document.activeElement === panel(cur))) { e.preventDefault(); z.focus(); }
+      else if (!e.shiftKey && document.activeElement === z) { e.preventDefault(); a.focus(); }
+    });
+    window.addEventListener('popstate', function () { if (cur) hide(true); });
+    window.addEventListener('pageshow', function () { if (cur) hide(true); });
+    if (lg.addEventListener) lg.addEventListener('change', function () { if (lg.matches && cur) hide(); });
+    // Drag the handle down to dismiss: past 90px, or a quick flick.
+    var y0 = null, t0 = 0, dy = 0;
+    document.addEventListener('pointerdown', function (e) {
+      if (!cur || !e.target.closest('[data-sheet-drag]') || e.target.closest('button')) return;
+      y0 = e.clientY; t0 = Date.now(); dy = 0; cur.classList.add('drag');
+    });
+    document.addEventListener('pointermove', function (e) {
+      if (y0 === null || !cur) return;
+      dy = Math.max(0, e.clientY - y0); panel(cur).style.transform = 'translateY(' + dy + 'px)';
+    });
+    function end() {
+      if (y0 === null || !cur) { y0 = null; return; }
+      var fast = dy > 30 && dy / Math.max(1, Date.now() - t0) > 0.5;
+      y0 = null; cur.classList.remove('drag');
+      if (dy > 90 || fast) hide(); else panel(cur).style.transform = '';
+    }
+    document.addEventListener('pointerup', end);
+    document.addEventListener('pointercancel', end);
+    // For the Android shell (phase 4): the hardware back button calls this first.
+    window.msSheet = { close: function () { if (!cur) return false; hide(); return true; } };
+    return { show: show, hide: hide, isOpen: function (el) { return cur === el; } };
+  })();
+
+  /* ---------- shop: filters auto-submit, mobile drawer, grid density, sort sheet ---------- */
   function shop() {
     var form = $('#facets'), panel = $('#filters'); if (!form) return;
     var bar = form.querySelector('[data-apply-bar]'); if (bar) bar.classList.add('lg:hidden');
     var t = null;
     // Leave empty boxes and the default sort out of the URL (same canonical URL the server builds).
-    function send() {
+    function send(replace) {
       $$('input[type=number]', form).forEach(function (i) { if (i.value === '') i.disabled = true; });
       var so = $('#sort'); if (so && so.value === 'featured') so.disabled = true;
-      form.submit();
+      if (panel && panel.classList.contains('open')) { panel.classList.remove('open'); document.body.style.overflow = ''; }
+      skeleton();
+      if (!replace) { form.submit(); return; }
+      var q = new URLSearchParams(new FormData(form)).toString();             // FormData skips the disabled boxes, like submit()
+      location.replace(form.action.split('?')[0] + (q ? '?' + q : ''));
     }
     form.addEventListener('submit', function (e) { e.preventDefault(); send(); });
     form.addEventListener('change', function (e) {
@@ -232,11 +306,54 @@
       if (panel && panel.classList.contains('open') && window.matchMedia('(max-width:1023px)').matches) return; // mobile: Apply button
       clearTimeout(t); t = setTimeout(send, 60);
     });
-    var sort = $('#sort'); if (sort) sort.addEventListener('change', send);
+    var sort = $('#sort'); if (sort) sort.addEventListener('change', function () { send(); });
+    // Phones and tablets sort from a bottom sheet; the native select stays for desktop.
+    var sortSheet = $('#sortSheet');
+    if (sort && sortSheet) {
+      $$('[data-sort-native]').forEach(function (el) { el.classList.add('max-lg:!hidden'); });
+      sortSheet.addEventListener('click', function (e) {
+        var b = e.target.closest('[data-sort-pick]'); if (!b) return;
+        $$('[data-sort-pick]', sortSheet).forEach(function (x) { x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+        var replace = !!(history.state && history.state.sheet === 'sortSheet');
+        sort.value = b.getAttribute('data-sort-pick');
+        sheet.hide(true);
+        send(replace);
+      });
+    }
     $$('[data-filters-open]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); panel.classList.add('open'); document.body.style.overflow = 'hidden'; }); });
     $$('[data-filters-close]').forEach(function (b) { b.addEventListener('click', function (e) { e.preventDefault(); panel.classList.remove('open'); document.body.style.overflow = ''; }); });
     document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && panel.classList.contains('open')) { panel.classList.remove('open'); document.body.style.overflow = ''; } });
     var grid = $('[data-grid]');
+    // Skeleton grid: on a filter, sort, chip, category or page change, swap the cards for placeholders
+    // until the next page arrives. The short delay keeps prefetched (instant) pages from flashing it.
+    var skelT = null, SKEL = '<div class="skel-card" aria-hidden="true"><span class="skel skel-img"></span><div class="skel-body">'
+      + '<span class="skel skel-s"></span><span class="skel skel-t"></span><span class="skel skel-m"></span><span class="skel skel-p"></span>'
+      + '<span class="skel skel-b"></span></div></div>';
+    function skeleton() {
+      if (!grid || grid.getAttribute('aria-busy') === 'true') return;
+      clearTimeout(skelT);
+      skelT = setTimeout(function () {
+        var n = Math.min(Math.max(grid.querySelectorAll('.card').length, 4), 8), html = '';
+        for (var i = 0; i < n; i++) html += SKEL;
+        grid.insertAdjacentHTML('beforeend', html);
+        grid.setAttribute('aria-busy', 'true');
+      }, 120);
+    }
+    var shopPath = grid ? new URL(grid.getAttribute('data-shop'), location.href).pathname.replace(/\/$/, '') : '';
+    document.addEventListener('click', function (e) {
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!grid || !a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (a.target || a.hasAttribute('download') || a.origin !== location.origin || a.closest('.card')) return;
+      if (a.pathname === location.pathname && a.search === location.search) return;   // same page (#filters, #enquire …)
+      if (a.pathname === shopPath || a.pathname.indexOf(shopPath + '/') === 0) skeleton();
+    });
+    // Back/forward restores this page from the bfcache: drop the placeholders and re-enable the
+    // inputs send() disabled, so the restored filters submit normally again.
+    window.addEventListener('pageshow', function () {
+      clearTimeout(skelT);
+      if (grid) { $$('.skel-card', grid).forEach(function (el) { el.remove(); }); grid.removeAttribute('aria-busy'); }
+      $$('input[type=number]', form).concat($$('#sort')).forEach(function (i) { i.disabled = false; });
+    });
     function dense(on) {
       if (!grid) return;
       grid.className = 'mt-5 grid gap-3 sm:gap-5 ' + (on ? 'grid-cols-2 sm:grid-cols-3 xl:grid-cols-5 2xl:grid-cols-6' : 'grid-cols-2 md:grid-cols-3 2xl:grid-cols-4');
@@ -347,7 +464,7 @@
       });
       strike();
       if (v.images && v.images.length) shot(v.images[0]);
-      if (push && history.replaceState) history.replaceState(null, '', d.url + '?v=' + encodeURIComponent(v.sku) + location.hash);
+      if (push && history.replaceState) history.replaceState(history.state, '', d.url + '?v=' + encodeURIComponent(v.sku) + location.hash);   // keeps a sheet's entry marked
       totals(); calc();
     }
     // A value is struck through when no active variant has it together with the other chosen values.
@@ -378,6 +495,22 @@
       if (best) apply(best, true);
     }
     root.addEventListener('change', function (e) { var r = e.target; if (r.matches && r.matches('input[data-group]')) choose(+r.getAttribute('data-group'), +r.value); });
+    // Mobile buy bar: the option pickers move into the bottom sheet while it's open, then back.
+    var optSheet = $('#optSheet'), opts = $('#opts');
+    if (optSheet && opts) {
+      var home = document.createElement('div'), slot = $('[data-sheet-slot]', optSheet);   // spacer: the page behind doesn't jump
+      optSheet.addEventListener('sheet:open', function () {
+        if (opts.parentNode === slot) return;
+        home.style.height = (opts.offsetHeight + 24) + 'px';
+        opts.parentNode.insertBefore(home, opts); slot.appendChild(opts); opts.classList.remove('mt-6');
+      });
+      optSheet.addEventListener('sheet:hidden', function () {
+        if (!home.parentNode) return;
+        home.parentNode.replaceChild(opts, home); opts.classList.add('mt-6');
+      });
+      // Closing pops the sheet's history entry, which still has the URL from before; keep ?v= current.
+      optSheet.addEventListener('sheet:close', function () { if (cur && history.replaceState) history.replaceState(null, '', d.url + '?v=' + encodeURIComponent(cur.sku) + location.hash); });
+    }
     root.addEventListener('click', function (e) {
       var a = e.target.closest && e.target.closest('[data-pick]'); if (!a) return;
       var v = byId(+a.getAttribute('data-pick')); if (!v || !v.active) return;

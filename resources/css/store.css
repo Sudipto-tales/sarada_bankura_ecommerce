@@ -137,7 +137,44 @@
   .is-app input, .is-app textarea, .is-app [contenteditable], .is-app .selectable, .is-app .prose-policy { -webkit-user-select: text; user-select: text; }
   .is-app img { -webkit-user-drag: none; }
   .is-app header.sticky { padding-top: env(safe-area-inset-top); }
+
+  /* Skeleton shop grid: placeholders while the next results page loads (shop() in store.js). */
+  [data-grid][aria-busy="true"] > .card { display: none; }
+  .skel-card { display: flex; flex-direction: column; overflow: hidden; border-radius: 20px; background: #fff; border: 1px solid rgba(21,33,31,.05); }
+  .skel-body { display: flex; flex-direction: column; gap: 9px; padding: 14px; }
+  .skel { display: block; height: 10px; border-radius: 999px;
+    background: linear-gradient(90deg, #EDE6D9 25%, #F6F2EA 50%, #EDE6D9 75%) 0 0 / 300% 100%; animation: skel 1.4s ease-in-out infinite; }
+  .skel-img { height: auto; aspect-ratio: 1 / 1; border-radius: 0; }
+  .skel-t { height: 16px; width: 78%; }
+  .skel-s { height: 8px; width: 38%; }
+  .skel-m { width: 58%; }
+  .skel-p { height: 14px; width: 46%; margin-top: 4px; }
+  .skel-b { height: 40px; margin-top: 8px; }
+  @media (min-width: 640px) { .skel-body { padding: 16px; } }
+
+  /* Bottom sheets (partials/sheet.php, sheet in store.js): sort on the shop, variant picker on the product page. */
+  .sheet { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; justify-content: center; }
+  .sheet[hidden] { display: none; }
+  .sheet-scrim { position: absolute; inset: 0; background: rgba(21,33,31,.42); opacity: 0; transition: opacity .28s; }
+  .sheet-panel { position: relative; width: 100%; max-width: 560px; max-height: 86vh; max-height: 86dvh; display: flex; flex-direction: column;
+    background: #FBF9F5; border-radius: 28px 28px 0 0; box-shadow: 0 -12px 40px -12px rgba(21,33,31,.35); outline: none;
+    transform: translateY(100%); transition: transform .34s cubic-bezier(.2,.8,.2,1); }
+  .sheet.on .sheet-scrim { opacity: 1; }
+  .sheet.on .sheet-panel { transform: none; }
+  .sheet.drag .sheet-panel, .sheet.drag .sheet-scrim { transition: none; }
+  .sheet-head { flex-shrink: 0; touch-action: none; cursor: grab; }
+  .sheet-grip { display: block; width: 40px; height: 5px; margin: 10px auto 10px; border-radius: 999px; background: rgba(21,33,31,.18); }
+  .sheet-body { overflow-y: auto; overscroll-behavior: contain; padding: 4px 20px calc(20px + env(safe-area-inset-bottom)); }
+  .sheet-body:not(:last-child) { padding-bottom: 16px; }
+  .sheet-foot { flex-shrink: 0; padding: 12px 20px calc(12px + env(safe-area-inset-bottom)); background: #fff; border-top: 1px solid rgba(21,33,31,.08); }
+  .sheet-opt { width: 100%; min-height: 52px; display: flex; align-items: center; justify-content: space-between; gap: 12px; text-align: left;
+    font-size: 15px; font-weight: 600; border-bottom: 1px solid rgba(21,33,31,.07); }
+  .sheet-opt:last-child { border-bottom: 0; }
+  .sheet-opt svg { color: #1E6E74; opacity: 0; }
+  .sheet-opt[aria-checked="true"] { color: #1E6E74; }
+  .sheet-opt[aria-checked="true"] svg { opacity: 1; }
 }
+@keyframes skel { from { background-position: 100% 0; } to { background-position: 0 0; } }
 @keyframes ptr-spin { to { transform: rotate(360deg); } }
 
 @view-transition { navigation: auto; }

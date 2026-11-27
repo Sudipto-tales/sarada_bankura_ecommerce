@@ -1,6 +1,6 @@
 # Android app
 
-**Status: phase 1 built (web side, branch `feature/app-native-feel`); phases 2–4 planned.** A Capacitor Android app for the storefront, published on
+**Status: phase 1 built (web side, branches `feature/app-native-feel` + `feature/app-skeleton-sheets`); phases 2–4 planned.** A Capacitor Android app for the storefront, published on
 Google Play and also offered as a direct APK download from `/app`. Releases are managed from the
 admin panel.
 
@@ -38,14 +38,17 @@ These changes also improve the mobile website.
 | Product page: no tab bar, glass buy bar at the bottom | `product.php` (`'tabbar' => false`) |
 | View Transitions, card → product image move, Speculation Rules prefetch | `store.css`, `layouts/app.php` |
 | Service worker (`/service-worker`) + `/offline` page with "saved on this device" list | `AppShellController`, `resources/sw/sw.js` |
+| Skeleton shop grid: placeholder cards while the next filter / sort / page loads (120 ms delay so prefetched pages don't flash it; cleared on back/forward) | `shop()` in `store.js`, `.skel*` in `store.css` |
+| Bottom sheets below `lg`: sort on the shop, variant picker from the product buy bar. Drag-down / Escape / back button close them (each sheet adds a history entry) | `partials/sheet.php`, `sheet` in `store.js` |
 
 The worker is served extensionless so no host-level `.js` cache rule can pin an old version. It
 skips any response marked `no-store` / `private` (signed-in pages, admin preview) on top of the path
 list. Images are capped at 400 entries. Signing out clears the saved pages. Tests:
 `tests/app_shell_test.php`.
 
-**Not done yet (follow-up PR):** the skeleton shop grid, and bottom sheets for the variant picker
-and sort.
+Sheets: the native sort `<select>` stays on desktop, and without JS the buy-bar link jumps to the
+options table. `window.msSheet.close()` returns `true` if it closed a sheet; the phase 4 back-button
+handler calls it before navigating back.
 
 **Plan:**
 
