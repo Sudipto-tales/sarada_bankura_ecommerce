@@ -355,7 +355,7 @@ $crumbs = array_values(array_filter([
 </div>
 
 <!-- mobile buy bar -->
-<div class="lg:hidden fixed bottom-[57px] inset-x-0 z-20 bg-white border-t border-ink/10 px-4 py-2.5 flex items-center gap-3">
+<div class="buybar lg:hidden fixed bottom-0 inset-x-0 z-20 px-4 pt-2.5 flex items-center gap-3">
   <?php if ($p['buyable']): ?>
     <div class="leading-tight flex-1 min-w-0"><b class="text-[17px]" data-line><?= e(store_inr($line)) ?></b><p class="text-[11.5px] text-ink-500 truncate"><span data-qty-label><?= e($num($qty)) ?></span> <span data-unit><?= e($unit) ?></span><?= $v ? ' · <span data-variant-title>' . e($v['title']) . '</span>' : '' ?></p></div>
     <?php if ($cart): ?><button form="buyForm" class="btn btn-dark !h-11"><?= store_icon('shopping-bag') ?> Add</button>

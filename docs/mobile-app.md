@@ -1,6 +1,6 @@
-# Android app (plan)
+# Android app
 
-**Status: planned, nothing built.** A Capacitor Android app for the storefront, published on
+**Status: phase 1 built (web side, branch `feature/app-native-feel`); phases 2–4 planned.** A Capacitor Android app for the storefront, published on
 Google Play and also offered as a direct APK download from `/app`. Releases are managed from the
 admin panel.
 
@@ -28,14 +28,35 @@ v1, not later.
 
 These changes also improve the mobile website.
 
+**Built:**
+
+| Piece | Where |
+| --- | --- |
+| App detection (`MaaSaradaApp/<ver>` in the UA → `<html class="is-app">`) | `Store\AppMode` |
+| Glass tab bar, offline pill, nav progress bar, pull to refresh | `partials/app-shell.php`, `appShell()` in `store.js` |
+| Compact app footer, no utility bar, header bag/saved hidden in the app | `partials/footer.php`, `partials/header.php` |
+| Product page: no tab bar, glass buy bar at the bottom | `product.php` (`'tabbar' => false`) |
+| View Transitions, card → product image move, Speculation Rules prefetch | `store.css`, `layouts/app.php` |
+| Service worker (`/service-worker`) + `/offline` page with "saved on this device" list | `AppShellController`, `resources/sw/sw.js` |
+
+The worker is served extensionless so no host-level `.js` cache rule can pin an old version. It
+skips any response marked `no-store` / `private` (signed-in pages, admin preview) on top of the path
+list. Images are capped at 400 entries. Signing out clears the saved pages. Tests:
+`tests/app_shell_test.php`.
+
+**Not done yet (follow-up PR):** the skeleton shop grid, and bottom sheets for the variant picker
+and sort.
+
+**Plan:**
+
 - **App mode:** the app appends `MaaSaradaApp/<versionName>` to the user agent, and the server sets
   `class="is-app"` on `<html>`. App mode hides the footer, the get-the-app banner and the `/app`
   links.
 - **Floating glass bottom bar:**
   - tabs: Home · Shop · Saved · Bag (count badge) · Account;
   - `backdrop-blur` with a solid fallback, safe-area padding and an animated active pill;
-  - hides when scrolling down and shows when scrolling up;
-  - not shown on checkout or pay pages.
+  - hides when scrolling down, and while typing; shows when scrolling up;
+  - not shown on checkout, pay or product pages (the product page has its own buy bar).
 - **Remove web tells:**
   - no tap highlight and no long-press callout;
   - `user-select: none` on UI chrome;
@@ -48,13 +69,13 @@ These changes also improve the mobile website.
   - a shared-element image move from card to product page.
 - **UI:** skeleton grid on the shop page, pull to refresh, toasts, and bottom sheets for the variant
   picker and sort.
-- **Offline (`public/sw.js`, scope `/`):**
+- **Offline (service worker at `/service-worker`, scope `/`; template `resources/sw/sw.js`):**
 
   | Request | Strategy |
   | --- | --- |
   | CSS, JS, fonts, icons | Precached, versioned per deploy |
   | Home, shop, product, brands, policy pages | Network first, then cache |
-  | Images | Cache first, LRU cap ~150 MB |
+  | Images | Cache first, capped at 400 entries (oldest out) |
   | `/checkout*`, `/pay*`, `/cart*`, `/account*`, `/signin*`, `/admin*`, `/order/*`, any non-GET | Never cached |
 
   When offline:

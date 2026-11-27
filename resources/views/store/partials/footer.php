@@ -1,6 +1,6 @@
 <?php
 /**
- * Footer + mobile bottom bar (design: store.js renderChrome()).
+ * Footer (a compact one in the Android app). The bottom tab bar lives in app-shell.php.
  * @var array|null $chrome @var string $active
  */
 $spaces = $chrome['spaces'] ?? [];
@@ -9,7 +9,20 @@ $address = store_address();
 $wa = store_wa_link('Hello, I have a question about your stone.');
 $tel = store_tel();
 $year = (new DateTimeImmutable('now', new DateTimeZone('Asia/Kolkata')))->format('Y');
+if (\App\Services\Store\AppMode::active()):
 ?>
+<footer class="mt-16 border-t border-ink/10">
+  <div class="wrap py-8 grid gap-5 text-[13.5px] text-ink-500">
+    <div class="grid grid-cols-2 gap-2">
+      <a href="<?= e(store_url('/track')) ?>" class="app-row"><?= store_icon('package-search') ?> Track order</a>
+      <a href="<?= e(store_url('/contact')) ?>" class="app-row"><?= store_icon('map-pin') ?> Visit showroom</a>
+      <?php if ($wa !== ''): ?><a href="<?= e($wa) ?>" class="app-row" rel="noopener"><?= store_icon('message-circle') ?> WhatsApp</a><?php endif; ?>
+      <?php if ($tel !== ''): ?><a href="<?= e($tel) ?>" class="app-row"><?= store_icon('phone') ?> Call us</a><?php endif; ?>
+    </div>
+    <p class="flex flex-wrap gap-x-4 gap-y-1 text-[12.5px]"><a href="<?= e(store_url('/policy')) ?>">Policies</a><a href="<?= e(store_url('/policy')) ?>#privacy">Privacy</a><a href="<?= e(store_url('/policy')) ?>#terms">Terms</a><span>© <?= e($year) ?> <?= e(business('name')) ?></span></p>
+  </div>
+</footer>
+<?php return; endif; ?>
 <footer class="mt-24 bg-ink text-cream/75">
   <div class="wrap py-14 grid grid-cols-2 lg:grid-cols-12 gap-10">
     <div class="col-span-2 lg:col-span-4">
@@ -71,9 +84,3 @@ $year = (new DateTimeImmutable('now', new DateTimeZone('Asia/Kolkata')))->format
     <span class="flex flex-wrap gap-x-4 gap-y-1"><a href="<?= e(store_url('/policy')) ?>#privacy" class="hover:text-cream">Privacy</a><a href="<?= e(store_url('/policy')) ?>#terms" class="hover:text-cream">Terms</a><span>Prices include delivery · <?= business('tax.prices_include_tax') ? 'GST included' : 'GST extra' ?></span></span>
   </div></div>
 </footer>
-
-<nav class="lg:hidden fixed bottom-0 inset-x-0 z-30 bg-cream/95 backdrop-blur border-t border-ink/10 grid grid-cols-5 text-[11px] font-medium" aria-label="Quick">
-  <?php foreach ([['/', 'house', 'Home', 'home'], ['/shop', 'layout-grid', 'Shop', 'shop'], ['/calculator', 'ruler', 'Plan', 'plan'], ['/saved', 'heart', 'Saved', 'saved'], ['/cart', 'shopping-bag', 'Bag', 'bag']] as [$href, $icon, $label, $key]): ?>
-  <a href="<?= e(store_url($href)) ?>" class="py-2.5 flex flex-col items-center gap-0.5<?= $active === $key ? ' text-teal' : '' ?>"<?= $active === $key ? ' aria-current="page"' : '' ?>><?= store_icon($icon) ?><?= e($label) ?></a>
-  <?php endforeach; ?>
-</nav>

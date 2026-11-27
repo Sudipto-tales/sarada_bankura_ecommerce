@@ -34,6 +34,7 @@ class ProductController
             'title' => $p['meta_title'] !== '' ? $p['meta_title'] : $p['name'],
             'description' => $p['meta_description'] !== '' ? $p['meta_description'] : ($p['short'] !== '' ? $p['short'] : null),
             'active' => 'shop',
+            'tabbar' => false,
             'canonical' => $canonical,
             'head' => $og . '<meta property="og:type" content="product">'
                 . '<script type="application/ld+json">' . store_json(ProductPage::jsonLd($d)) . '</script>',
