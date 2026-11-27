@@ -23,6 +23,8 @@ use Vayu\Validation\ValidationException;
  * - Throttle (rate_limiter, fixed window 15 min): 5 wrong passwords per login ID, 20 per IP;
  *   registrations 10 per hour per IP; reset codes 3 per hour per account, 10 per IP.
  * - Signing in merges the guest bag (Cart::adopt) and the guest saved list (Saved::merge).
+ * - Deleting the account (deleteAccount, a Google Play requirement) wipes the sign-in and everything
+ *   personal, and keeps orders, payments and invoices for GST record-keeping (docs/mobile-app.md).
  */
 final class CustomerAuth
 {
@@ -256,6 +258,76 @@ final class CustomerAuth
         session()->regenerate();
         Cart::forgetCookie(); // the bag stays on the account and comes back at the next sign-in
         Context::setCustomer(null);
+    }
+
+    /* ================================================================ account deletion */
+
+    public const DELETED_NAME = 'Deleted customer';
+
+    /**
+     * Delete the signed-in customer's account (password required), then sign out.
+     *
+     * Wiped: the login (name, phone, email, password → the users row stays as an empty tombstone
+     * so ids in old records still resolve), remember tokens, reset codes, saved list, bag; reviews
+     * and enquiries lose the name / phone / email. A customer record the website created is emptied
+     * too (addresses, tags, notes, GSTIN). A record the showroom had before the account is only
+     * unlinked: it is the shop's own customer file, not data collected by the account.
+     * Kept: orders, order items, payments, refunds and payment screenshots. Orders carry their own
+     * name / phone / address snapshot, which GST law requires us to keep.
+     * Phase 4 adds push tokens: delete them here too.
+     *
+     * @return array{orders: int} orders kept
+     */
+    public static function deleteAccount(int $userId, string $password, ?string $ip = null): array
+    {
+        $u = self::find($userId);
+        if ($u === null || ($u['status'] ?? '') !== 'active') {
+            throw new AuthException('This account can’t be deleted right now. Please message us on WhatsApp.');
+        }
+        if (!self::hit('delete:id:' . $userId, 5, self::WINDOW)) {
+            throw new ValidationException(['password' => ['Too many wrong tries. Please wait 15 minutes and try again.']]);
+        }
+        if (!$u['password'] || !password_verify($password, (string) $u['password'])) {
+            throw new ValidationException(['password' => ['That password isn’t right.']]);
+        }
+        $cid = $u['customer_id'];
+        $now = self::now();
+        $orders = $cid ? (int) (DB::selectOne('SELECT COUNT(*) AS n FROM orders WHERE customer_id = ?', [$cid])['n'] ?? 0) : 0;
+
+        DB::transaction(static function () use ($userId, $cid, $now): void {
+            $c = $cid ? DB::selectOne('SELECT * FROM customers WHERE id = ?', [$cid]) : null;
+            $phone = $c['phone'] ?? null;
+            $carts = array_map('intval', array_column(DB::select('SELECT id FROM carts WHERE user_id = ?' . ($cid ? ' OR customer_id = ?' : ''),
+                $cid ? [$userId, $cid] : [$userId]), 'id'));
+            foreach ($carts as $cartId) {
+                DB::delete('DELETE FROM cart_items WHERE cart_id = ?', [$cartId]);
+                DB::delete('DELETE FROM carts WHERE id = ?', [$cartId]);
+            }
+            if ($cid) {
+                DB::delete('DELETE FROM customer_saved_items WHERE customer_id = ?', [$cid]);
+                DB::update('UPDATE product_reviews SET customer_id = NULL, customer_name = ?, customer_email = NULL, customer_phone = NULL WHERE customer_id = ?'
+                    . ($phone ? ' OR customer_phone = ?' : ''), $phone ? ['A customer', $cid, $phone] : ['A customer', $cid]);
+                DB::update('UPDATE enquiries SET customer_id = NULL, name = ?, phone = ?, email = NULL WHERE customer_id = ?'
+                    . ($phone ? ' OR phone = ?' : ''), $phone ? [self::DELETED_NAME, '', $cid, $phone] : [self::DELETED_NAME, '', $cid]);
+                $set = ['user_id' => null, 'is_online' => 0, 'marketing_consent' => 0, 'updated_at' => $now];
+                if (($c['source'] ?? '') === 'online') {
+                    $set += ['name' => self::DELETED_NAME, 'phone' => 'deleted-' . $cid, 'email' => null, 'company' => null,
+                        'gst_number' => null, 'notes' => null, 'status' => 'inactive'];
+                    DB::delete('DELETE FROM customer_addresses WHERE customer_id = ?', [$cid]);
+                    DB::delete('DELETE FROM customer_tag_map WHERE customer_id = ?', [$cid]);
+                    DB::delete('DELETE FROM customer_segment_members WHERE customer_id = ?', [$cid]);
+                }
+                DB::table('customers')->where('id', $cid)->update($set);
+            }
+            DB::delete('DELETE FROM customer_remember_tokens WHERE user_id = ?', [$userId]);
+            DB::delete('DELETE FROM customer_auth_codes WHERE user_id = ?', [$userId]);
+            DB::update('UPDATE users SET name = ?, email = NULL, phone = NULL, password = NULL, status = ?, session_version = session_version + 1,
+                email_verified_at = NULL, phone_verified_at = NULL, last_login_at = NULL, updated_at = ? WHERE id = ?', [self::DELETED_NAME, 'deleted', $now, $userId]);
+        });
+        \App\Services\Payment\Audit::log('customer_account', $userId, 'delete', ['customer_id' => $cid, 'orders_kept' => $orders]);
+        self::logout();
+
+        return ['orders' => $orders];
     }
 
     /* ================================================================ passwords */

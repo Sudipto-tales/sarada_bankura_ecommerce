@@ -72,6 +72,9 @@
   .prose-policy section { @apply bg-white rounded-[24px] border border-ink/5 p-7 scroll-mt-28; }
   .prose-policy ul { @apply list-disc pl-5 space-y-1.5 mt-3; }
   .prose-policy p { @apply mt-3; }
+  .prose-policy ol { @apply list-decimal pl-5 space-y-1.5 mt-3; }
+  .prose-policy h3 { @apply font-semibold text-[16px] text-ink mt-5; }
+  .prose-policy a:not(.btn) { @apply text-teal underline underline-offset-2; }
 
   /* Shop filters: a full-screen drawer below lg. Works without JS through #filters:target. */
   .fbox input[type="checkbox"] { accent-color: #1E6E74; width: 16px; height: 16px; flex-shrink: 0; }

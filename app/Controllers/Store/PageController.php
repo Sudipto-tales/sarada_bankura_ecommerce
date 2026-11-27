@@ -29,6 +29,19 @@ class PageController
         ]);
     }
 
+    /** Public "how to delete your account" page (Google Play's account deletion URL). */
+    public function accountDeletion(): Response
+    {
+        return View::page('store.account-deletion', [
+            'done' => request()?->query('done') === '1',
+            'signedIn' => \App\Services\Store\Context::customer() !== null,
+        ], [
+            'title' => 'Delete your account',
+            'description' => 'How to delete your ' . business('name') . ' account and its data, in the app, on the website, or by message.',
+            'canonical' => base_url('/account-deletion'),
+        ]);
+    }
+
     /** Contact / visit page with the general enquiry form (posts to /enquiry). */
     public function contact(): Response
     {

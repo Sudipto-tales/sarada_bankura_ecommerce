@@ -24,5 +24,6 @@ return [
         App\Console\Commands\InventoryCheckCommand::class,
         App\Console\Commands\PaymentExpireCommand::class,
         App\Console\Commands\AdminInstallCommand::class,
+        App\Console\Commands\StoreDemoAccountCommand::class,
     ],
 ];
