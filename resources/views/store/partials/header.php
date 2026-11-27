@@ -20,6 +20,11 @@ $tel = store_tel();
 $on = fn (string $k) => $active === $k ? ' bg-ink/5' : '';
 $q = (string) (request()->query('q') ?? '');
 $inApp = \App\Services\Store\AppMode::active();
+$unread = 0;
+try {
+    $unread = $customer ? \App\Services\Store\Inbox::unread((int) ($customer['customer_id'] ?? 0)) : 0;
+} catch (\Throwable) {
+}
 ?>
 <?php if (!$inApp): ?>
 <div class="bg-ink text-cream/80 text-[12.5px]"><div class="wrap h-9 flex items-center justify-between gap-4">
@@ -103,6 +108,7 @@ $inApp = \App\Services\Store\AppMode::active();
 
     <div class="flex items-center gap-1 ml-auto md:ml-0">
       <a href="<?= e(store_url('/shop')) ?>" class="md:hidden p-2.5 rounded-full hover:bg-ink/5" aria-label="Search"><?= store_icon('search') ?></a>
+      <?php if ($customer): ?><a href="<?= e(store_url('/account/notifications')) ?>" class="relative p-2.5 rounded-full hover:bg-ink/5" aria-label="Notifications<?= $unread ? ', ' . $unread . ' new' : '' ?>"><?= store_icon('bell') ?><b data-count="inbox" class="<?= $unread ? 'grid' : 'hidden' ?> absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-copper text-white text-[10px] place-items-center"><?= $unread > 9 ? '9+' : $unread ?></b></a><?php endif; ?>
       <a href="<?= e(store_url('/saved')) ?>" class="app-hide relative p-2.5 rounded-full hover:bg-ink/5" aria-label="Saved"><?= store_icon('heart') ?><b data-count="saved" class="hidden absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-teal text-white text-[10px] place-items-center">0</b></a>
       <a href="<?= e(store_url('/cart')) ?>" class="app-hide relative p-2.5 rounded-full hover:bg-ink/5" aria-label="Bag<?= $cartCount ? ', ' . $cartCount . ' items' : '' ?>"><?= store_icon('shopping-bag') ?><b data-count="bag" class="<?= $cartCount ? 'grid' : 'hidden' ?> absolute top-0.5 right-0.5 min-w-[17px] h-[17px] px-1 rounded-full bg-copper text-white text-[10px] place-items-center"><?= (int) $cartCount ?></b></a>
       <a href="<?= e(store_url($customer ? '/account' : '/signin')) ?>" class="hidden lg:flex items-center gap-2 ml-1 pl-3 pr-4 h-10 rounded-full border border-ink/15 hover:border-ink/40 text-[13.5px] font-medium<?= $active === 'account' ? ' border-ink/40' : '' ?>"><?= store_icon('user-round') ?> <?= $customer ? 'Account' : 'Sign in' ?></a>

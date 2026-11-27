@@ -246,6 +246,23 @@ listeners on every page.
   Tapping opens `/order/<token>`. Notifications of one order share a tag, so a newer one replaces
   the older one. Push never writes to `notifications` (the admin bell).
 
+### In-app notifications (no FCM needed)
+
+Every order update the push hooks send (placed, payment received, dispatched, delivered) is also
+stored in the customer's inbox, whether or not FCM is set up. It works in the app and on the website.
+
+- **Table `customer_notifications`** (migration 000020, single writer `Store\Inbox`): `customer_id`,
+  `title`, `body`, `url` (same-site path, the order page), `tag`, `read_at`. The newest 50 are kept
+  per customer; account deletion removes them.
+- **Bell** in the header for a signed-in customer (also in the app), with the unread count. It opens
+  **Account ▸ Notifications** (`/account/notifications`); opening the tab marks everything read.
+- **Live card:** `store.js inbox()` polls `GET /account/notifications/new?after=<last id>` every 45 s
+  while the page is visible, and at once when the app comes back to the foreground. A new update
+  slides in as a tappable card under the header and refreshes the bell. Nothing runs while the app
+  is closed; that is what FCM push is for.
+- **Push prompt:** the `ms-push` meta (and so the "Get order updates on this phone?" card) is printed
+  only when `FCM_SERVICE_ACCOUNT` is set, so an app built without Firebase never calls `register`.
+
 ### App Links
 
 `/.well-known/assetlinks.json` lists `APP_CERT_SHA256` (comma-separated; Play Console ▸ App integrity ▸
@@ -262,14 +279,14 @@ App signing key certificate, and the upload key's if you test signed builds outs
 | Manual run, "release" ticked | Signed build with the version in `version.properties` |
 
 Secrets: `ANDROID_KEYSTORE_BASE64`, `ANDROID_KEYSTORE_PASSWORD`, `ANDROID_KEY_ALIAS`,
-`ANDROID_KEY_PASSWORD`, `GOOGLE_SERVICES_JSON` (the file's JSON text). A release build fails when any is
-missing. Locally (Node 22, JDK 21, Android SDK 36): `cd mobile && npm ci && npx cap sync android &&
+`ANDROID_KEY_PASSWORD` (a release build fails without them) and `GOOGLE_SERVICES_JSON` (the file's JSON
+text; optional: without it the release has no status-bar push, only in-app notifications). Locally (Node 22, JDK 21, Android SDK 36): `cd mobile && npm ci && npx cap sync android &&
 cd android && ./gradlew assembleDebug`.
 
 ### Before the first release (owner)
 
 1. Play Console organisation account (D-U-N-S), Firebase project with an Android app
-   `com.maasarada.store`, upload key (see *Signing* below), and the five GitHub secrets.
+   `com.maasarada.store`, upload key (see *Signing* below), and the four signing secrets (plus `GOOGLE_SERVICES_JSON` for push).
 2. Server: the service-account JSON in `shared/`, `FCM_SERVICE_ACCOUNT` and (after Play App Signing is
    set up) `APP_CERT_SHA256` in `shared/.env`, then `php vayu optimize`.
 3. A sharper icon: the crest is cut from the 560 px web logo. Put a 1024 px crest in

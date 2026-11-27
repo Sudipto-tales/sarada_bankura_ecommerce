@@ -76,6 +76,10 @@ return function (Assert $assert): void {
     $assert->that('browser: no bridge script, no push meta', !str_contains($html, 'app-bridge.js') && !str_contains($html, 'name="ms-push"'));
     AppMode::force(true);
     $html = $router->dispatch($req('GET', '/brands'))->getContent();
+    $assert->that('app, signed in, FCM not set up: bridge but no push meta (the app never calls register without Firebase)',
+        str_contains($html, 'js/app-bridge.js') && !str_contains($html, 'name="ms-push"'));
+    Fcm::$account = ['project_id' => 'ms-store', 'client_email' => 'push@ms-store.iam.gserviceaccount.com', 'private_key' => 'stub'];
+    $html = $router->dispatch($req('GET', '/brands'))->getContent();
     $assert->that('app, signed in: bridge script + push endpoint meta', str_contains($html, 'js/app-bridge.js') && str_contains($html, 'name="ms-push" content="') && str_contains($html, '/app/devices"'));
     $assert->that('push meta: data-reg = tag of the token this session registered', str_contains($html, 'data-reg="' . Devices::tag($tok('b')) . '"')
         && strlen(Devices::tag($tok('b'))) === 16 && Devices::tag($tok('b')) === substr(hash('sha256', $tok('b')), 0, 16));
@@ -87,6 +91,7 @@ return function (Assert $assert): void {
     $bridge = (string) file_get_contents(dirname(__DIR__) . '/public/assets/js/app-bridge.js');
     $assert->that('bridge: resend is keyed to data-reg, not a per-app-session flag', str_contains($bridge, "getAttribute('data-reg')") && str_contains($bridge, "digest('SHA-256'"));
     AppMode::force(false);
+    Fcm::$account = null;
     $sw = $router->dispatch($req('GET', '/service-worker'))->getContent();
     $assert->that('service worker: precaches the bridge, never caches /app/devices or /.well-known', str_contains($sw, 'js/app-bridge.js') && str_contains($sw, 'app\/(download|version|devices)') && str_contains($sw, '\.well-known'));
     $pw = (string) file_get_contents(dirname(__DIR__) . '/public/assets/js/pay-window.js');

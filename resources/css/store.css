@@ -86,6 +86,10 @@
 
   .toast { @apply fixed z-[60] left-1/2 -translate-x-1/2 bottom-[calc(96px+env(safe-area-inset-bottom))] lg:bottom-8 bg-ink text-cream text-[13.5px] px-4 py-2.5 rounded-full shadow-card transition pointer-events-none; opacity: 0; }
   .toast.on { opacity: 1; }
+  /* In-app notification card (store.js inbox()): slides down under the header when an order update arrives. */
+  .inbox-pop { @apply fixed z-[61] left-3 right-3 sm:left-auto sm:right-6 sm:w-[380px] top-[calc(12px+env(safe-area-inset-top))] flex items-start gap-3 bg-white text-ink rounded-2xl shadow-card border border-ink/10 p-3.5 pr-2; transform: translateY(-140%); opacity: 0; transition: transform .3s ease, opacity .3s ease; }
+  .inbox-pop.on { transform: none; opacity: 1; }
+  @media (prefers-reduced-motion: reduce) { .inbox-pop { transition: opacity .2s; transform: none; } }
 
   /* Payment window (pay-window.js toggles .low in the last minute) + checkout plan cards. */
   .pw-timer.low { background: #F7ECE5; color: #9A522F; }

@@ -26,6 +26,61 @@
   }
   window.msToast = toast;
 
+  /* ---------- in-app notifications (Store\Inbox): bell badge + a card when an order update arrives ---------- */
+  function inbox() {
+    var cfg = null; try { cfg = JSON.parse(($('#store-inbox') || {}).textContent || 'null'); } catch (e) { /* ignore */ }
+    if (!cfg || !cfg.url) return;
+    var after = cfg.after || 0, busy = false, last = 0, EVERY = 45000;
+    function badge(n) {
+      $$('[data-count=inbox]').forEach(function (b) { b.textContent = n > 9 ? '9+' : n; b.classList.toggle('hidden', !n); b.classList.toggle('grid', !!n); });
+    }
+    function pop(n) {
+      var old = $('#inboxPop'); if (old) old.remove();
+      var card = document.createElement(n.url ? 'a' : 'div'), ic = document.createElement('span'), tx = document.createElement('span'),
+        t = document.createElement('b'), b = document.createElement('span'), x = document.createElement('button'), i;
+      card.id = 'inboxPop'; card.className = 'inbox-pop'; card.setAttribute('role', 'status');
+      if (n.url) card.href = n.url;
+      ic.className = 'shrink-0 w-9 h-9 rounded-xl bg-cream grid place-items-center text-teal';
+      i = document.createElement('i'); i.setAttribute('data-lucide', 'bell'); ic.appendChild(i);
+      tx.className = 'min-w-0 flex-1 leading-snug';
+      t.className = 'block text-[14px]'; t.textContent = n.title;
+      b.className = 'block text-[12.5px] text-ink-500 mt-0.5 line-clamp-2'; b.textContent = n.body;
+      tx.appendChild(t); tx.appendChild(b);
+      x.type = 'button'; x.className = 'shrink-0 w-8 h-8 rounded-full grid place-items-center text-ink-400 hover:bg-ink/5'; x.setAttribute('aria-label', 'Dismiss');
+      i = document.createElement('i'); i.setAttribute('data-lucide', 'x'); x.appendChild(i);
+      x.addEventListener('click', function (e) { e.preventDefault(); e.stopPropagation(); hide(); });
+      card.appendChild(ic); card.appendChild(tx); card.appendChild(x);
+      document.body.appendChild(card); icons();
+      if (navigator.vibrate) { try { navigator.vibrate(30); } catch (e) { /* ignore */ } }
+      requestAnimationFrame(function () { card.classList.add('on'); });
+      function hide() { card.classList.remove('on'); setTimeout(function () { card.remove(); }, 350); }
+      setTimeout(hide, 7000);
+    }
+    function check() {
+      if (busy || document.hidden || navigator.onLine === false) return;
+      busy = true; last = Date.now();
+      fetch(cfg.url + (cfg.url.indexOf('?') < 0 ? '?' : '&') + 'after=' + after, { headers: { Accept: 'application/json' }, credentials: 'same-origin', cache: 'no-store' })
+        .then(function (r) { return r.ok ? r.json() : null; })
+        .then(function (d) {
+          if (!d) return;
+          badge(d.unread || 0);
+          var items = d.items || [];
+          if (!items.length) return;
+          after = items[items.length - 1].id;
+          // On the inbox page itself the list is the notification; just reload it.
+          if (/\/account\/notifications\/?$/.test(location.pathname)) { location.reload(); return; }
+          var n = items[items.length - 1];
+          pop(items.length > 1 ? { title: items.length + ' new updates', body: n.title, url: cfg.inbox || n.url } : n);
+        })
+        .catch(function () { /* offline or signed out: try again next round */ })
+        .then(function () { busy = false; });
+    }
+    setInterval(check, EVERY);
+    // Back from the background (app resumed, tab shown): check at once if the last check is stale.
+    document.addEventListener('visibilitychange', function () { if (!document.hidden && Date.now() - last > 15000) check(); });
+    window.addEventListener('online', check);
+  }
+
   /* ---------- storage (wrapped: private mode / blocked storage must not break the page) ---------- */
   var store = {
     get: function (k, d) { try { var v = JSON.parse(localStorage.getItem(k)); return v == null ? d : v; } catch (e) { return d; } },
@@ -957,6 +1012,7 @@
     offlinePage();
     drawer();
     paintSaved();
+    inbox();
     var flash = []; try { flash = JSON.parse(($('#store-flash') || {}).textContent || '[]'); } catch (e) { /* ignore */ }
     if (flash.length) toast(flash.map(function (f) { return f.message; }).join(' · '));
     var home = null; try { home = JSON.parse(($('#home-data') || {}).textContent || 'null'); } catch (e) { /* ignore */ }

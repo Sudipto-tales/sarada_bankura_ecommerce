@@ -306,6 +306,7 @@ final class CustomerAuth
             }
             if ($cid) {
                 DB::delete('DELETE FROM customer_saved_items WHERE customer_id = ?', [$cid]);
+                Inbox::forget($cid);
                 DB::update('UPDATE product_reviews SET customer_id = NULL, customer_name = ?, customer_email = NULL, customer_phone = NULL WHERE customer_id = ?'
                     . ($phone ? ' OR customer_phone = ?' : ''), $phone ? ['A customer', $cid, $phone] : ['A customer', $cid]);
                 DB::update('UPDATE enquiries SET customer_id = NULL, name = ?, phone = ?, email = NULL WHERE customer_id = ?'

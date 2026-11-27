@@ -73,7 +73,7 @@ jobs:
               || { echo "GOOGLE_SERVICES_JSON is not valid JSON"; exit 1; }
             echo "google-services.json written"
           elif [ -n "$RELEASE" ]; then
-            echo "::error::GOOGLE_SERVICES_JSON secret missing: a release without it has no push notifications."; exit 1
+            echo "::warning::GOOGLE_SERVICES_JSON secret not set: this release has no status-bar push. In-app notifications still work."
           else
             echo "No google-services.json (fine for a debug build; push won't work in it)"
           fi
