@@ -15,6 +15,7 @@ PHP framework. Production runs on Hostinger with **MariaDB/MySQL**. SQLite is fo
 | [admin-access.md](admin-access.md) | Staff login, roles & permissions, invites, OTP | phases 1–4 built |
 | [whatsapp.md](whatsapp.md) | Meta Cloud API channel (dormant until `.env` is filled) | W1–W3 built |
 | [storefront.md](storefront.md) | Public shop, cart, checkout, customer accounts | S1–S5 built |
+| [mobile-app.md](mobile-app.md) | Android app (Capacitor), Play Store, offline, APK release workflow | planned |
 | [usage.md](usage.md) · [architecture.md](architecture.md) · [features.md](features.md) · [realtime.md](realtime.md) | The Vayu framework itself | reference |
 
 Design references: `html/admin/` (Veylix admin mockups) and `html/storefront/` (storefront
