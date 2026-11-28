@@ -24,6 +24,8 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover<?= $inApp ? ', maximum-scale=1, user-scalable=no' : '' ?>">
+<?php if (!$inApp): ?><script>try{if(window.androidBridge&&!sessionStorage.getItem('ms.appck')){sessionStorage.setItem('ms.appck','1');document.cookie='<?= AppMode::COOKIE ?>=1;path=/;max-age=31536000;samesite=lax';location.reload()}}catch(e){}</script>
+<?php endif; ?>
 <?php if ($inApp): ?><meta name="format-detection" content="telephone=no">
 <script>try{if(!sessionStorage.getItem('ms.intro')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){sessionStorage.setItem('ms.intro','1');document.documentElement.classList.add('intro')}}catch(e){}</script>
 <script>addEventListener('pagereveal',function(e){var a=window.navigation&&navigation.activation;if(e.viewTransition&&a&&a.navigationType==='traverse'&&a.from&&a.entry&&a.entry.index<a.from.index){var r=document.documentElement;r.classList.add('vt-back');e.viewTransition.finished.finally(function(){r.classList.remove('vt-back')})}});</script>

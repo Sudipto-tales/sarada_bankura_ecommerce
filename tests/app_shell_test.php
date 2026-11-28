@@ -37,8 +37,17 @@ return function (Assert $assert): void {
     $assert->that('detect: browsers and lookalikes are not the app', AppMode::detect('Mozilla/5.0 Chrome/131') === null && AppMode::detect(null) === null
         && AppMode::detect('XMaaSaradaApp/1') === null);
 
+    AppMode::force(null);
+    $_COOKIE['ms_app'] = '1';
+    $assert->that('cookie: ms_app=1 counts as the app (service-worker loads lose the UA token)', AppMode::active());
+    AppMode::force(null);
+    $_COOKIE['ms_app'] = '0';
+    $assert->that('cookie: any other value is not the app', !AppMode::active());
+    unset($_COOKIE['ms_app']);
+
     AppMode::force(false);
     $html = $router->dispatch($req('/brands'))->getContent();
+    $assert->that('web: bridge check sets the app cookie once and reloads', str_contains($html, 'window.androidBridge') && str_contains($html, "ms_app=1"));
     $assert->that('web: tab bar with 5 tabs, no is-app class, zoom allowed', substr_count($html, 'class="tab-i"') === 5
         && !str_contains($html, 'class="is-app"') && !str_contains($html, 'user-scalable=no') && str_contains($html, 'viewport-fit=cover'));
     $assert->that('web: utility bar + full footer shown, worker URL on <html>', str_contains($html, 'Delivery included in every price')
