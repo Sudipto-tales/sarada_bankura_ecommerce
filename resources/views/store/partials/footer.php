@@ -11,15 +11,19 @@ $tel = store_tel();
 $year = (new DateTimeImmutable('now', new DateTimeZone('Asia/Kolkata')))->format('Y');
 if (\App\Services\Store\AppMode::active()):
 ?>
-<footer class="mt-16 border-t border-ink/10">
-  <div class="wrap py-8 grid gap-5 text-[13.5px] text-ink-500">
+<footer class="app-foot">
+  <div class="grid gap-5 text-[13.5px]">
+    <div class="flex items-center gap-3">
+      <img src="<?= e(store_asset('image/logo.webp')) ?>" alt="" class="h-11 w-auto" width="44" height="44" loading="lazy">
+      <div><p class="font-display text-[19px] text-cream leading-tight">Maa Sarada</p><p class="text-[10.5px] uppercase tracking-[.18em]">Marble &amp; Stone · <?= e(business('address.city', 'Bankura')) ?></p></div>
+    </div>
     <div class="grid grid-cols-2 gap-2">
       <a href="<?= e(store_url('/track')) ?>" class="app-row"><?= store_icon('package-search') ?> Track order</a>
       <a href="<?= e(store_url('/contact')) ?>" class="app-row"><?= store_icon('map-pin') ?> Visit showroom</a>
       <?php if ($wa !== ''): ?><a href="<?= e($wa) ?>" class="app-row" rel="noopener"><?= store_icon('message-circle') ?> WhatsApp</a><?php endif; ?>
       <?php if ($tel !== ''): ?><a href="<?= e($tel) ?>" class="app-row"><?= store_icon('phone') ?> Call us</a><?php endif; ?>
     </div>
-    <p class="flex flex-wrap gap-x-4 gap-y-1 text-[12.5px]"><a href="<?= e(store_url('/policy')) ?>">Policies</a><a href="<?= e(store_url('/policy')) ?>#privacy">Privacy</a><a href="<?= e(store_url('/policy')) ?>#terms">Terms</a><span>© <?= e($year) ?> <?= e(business('name')) ?></span></p>
+    <p class="flex flex-wrap gap-x-4 gap-y-1 text-[12.5px] text-cream/50"><a href="<?= e(store_url('/policy')) ?>">Policies</a><a href="<?= e(store_url('/policy')) ?>#privacy">Privacy</a><a href="<?= e(store_url('/policy')) ?>#terms">Terms</a><span>© <?= e($year) ?> <?= e(business('name')) ?></span></p>
   </div>
 </footer>
 <?php return; endif; ?>
