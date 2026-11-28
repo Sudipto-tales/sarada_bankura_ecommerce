@@ -163,10 +163,18 @@ try {
 <header class="topbar">
   <button class="tb-menu glass" type="button" onclick="document.body.classList.add('sb-open')" aria-label="Open menu"><i data-lucide="menu"></i></button>
   <div class="tb-group glass tb-left">
-    <form class="search" method="get" action="<?= route('admin.products.index') ?>">
+    <form class="search" method="get" action="<?= route('admin.search') ?>" role="search" id="gsForm" data-suggest="<?= e(route('admin.search.suggest')) ?>">
       <i data-lucide="search"></i>
-      <input name="q" placeholder="Search products, SKUs, enquiries…" autocomplete="off" id="globalSearch">
+      <input name="q" type="search" placeholder="Search products, orders, customers, phone…" autocomplete="off" spellcheck="false" id="globalSearch"
+             value="<?= e(($active ?? '') === 'search' ? (string) ($res['q'] ?? '') : '') ?>"
+             role="combobox" aria-expanded="false" aria-controls="gsPanel" aria-autocomplete="list" aria-label="Search the admin">
+      <span class="gs-spin" aria-hidden="true"></span>
       <kbd><i data-lucide="command"></i> K</kbd>
+      <div class="gs-panel" id="gsPanel" role="listbox" hidden>
+        <template id="gsQuick"><?= json_encode(\App\Services\Admin\GlobalSearch::quickLinks(), JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_HEX_TAG) ?></template>
+        <div class="gs-body" id="gsBody"></div>
+        <div class="gs-foot"><span><kbd>↑</kbd><kbd>↓</kbd> move</span><span><kbd>↵</kbd> open</span><span><kbd>esc</kbd> close</span><a id="gsAll" href="<?= route('admin.search') ?>">All results <i data-lucide="arrow-right"></i></a></div>
+      </div>
     </form>
     <a class="tb-chip" href="<?= route('admin.products.index') ?>">
       <span class="tb-ic" style="background:#dff3e9;color:#1f7a53"><i data-lucide="package"></i></span>
