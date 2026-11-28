@@ -25,5 +25,6 @@ return [
         App\Console\Commands\PaymentExpireCommand::class,
         App\Console\Commands\AdminInstallCommand::class,
         App\Console\Commands\StoreDemoAccountCommand::class,
+        App\Console\Commands\AppReleaseCommand::class,
     ],
 ];

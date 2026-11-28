@@ -164,6 +164,29 @@ return function (Assert $assert): void {
     $res = $router->dispatch($req('GET', '/admin/app-releases/' . $id2 . '/download'));
     $assert->that('admin: staff can download any release (not counted)', $res instanceof FileResponse && (int) AppReleases::find($id2)['downloads'] === 0);
 
+    // ---------------------------------------------------------------- CI publish (php vayu app:release)
+    $cmd = new class ($app) extends \App\Console\Commands\AppReleaseCommand {
+        public string $out = '';
+        protected function line(string $message = ''): void { $this->out .= $message . "\n"; }
+        protected function info(string $message): void { $this->line($message); }
+        protected function error(string $message): void { $this->line($message); }
+    };
+    $file = $tmp . '/' . bin2hex(random_bytes(4)) . '.apk'; rename($apk()->getPathname(), $file);
+    file_put_contents($tmp . '/notes.txt', "- New logo\n");
+    $rc = $cmd->handle(['--apk=' . $file, '--name=2.0.0', '--code=20000', '--notes-file=' . $tmp . '/notes.txt']);
+    $r = DB::selectOne('SELECT * FROM app_releases WHERE version_code = 20000');
+    $assert->that('cli: uploads and publishes the CI build with its notes', $rc === 0 && $r && $r['status'] === 'published' && $r['changelog'] === '- New logo' && !is_file($file)
+        && AppReleases::latest()['version_code'] == 20000);
+    if ($r) {
+        $stored[] = AppReleases::path($r);
+    }
+    $file = $tmp . '/' . bin2hex(random_bytes(4)) . '.apk'; rename($apk()->getPathname(), $file);
+    $assert->that('cli: a re-run for the same code is a no-op', $cmd->handle(['--apk=' . $file, '--name=2.0.0', '--code=20000']) === 0
+        && (int) DB::selectOne('SELECT COUNT(*) AS n FROM app_releases WHERE version_code = 20000')['n'] === 1);
+    $file = $tmp . '/' . bin2hex(random_bytes(4)) . '.apk'; rename($apk()->getPathname(), $file);
+    $assert->that('cli: a lower code is refused', $cmd->handle(['--apk=' . $file, '--name=1.9.0', '--code=19000']) === 1 && str_contains($cmd->out, 'version_code'));
+    $assert->that('cli: missing args → usage', $cmd->handle([]) === 1 && str_contains($cmd->out, 'Usage'));
+
     foreach ($stored as $p) {
         @unlink($p);
     }

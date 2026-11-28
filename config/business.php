@@ -8,8 +8,8 @@
  * production copy can differ without code changes. No DB table on purpose (see docs/README.md).
  */
 return [
-    'name' => env('BUSINESS_NAME', 'Maa Sarada Marble & Stone'),
-    'legal_name' => env('BUSINESS_LEGAL_NAME', env('BUSINESS_NAME', 'Maa Sarada Marble & Stone')),
+    'name' => env('BUSINESS_NAME', 'Maa Sarada Marble & Sanitation'),
+    'legal_name' => env('BUSINESS_LEGAL_NAME', env('BUSINESS_NAME', 'Maa Sarada Marble & Sanitation')),
 
     'address' => [
         'line1' => env('BUSINESS_ADDRESS_LINE1', ''),
@@ -30,7 +30,7 @@ return [
     'pan' => env('BUSINESS_PAN', ''),
 
     // Path under public/ (use with base_url()).
-    'logo' => env('BUSINESS_LOGO', 'assets/image/logo.webp'), // empty = text logo
+    'logo' => env('BUSINESS_LOGO', 'assets/image/logo-full.png'), // empty = text logo
 
     'currency' => 'INR',
     'timezone' => 'Asia/Kolkata',

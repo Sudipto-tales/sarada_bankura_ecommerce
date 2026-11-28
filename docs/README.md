@@ -1,6 +1,6 @@
-# Maa Sarada Marble & Stone — project docs
+# Maa Sarada Marble & Sanitation — project docs
 
-Admin panel + storefront for Maa Sarada Marble & Stone (Bankura), built on the in-house **Vayu**
+Admin panel + storefront for Maa Sarada Marble & Sanitation (Bankura), built on the in-house **Vayu**
 PHP framework. Production runs on Hostinger with **MariaDB/MySQL**. SQLite is for local dev only.
 
 ## Docs

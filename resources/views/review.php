@@ -15,7 +15,7 @@ $limitLabel = \App\Services\Media\MediaService::humanBytes((int) $photoLimit);
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="robots" content="noindex">
-<title>Review <?= e($p['name']) ?> · Maa Sarada Marble &amp; Stone</title>
+<title>Review <?= e($p['name']) ?> · Maa Sarada Marble &amp; Sanitation</title>
 <meta name="description" content="Share how <?= e($p['name']) ?> looks in your home. Reviews appear after a quick check.">
 <link rel="icon" type="image/png" href="<?= base_url('assets/image/favicon.png') ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -179,7 +179,7 @@ footer{margin-top:28px;text-align:center;font-size:12.5px;color:var(--ink-400)}
     <p class="note">Reviews appear after a quick check, usually within a day. We never show your mobile number or email.</p>
   </form>
   <?php endif; ?>
-  <footer>Maa Sarada Marble &amp; Stone · <?= e((string) business('address.city', 'Bankura')) ?></footer>
+  <footer>Maa Sarada Marble &amp; Sanitation · <?= e((string) business('address.city', 'Bankura')) ?></footer>
 </main>
 <?php if (!$thanks): ?>
 <script>

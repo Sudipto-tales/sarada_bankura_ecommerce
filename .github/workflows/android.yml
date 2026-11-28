@@ -2,7 +2,9 @@ name: Android app
 
 # Builds the Capacitor shell in mobile/ (docs/mobile-app.md phase 4).
 #   - Pull requests that touch mobile/ (or this file): unsigned debug APK, to prove it still builds.
-#   - Tag app-vX.Y.Z: signed release AAB (for Play) + APK, version taken from the tag.
+#   - Tag app-vX.Y.Z: signed release AAB (for Play) + APK, version taken from the tag, then the APK
+#     is published on the website's /app page (job "website"; repo variable APP_WEB_PUBLISH =
+#     draft → upload as a Draft only, off → skip).
 #   - Manual run: same as a pull request, or a signed release when "release" is ticked.
 # Signing and Firebase config come only from repository secrets; the repo is public.
 on:
@@ -120,8 +122,8 @@ jobs:
             ls -l android/app/build/outputs/*/*/*.a?? 2>/dev/null | awk '{print "- " $NF " (" int($5/1024) " KB)"}'
             if [ -n "$RELEASE" ]; then
               echo
-              echo "Next (docs/mobile-app.md, Release workflow): upload the .aab to Play Console, then upload Play's"
-              echo "signed universal APK in Admin > Settings > Android app. The APK here is signed with the upload key."
+              echo "Next (docs/mobile-app.md, Release workflow): upload the .aab to Play Console. A tag build also"
+              echo "publishes the APK on the website /app page (job \"Publish on the website\")."
             fi
           } >> "$GITHUB_STEP_SUMMARY"
 
@@ -134,3 +136,86 @@ jobs:
             mobile/android/app/build/outputs/apk/debug/*.apk
           if-no-files-found: error
           retention-days: 30
+
+  website:
+    name: Publish on the website
+    needs: build
+    if: startsWith(github.ref, 'refs/tags/app-v') && vars.APP_WEB_PUBLISH != 'off'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment:
+      name: production
+      url: ${{ vars.APP_URL }}/app
+    env:
+      DEPLOY_HOST: ${{ vars.DEPLOY_HOST }}
+      DEPLOY_PORT: ${{ vars.DEPLOY_PORT }}
+      DEPLOY_USER: ${{ vars.DEPLOY_USER }}
+      DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: maa-sarada-release-${{ github.run_number }}
+          path: ${{ runner.temp }}/build
+
+      - name: Version + notes from the tag
+        id: v
+        run: |
+          NAME="${GITHUB_REF_NAME#app-v}"
+          IFS=. read -r MA MI PA <<< "$NAME"
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+          echo "code=$((10#$MA * 10000 + 10#$MI * 100 + 10#$PA))" >> "$GITHUB_OUTPUT"
+          APK="$(find "$RUNNER_TEMP/build" -name '*.apk' | head -1)"
+          [ -n "$APK" ] || { echo "::error::No APK in the build artifact"; exit 1; }
+          echo "apk=$APK" >> "$GITHUB_OUTPUT"
+          git fetch -q --force origin "refs/tags/$GITHUB_REF_NAME:refs/tags/$GITHUB_REF_NAME" || true
+          NOTES="$(git for-each-ref "refs/tags/$GITHUB_REF_NAME" --format='%(contents)' | sed '/-----BEGIN PGP/,$d')"
+          printf '%s\n' "${NOTES:-Version $NAME}" > "$RUNNER_TEMP/notes.txt"
+
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
+          KNOWN_HOSTS: ${{ vars.DEPLOY_KNOWN_HOSTS || secrets.DEPLOY_KNOWN_HOSTS }}
+        run: |
+          [ -n "$DEPLOY_HOST" ] && [ -n "$SSH_KEY" ] && [ -n "$KNOWN_HOSTS" ] \
+            || { echo "DEPLOY_HOST / DEPLOY_SSH_KEY / DEPLOY_KNOWN_HOSTS missing"; exit 1; }
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy_key && chmod 600 ~/.ssh/deploy_key
+          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
+          cat > ~/.ssh/config <<EOF
+          Host prod
+            HostName $DEPLOY_HOST
+            Port $DEPLOY_PORT
+            User $DEPLOY_USER
+            IdentityFile ~/.ssh/deploy_key
+            IdentitiesOnly yes
+            StrictHostKeyChecking yes
+            ServerAliveInterval 15
+          EOF
+
+      - name: Upload + publish
+        env:
+          NAME: ${{ steps.v.outputs.name }}
+          CODE: ${{ steps.v.outputs.code }}
+          APK: ${{ steps.v.outputs.apk }}
+          DRAFT: ${{ vars.APP_WEB_PUBLISH == 'draft' && '--draft' || '' }}
+          PHP_VERSION: ${{ vars.PHP_VERSION || '8.3' }}
+        run: |
+          IN="$DEPLOY_PATH/shared/app-incoming"
+          ssh prod "mkdir -p '$IN'"
+          scp -q "$APK" "prod:$IN/maa-sarada-$CODE.apk"
+          scp -q "$RUNNER_TEMP/notes.txt" "prod:$IN/notes-$CODE.txt"
+          ssh prod "PHP=/opt/alt/php${PHP_VERSION//./}/usr/bin/php; [ -x \"\$PHP\" ] || PHP=php; \
+            cd '$DEPLOY_PATH/current' && \"\$PHP\" vayu app:release --apk='$IN/maa-sarada-$CODE.apk' \
+              --name='$NAME' --code='$CODE' --notes-file='$IN/notes-$CODE.txt' $DRAFT; \
+            rc=\$?; rm -f '$IN/notes-$CODE.txt' '$IN/maa-sarada-$CODE.apk'; exit \$rc"
+
+      - name: Summary
+        if: always()
+        run: |
+          {
+            echo "### Website release ${{ job.status }}: ${{ steps.v.outputs.name }} (code ${{ steps.v.outputs.code }})"
+            echo "- ${{ vars.APP_WEB_PUBLISH == 'draft' && 'Uploaded as a Draft: publish it in Admin > Settings > Android app' || 'Published' }} at ${{ vars.APP_URL }}/app"
+          } >> "$GITHUB_STEP_SUMMARY"
+          rm -f ~/.ssh/deploy_key

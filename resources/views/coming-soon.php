@@ -6,8 +6,8 @@ $launchLabel = date('F j, Y', strtotime($launch));
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Maa Sarada Marble &amp; Stone — Coming Soon</title>
-<meta name="description" content="Maa Sarada Marble &amp; Stone — premium marble and natural stone. Launching <?= e($launchLabel) ?>.">
+<title>Maa Sarada Marble &amp; Sanitation — Coming Soon</title>
+<meta name="description" content="Maa Sarada Marble &amp; Sanitation — premium marble and natural stone. Launching <?= e($launchLabel) ?>.">
 <link rel="icon" type="image/png" href="<?= base_url('assets/image/favicon.png') ?>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&display=swap" rel="stylesheet">
@@ -37,7 +37,7 @@ h1 .dot{color:var(--gold)}
     <div class="brandmark">
       <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h12l4 6-10 13L2 9Z"/><path d="M11 3 8 9l4 13 4-13-3-6"/><path d="M2 9h20"/></svg>
     </div>
-    <div class="kicker">Maa Sarada · Marble &amp; Stone</div>
+    <div class="kicker">Maa Sarada · Marble &amp; Sanitation</div>
     <h1>Something timeless is coming<span class="dot">.</span></h1>
     <p class="tag">Premium marble &amp; natural stone, curated for homes and projects. Our online catalogue opens soon.</p>
     <div class="count" id="count">
@@ -52,7 +52,7 @@ h1 .dot{color:var(--gold)}
     </div>
   </div>
 </div>
-<div class="foot">© <?= date('Y') ?> Maa Sarada Marble &amp; Stone. All rights reserved.</div>
+<div class="foot">© <?= date('Y') ?> Maa Sarada Marble &amp; Sanitation. All rights reserved.</div>
 <script>
 (function(){
   var target=new Date('<?= e($launch) ?>').getTime();

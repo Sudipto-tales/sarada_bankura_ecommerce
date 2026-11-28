@@ -6,7 +6,7 @@
 use App\Services\Store\AppMode;
 use App\Services\Store\Context;
 
-$siteName = (string) business('name', 'Maa Sarada Marble & Stone');
+$siteName = (string) business('name', 'Maa Sarada Marble & Sanitation');
 $title = $page['title'] ? $page['title'] . ' · ' . $siteName : $siteName . ' — ' . business('address.city', 'Bankura');
 $description = $page['description'] ?: 'Italian and Indian marble, granite and onyx for floors, walls and countertops. Showroom in '
     . business('address.city', 'Bankura') . ', ' . business('address.state', 'West Bengal') . '. Delivery included, UPI payments.';
@@ -38,7 +38,8 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <meta property="og:title" content="<?= e($page['title'] ?: $siteName) ?>">
 <meta property="og:description" content="<?= e($description) ?>">
 <meta name="theme-color" content="#F6F2EA">
-<link rel="icon" href="<?= e(store_asset('image/logo.webp')) ?>">
+<link rel="icon" type="image/png" href="<?= e(store_asset('image/favicon.png')) ?>">
+<link rel="apple-touch-icon" href="<?= e(store_asset('image/favicon.png')) ?>">
 <link rel="preload" href="<?= e(base_url('assets/vendor/fonts/manrope-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
 <link rel="preload" href="<?= e(base_url('assets/vendor/fonts/fraunces-latin.woff2')) ?>" as="font" type="font/woff2" crossorigin>
 <link rel="stylesheet" href="<?= e(store_asset('css/store.css')) ?>">
@@ -53,7 +54,7 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <?= $page['head'] ?>
 </head>
 <body class="font-sans text-[15px]<?= $tabbar ? ' has-tabbar' : ($minimal ? '' : ' pb-20 lg:pb-0') ?>"<?= !empty($page['body_attrs']) ? ' ' . $page['body_attrs'] : '' ?>>
-<?php if ($inApp): ?><div id="intro" class="intro-scr" aria-hidden="true"><img src="<?= e(store_asset('image/logo.webp')) ?>" alt="" width="96" height="96" class="intro-logo"><p class="intro-name font-display">Maa Sarada</p><p class="intro-tag">Marble &amp; Stone · <?= e(business('address.city', 'Bankura')) ?></p><span class="intro-line"></span></div><?php endif; ?>
+<?php if ($inApp): ?><div id="intro" class="intro-scr" aria-hidden="true"><img src="<?= e(store_asset('image/logo-full.webp')) ?>" alt="" width="200" height="172" class="intro-logo"><span class="intro-line"></span></div><?php endif; ?>
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-ink text-cream px-3 py-2 rounded">Skip to content</a>
 <?php if (Context::previewing()): ?>
 <div class="bg-copper text-white text-[12.5px]"><div class="wrap py-2 flex flex-wrap items-center justify-between gap-2">
@@ -64,7 +65,7 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <?= store_partial($minimal ? 'header-minimal' : 'header', ['chrome' => $chrome, 'active' => $page['active']]) ?>
 <?php if (!$minimal && !$inApp && ($page['active'] ?? '') !== 'app' && \App\Services\AppReleases::available()): ?>
 <div id="appBanner" class="lg:hidden" hidden><div class="wrap pt-3"><div class="flex items-center gap-3 rounded-2xl bg-white border border-ink/5 shadow-card px-3 py-2.5">
-  <img src="<?= e(store_asset('image/logo.webp')) ?>" alt="" class="w-10 h-10 rounded-xl object-contain bg-cream" width="40" height="40">
+  <img src="<?= e(store_asset('image/logo-mark.webp')) ?>" alt="" class="w-10 h-10 rounded-xl object-contain bg-cream" width="40" height="40">
   <p class="flex-1 min-w-0 leading-tight"><b class="text-[14px] block truncate">Get the <?= e(business('name')) ?> app</b><span class="text-[12px] text-ink-500">Faster, and works on a weak signal</span></p>
   <a href="<?= e(store_url('/app')) ?>" class="btn btn-dark !h-9 !px-4 text-[13px]">Get</a>
   <button type="button" data-app-banner-close class="w-8 h-8 -mr-1 rounded-full grid place-items-center text-ink-400 hover:bg-ink/5" aria-label="Not now"><?= store_icon('x') ?></button>
