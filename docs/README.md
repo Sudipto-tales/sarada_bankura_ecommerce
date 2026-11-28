@@ -13,6 +13,7 @@ PHP framework. Production runs on Hostinger with **MariaDB/MySQL**. SQLite is fo
 | [orders.md](orders.md) | Orders, workflow, documents, GST, returns & replacements | built |
 | [payments.md](payments.md) | UPI payment window, manual verification, refunds, payment requests | built |
 | [admin-access.md](admin-access.md) | Staff login, roles & permissions, invites, OTP | phases 1–4 built |
+| [admin-search.md](admin-search.md) | Topbar global search: live suggestions, results page, shortcuts | built |
 | [whatsapp.md](whatsapp.md) | Meta Cloud API channel (dormant until `.env` is filled) | W1–W3 built |
 | [storefront.md](storefront.md) | Public shop, cart, checkout, customer accounts | S1–S5 built |
 | [mobile-app.md](mobile-app.md) | Android app (Capacitor), Play Store, offline, push, APK release workflow | phases 1–4 built; Play submission next |

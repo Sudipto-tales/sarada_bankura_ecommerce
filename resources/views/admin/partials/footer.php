@@ -93,9 +93,78 @@ function msExportTable(tableId,filename){
   var a=document.createElement('a');a.href=URL.createObjectURL(new Blob([out],{type:'text/csv'}));a.download=filename;a.click();
 }
 document.addEventListener('keydown',function(e){
-  if((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k'){var s=document.getElementById('globalSearch');if(s){e.preventDefault();s.focus();}}
+  var t=e.target,typing=t&&(t.isContentEditable||/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName));
+  if(((e.metaKey||e.ctrlKey)&&e.key.toLowerCase()==='k')||(e.key==='/'&&!typing)){var s=document.getElementById('globalSearch');if(s){e.preventDefault();s.focus();s.select();}}
   if(e.key==='Escape')document.body.classList.remove('sb-open');
 });
+// ---- Global search: live grouped suggestions, recent searches, keyboard navigation (GlobalSearch service).
+(function(){
+  var form=document.getElementById('gsForm'),inp=document.getElementById('globalSearch'),panel=document.getElementById('gsPanel');if(!form||!inp||!panel)return;
+  var body=document.getElementById('gsBody'),all=document.getElementById('gsAll'),url=form.dataset.suggest,KEY='ms.recentSearch';
+  var quick=[];try{quick=JSON.parse(document.getElementById('gsQuick').innerHTML)}catch(e){}
+  var timer=null,ctl=null,cache={},cur=-1,last='';
+  var esc=function(s){return String(s==null?'':s).replace(/[&<>"']/g,function(c){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]})};
+  function mark(s,q){
+    s=esc(s);var w=q.trim().split(/\s+/).filter(function(x){return x.length>1}).map(function(x){return esc(x).replace(/[.*+?^${}()|[\]\\]/g,'\\$&')});
+    return w.length?s.replace(new RegExp('('+w.join('|')+')','gi'),'<mark>$1</mark>'):s;
+  }
+  function recent(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return[]}}
+  function remember(q){q=q.trim();if(q.length<2)return;try{var r=recent().filter(function(x){return x.toLowerCase()!==q.toLowerCase()});r.unshift(q);localStorage.setItem(KEY,JSON.stringify(r.slice(0,6)))}catch(e){}}
+  function item(it,q,ic){
+    var lead=it.thumb?'<img src="'+esc(it.thumb)+'" alt="" loading="lazy">':(it.initials?'<b>'+esc(it.initials)+'</b>':'<i data-lucide="'+esc(it.icon||ic||'circle')+'"></i>');
+    return '<a class="gs-item" role="option" href="'+esc(it.url)+'"'+(it.fill?' data-fill="'+esc(it.fill)+'"':'')+'><span class="gs-lead">'+lead+'</span><span class="gs-txt"><span class="gs-t">'+mark(it.title,q)+'</span>'
+      +(it.sub?'<span class="gs-s">'+mark(it.sub,q)+'</span>':'')+'</span>'+(it.badge?'<span class="gs-b '+esc(it.tone||'off')+'">'+esc(it.badge)+'</span>':'<i data-lucide="corner-down-left" class="gs-go"></i>')+'</a>';
+  }
+  function section(label,icon,items,q,more){
+    return '<div class="gs-sec"><div class="gs-h"><i data-lucide="'+esc(icon)+'"></i>'+esc(label)+(more?'<a href="'+esc(more)+'" tabindex="-1">See all</a>':'')+'</div>'+items.map(function(it){return item(it,q,icon)}).join('')+'</div>';
+  }
+  function paint(html){body.innerHTML=html;cur=-1;if(window.lucide)lucide.createIcons();}
+  function idle(){
+    var r=recent(),h='';
+    if(r.length)h+='<div class="gs-sec"><div class="gs-h"><i data-lucide="history"></i>Recent searches<button type="button" class="gs-clear" tabindex="-1">Clear</button></div>'
+      +r.map(function(x){return item({title:x,url:form.action+'?q='+encodeURIComponent(x),icon:'history',fill:x},'')}).join('')+'</div>';
+    if(quick.length)h+='<div class="gs-sec"><div class="gs-h"><i data-lucide="zap"></i>Quick actions</div><div class="gs-quick">'
+      +quick.map(function(x){return '<a class="gs-item gs-chip" role="option" href="'+esc(x.url)+'"><i data-lucide="'+esc(x.icon)+'"></i>'+esc(x.title)+'</a>'}).join('')+'</div></div>';
+    h+='<div class="gs-tips"><b>Try:</b> an order number <code>0012</code>, a phone <code>98300…</code>, a SKU, a customer or a page like <code>low stock</code>.</div>';
+    paint(h);
+  }
+  function results(j){
+    var q=j.q,keys=Object.keys(j.groups||{});
+    if(!keys.length){paint('<div class="gs-empty"><i data-lucide="search-x"></i><b>No matches for “'+esc(q)+'”</b><span>Check the spelling, or try a phone number, SKU or order number.</span></div>');return;}
+    paint(keys.map(function(k){var g=j.groups[k];return section(g.label,g.icon,g.items,q,g.more)}).join(''));
+  }
+  function open(){panel.hidden=false;inp.setAttribute('aria-expanded','true');form.classList.add('is-open');}
+  function close(){panel.hidden=true;inp.setAttribute('aria-expanded','false');form.classList.remove('is-open');cur=-1;}
+  function run(){
+    var q=inp.value.trim();all.href=form.action+(q?'?q='+encodeURIComponent(q):'');
+    if(q.length<2){last='';idle();return;}
+    if(q===last)return;last=q;
+    if(cache[q]){results(cache[q]);return;}
+    if(ctl)ctl.abort();ctl=window.AbortController?new AbortController():null;form.classList.add('is-busy');
+    fetch(url+'?q='+encodeURIComponent(q),{headers:{Accept:'application/json'},credentials:'same-origin',signal:ctl?ctl.signal:undefined})
+      .then(function(r){if(!r.ok)throw r;return r.json()})
+      .then(function(j){cache[q]=j;if(inp.value.trim()===q)results(j);})
+      .catch(function(e){if(e&&e.name==='AbortError')return;last='';paint('<div class="gs-empty"><i data-lucide="wifi-off"></i><b>Search is unavailable</b><span>Press Enter to search on the results page.</span></div>');})
+      .then(function(){form.classList.remove('is-busy')});
+  }
+  function opts(){return [].slice.call(body.querySelectorAll('.gs-item'))}
+  function move(d){var o=opts();if(!o.length)return;if(cur>=0&&o[cur])o[cur].classList.remove('is-cur');cur=(cur+d+o.length)%o.length;o[cur].classList.add('is-cur');o[cur].scrollIntoView({block:'nearest'});}
+  inp.addEventListener('focus',function(){open();run();});
+  inp.addEventListener('input',function(){open();clearTimeout(timer);timer=setTimeout(run,180);});
+  inp.addEventListener('keydown',function(e){
+    if(e.key==='ArrowDown'){e.preventDefault();open();move(1);}
+    else if(e.key==='ArrowUp'){e.preventDefault();move(-1);}
+    else if(e.key==='Escape'){if(!panel.hidden){e.stopPropagation();close();}else inp.blur();}
+    else if(e.key==='Enter'){var o=opts()[cur];if(o&&!panel.hidden){e.preventDefault();if(o.dataset.fill){inp.value=o.dataset.fill;remember(o.dataset.fill);form.submit();}else{remember(inp.value);location.href=o.href;}}else remember(inp.value);}
+  });
+  body.addEventListener('mousedown',function(e){if(e.target.closest('a,button'))e.preventDefault();});   // keep focus in the box
+  body.addEventListener('click',function(e){
+    if(e.target.closest('.gs-clear')){try{localStorage.removeItem(KEY)}catch(x){}idle();return;}
+    var a=e.target.closest('.gs-item');if(a&&a.dataset.fill){e.preventDefault();inp.value=a.dataset.fill;remember(a.dataset.fill);form.submit();}else if(a)remember(inp.value);
+  });
+  form.addEventListener('submit',function(){remember(inp.value)});
+  document.addEventListener('mousedown',function(e){if(!form.contains(e.target))close();});
+})();
 // ---- Notification bell panel: feed every 60s (paused while the tab is hidden), tabs, mark read, dismiss.
 (function(){
   var bell=document.getElementById('nfBell'),panel=document.getElementById('nfPanel');if(!bell||!panel)return;

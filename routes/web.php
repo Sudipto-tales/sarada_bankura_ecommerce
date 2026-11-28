@@ -299,6 +299,10 @@ $router->group(['prefix' => 'admin', 'middleware' => [\App\Middleware\AdminAuth:
     // Internal JSON lookups (pincode → district/state/post offices, cached).
     $router->get('/lookup/pincode/{code}', [LookupController::class, 'pincode'])->name('admin.lookup.pincode');
 
+    // Topbar global search (docs/admin-search.md): live suggestions + full results page.
+    $router->get('/search/suggest', [\App\Controllers\Admin\SearchController::class, 'suggest'])->name('admin.search.suggest')->middleware('throttle:120,1');
+    $router->get('/search', [\App\Controllers\Admin\SearchController::class, 'index'])->name('admin.search');
+
     $router->get('/products', [ProductController::class, 'index'])->name('admin.products.index');
     $router->get('/products/create', [ProductController::class, 'create'])->name('admin.products.create');
     $router->post('/products', [ProductController::class, 'store'])->name('admin.products.store');
