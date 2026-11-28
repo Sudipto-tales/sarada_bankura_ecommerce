@@ -34,7 +34,7 @@ These changes also improve the mobile website.
 | --- | --- |
 | App detection (`MaaSaradaApp/<ver>` in the UA → `<html class="is-app">`) | `Store\AppMode` |
 | Glass tab bar, offline pill, nav progress bar, pull to refresh | `partials/app-shell.php`, `appShell()` in `store.js` |
-| Branded intro (crest, name, shimmer; ~1.5 s, once per app launch via `ms.intro` in sessionStorage, tap to skip, off with reduced motion) | `layouts/app.php`, `appShell()` in `store.js`, `.intro*` in `store.css` |
+| Branded intro (full logo + shimmer; ~1.5 s, once per app launch via `ms.intro` in sessionStorage, tap to skip, off with reduced motion) | `layouts/app.php`, `appShell()` in `store.js`, `.intro*` in `store.css` |
 | Status-bar inset on the whole page (`--sa-t` = Capacitor's `--safe-area-inset-top` or `env()`), cream strip behind the status bar | `store.css` |
 | Page skeleton on tap (product / grid / list / general, 90 ms delay) and side-slide page transitions, reversed on back (`vt-back`) | `appShell()` in `store.js`, `.pskel*` in `store.css`, `layouts/app.php` |
 | Compact rounded app footer (`.app-foot`), no utility bar, header bag/saved hidden in the app | `partials/footer.php`, `partials/header.php` |
@@ -191,7 +191,7 @@ in `.github/workflows/android.yml`).
 | Release signing from env only (`ANDROID_KEYSTORE_FILE` + passwords) | `android/app/build.gradle` |
 | UPI / tel / mailto / sms / whatsapp links leave the WebView (UPI opens a "Pay with" chooser; no app → `noApp` event → toast); `intent:` / `file:` / `content:` links are blocked; `info()` reports the installer (Play or sideload) and version code | `MsShellPlugin.java` |
 | Manifest: `INTERNET`, `POST_NOTIFICATIONS`, `<queries>` for upi / tel / mailto / sms / https, App Links for `/product/`, `/shop`, `/order/`, `/pay/`, `/account`, `/saved`, `/cart`, `/brands`, no backup, FCM icon + `orders` channel | `AndroidManifest.xml` |
-| Icons: adaptive (crest on cream) + monochrome (themed icons) + round/legacy, white status-bar icon for push, splash light/dark | `tools/make-assets.php` via `npm run assets` |
+| Icons: adaptive (stone mark on cream) + monochrome (themed icons) + round/legacy, white status-bar icon for push, splash light/dark | `php tools/make-assets.php` (source: `public/assets/image/logo-mark.png`) |
 
 Plugins: `app`, `splash-screen`, `keyboard`, `network`, `haptics`, `share`, `browser`,
 `push-notifications` and `@capawesome/capacitor-app-update`. Status bar and edge-to-edge come from
@@ -292,8 +292,7 @@ cd android && ./gradlew assembleDebug`.
    `com.maasarada.store`, upload key (see *Signing* below), and the four signing secrets (plus `GOOGLE_SERVICES_JSON` for push).
 2. Server: the service-account JSON in `shared/`, `FCM_SERVICE_ACCOUNT` and (after Play App Signing is
    set up) `APP_CERT_SHA256` in `shared/.env`, then `php vayu optimize`.
-3. A sharper icon: the crest is cut from the 560 px web logo. Put a 1024 px crest in
-   `tools/make-assets.php`'s source and run `npm run assets`.
+3. Optional: a vector (SVG) or 2000 px+ version of the stone mark for crisper icons; see *Logos* below.
 4. Tag `app-v1.0.0` and follow the release workflow below.
 
 ## Android permissions
@@ -382,17 +381,35 @@ Payments are for physical goods through UPI, so Play Billing does not apply.
 2. Push tag app-v1.2.0 ──► GitHub Action builds a signed AAB (upload key) + artifact
 3. Play Console: upload the AAB ──► Internal testing ──► (personal account: closed test,
    12 testers / 14 days) ──► Production, staged rollout 20% → 50% → 100%
-4. Play Console ▸ App bundle explorer ▸ download the signed universal APK
-   (Google's signing key, so a sideloaded install can later update from Play and vice versa)
-5. Admin ▸ Settings ▸ Android app ▸ upload that APK + version + changelog ──► Draft ──► test ──► Publish
-6. /app page and /app/version update; Play users get the in-app update prompt from Play
+4. Same tag ──► job "Publish on the website" copies the signed APK to the server over the deploy
+   SSH key and runs `php vayu app:release` ──► published on /app; the tag message is "What's new"
+5. /app page and /app/version update; sideloaded apps see the "New version" card; Play users get
+   Play's in-app update prompt
 ```
 
+- **Website publish settings:** repo variable `APP_WEB_PUBLISH` = `draft` (upload only; publish
+  in Admin ▸ Settings ▸ Android app after testing) or `off` (skip). It uses the `production`
+  environment and its deploy secrets, so that environment must allow `app-v*` tags. Write the
+  changelog in an annotated tag: `git tag -a app-v1.2.0 -m "- New logo"`. Raise "Minimum supported
+  code" in admin when an old build must update.
+- **Signing key:** the website APK is signed with the upload key; Play installs carry Google's app
+  signing key. Android refuses to update one with the other, so a phone moving between the website
+  APK and Play has to uninstall first. To avoid that, set `APP_WEB_PUBLISH=draft` after Play goes
+  live and replace the draft with Play's signed universal APK (App bundle explorer) before
+  publishing.
 - **Rollback:** Android blocks a lower versionCode. Rebuild the previous code as a new version with
   a higher code.
 - **Most fixes need no release:** web-side changes ship with the normal `main` deploy.
 - **Later:** automate step 3 with the Play Developer API (a service account plus an
   upload-to-Play action).
+
+## Logos
+
+Sources in `tools/brand/` (the owner's PNGs). `php tools/make-logos.php` writes
+`public/assets/image/logo-mark.*` (the stone mark: header, footers, app banner, favicon, app icon),
+`logo-full.*` (mark + "Ma Sarada · Marble & Sanitation": app intro, documents via
+`BUSINESS_LOGO`) and `favicon.png`. Then `cd mobile && php tools/make-assets.php` redraws the app
+icons and splash screens. The full logo has black text, so it's used on light backgrounds only.
 
 ## Build order
 

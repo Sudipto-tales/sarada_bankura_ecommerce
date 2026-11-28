@@ -1,18 +1,19 @@
 <?php
 /**
- * App icons and splash from the storefront logo's crest. `npm run assets` runs @capacitor/assets
- * (splash screens) and then this script, which overwrites its icons with sharper ones:
+ * App icons and splash from the stone mark (public/assets/image/logo-mark.png, made by
+ * tools/make-logos.php). Runs on its own (php tools/make-assets.php) or after @capacitor/assets:
  *
  *   assets/*.png                                        sources (icon-only, splash, splash-dark…)
  *   android/…/mipmap-*dpi/ic_launcher*.png               legacy + round icons, adaptive layers at full size
  *   android/…/mipmap-anydpi-v26/ic_launcher*.xml         adaptive icon with a monochrome layer
  *   android/…/drawable-nodpi/ic_launcher_monochrome.png  themed icon (Android 13+)
  *   android/…/drawable-*dpi/ic_stat_notify.png           white status-bar icon for push
+ *   android/…/drawable-…/splash.png                       splash screens, redrawn at their current sizes
  */
 $root = dirname(__DIR__);
 $res = $root . '/android/app/src/main/res';
-$logo = imagecreatefromwebp($root . '/../public/assets/image/logo.webp');
-[$cx, $cy, $cw, $ch] = [107, 0, 347, 272]; // the crest; the wordmark below it is unreadable at icon size
+$logo = imagecreatefrompng($root . '/../public/assets/image/logo-mark.png');
+[$cx, $cy, $cw, $ch] = [0, 0, imagesx($logo), imagesy($logo)];
 
 $cream = [0xF6, 0xF2, 0xEA];
 $ink = [0x15, 0x21, 0x1F];
@@ -28,7 +29,7 @@ function canvas(int $w, int $h, ?array $bg): GdImage
     return $im;
 }
 
-/** Crest centred, $frac of the canvas width (height kept in proportion). */
+/** Mark centred, $frac of the canvas width (height kept in proportion). */
 function crest(GdImage $dst, float $frac): void
 {
     global $logo, $cx, $cy, $cw, $ch;
@@ -62,30 +63,37 @@ function save(GdImage $im, string $path): void
 }
 
 @mkdir($root . '/assets');
-$i = canvas(1024, 1024, $cream); crest($i, .74); save($i, $root . '/assets/icon-only.png');
-$i = canvas(1024, 1024, null); crest($i, .56); save($i, $root . '/assets/icon-foreground.png');
+$i = canvas(1024, 1024, $cream); crest($i, .62); save($i, $root . '/assets/icon-only.png');
+$i = canvas(1024, 1024, null); crest($i, .44); save($i, $root . '/assets/icon-foreground.png');
 $i = canvas(1024, 1024, $cream); save($i, $root . '/assets/icon-background.png');
-$i = canvas(2732, 2732, $cream); crest($i, .26); save($i, $root . '/assets/splash.png');
-$i = canvas(2732, 2732, $ink); crest($i, .26); save($i, $root . '/assets/splash-dark.png');
+$i = canvas(2732, 2732, $cream); crest($i, .2); save($i, $root . '/assets/splash.png');
+$i = canvas(2732, 2732, $ink); crest($i, .2); save($i, $root . '/assets/splash-dark.png');
+foreach (glob("$res/drawable*/splash.png") ?: [] as $f) {
+    [$w, $h] = getimagesize($f);
+    $i = canvas($w, $h, str_contains($f, '-night') ? $ink : $cream);
+    $k = (int) round(min($w, $h) * .28);
+    imagecopyresampled($i, $logo, intdiv($w - $k, 2), intdiv($h - $k, 2), 0, 0, $k, $k, $cw, $ch);
+    save($i, $f);
+}
 
-$fg = canvas(432, 432, null); crest($fg, .56);
+$fg = canvas(432, 432, null); crest($fg, .44);
 save(silhouette($fg), $res . '/drawable-nodpi/ic_launcher_monochrome.png');
 foreach (['mdpi' => 24, 'hdpi' => 36, 'xhdpi' => 48, 'xxhdpi' => 72, 'xxxhdpi' => 96] as $d => $px) {
     $n = canvas($px, $px, null); crest($n, .92);
     save(silhouette($n), "$res/drawable-$d/ic_stat_notify.png");
 }
 
-// Launcher icons. Adaptive layers are 108dp; the crest stays inside the 66dp safe circle.
+// Launcher icons. Adaptive layers are 108dp; the mark stays inside the 66dp safe circle.
 $dpi = ['mdpi' => 1, 'hdpi' => 1.5, 'xhdpi' => 2, 'xxhdpi' => 3, 'xxxhdpi' => 4];
 foreach ($dpi as $d => $k) {
     $a = (int) (108 * $k);
-    $i = canvas($a, $a, null); crest($i, .56); save($i, "$res/mipmap-$d/ic_launcher_foreground.png");
+    $i = canvas($a, $a, null); crest($i, .44); save($i, "$res/mipmap-$d/ic_launcher_foreground.png");
     $i = canvas($a, $a, $cream); save($i, "$res/mipmap-$d/ic_launcher_background.png");
     $l = (int) (48 * $k);
-    $i = canvas($l, $l, $cream); crest($i, .74); save($i, "$res/mipmap-$d/ic_launcher.png");
+    $i = canvas($l, $l, $cream); crest($i, .62); save($i, "$res/mipmap-$d/ic_launcher.png");
     $r = canvas($l, $l, null);
     imagefilledellipse($r, intdiv($l, 2), intdiv($l, 2), $l, $l, imagecolorallocate($r, ...$cream));
-    crest($r, .66); save($r, "$res/mipmap-$d/ic_launcher_round.png");
+    crest($r, .6); save($r, "$res/mipmap-$d/ic_launcher_round.png");
 }
 foreach (glob("$res/mipmap-ldpi/*") ?: [] as $f) {
     unlink($f);
@@ -93,7 +101,7 @@ foreach (glob("$res/mipmap-ldpi/*") ?: [] as $f) {
 @rmdir("$res/mipmap-ldpi");
 $xml = <<<XML
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Written by tools/make-assets.php. The crest already sits inside the 66dp safe zone. -->
+<!-- Written by tools/make-assets.php. The mark already sits inside the 66dp safe zone. -->
 <adaptive-icon xmlns:android="http://schemas.android.com/apk/res/android">
     <background android:drawable="@mipmap/ic_launcher_background" />
     <foreground android:drawable="@mipmap/ic_launcher_foreground" />

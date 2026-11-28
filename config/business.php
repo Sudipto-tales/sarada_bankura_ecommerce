@@ -30,7 +30,7 @@ return [
     'pan' => env('BUSINESS_PAN', ''),
 
     // Path under public/ (use with base_url()).
-    'logo' => env('BUSINESS_LOGO', 'assets/image/logo.webp'), // empty = text logo
+    'logo' => env('BUSINESS_LOGO', 'assets/image/logo-full.png'), // empty = text logo
 
     'currency' => 'INR',
     'timezone' => 'Asia/Kolkata',
