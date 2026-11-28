@@ -34,7 +34,10 @@ These changes also improve the mobile website.
 | --- | --- |
 | App detection (`MaaSaradaApp/<ver>` in the UA → `<html class="is-app">`) | `Store\AppMode` |
 | Glass tab bar, offline pill, nav progress bar, pull to refresh | `partials/app-shell.php`, `appShell()` in `store.js` |
-| Compact app footer, no utility bar, header bag/saved hidden in the app | `partials/footer.php`, `partials/header.php` |
+| Branded intro (crest, name, shimmer; ~1.5 s, once per app launch via `ms.intro` in sessionStorage, tap to skip, off with reduced motion) | `layouts/app.php`, `appShell()` in `store.js`, `.intro*` in `store.css` |
+| Status-bar inset on the whole page (`--sa-t` = Capacitor's `--safe-area-inset-top` or `env()`), cream strip behind the status bar | `store.css` |
+| Page skeleton on tap (product / grid / list / general, 90 ms delay) and side-slide page transitions, reversed on back (`vt-back`) | `appShell()` in `store.js`, `.pskel*` in `store.css`, `layouts/app.php` |
+| Compact rounded app footer (`.app-foot`), no utility bar, header bag/saved hidden in the app | `partials/footer.php`, `partials/header.php` |
 | Product page: no tab bar, glass buy bar at the bottom | `product.php` (`'tabbar' => false`) |
 | View Transitions, card → product image move, Speculation Rules prefetch | `store.css`, `layouts/app.php` |
 | Service worker (`/service-worker`) + `/offline` page with "saved on this device" list | `AppShellController`, `resources/sw/sw.js` |

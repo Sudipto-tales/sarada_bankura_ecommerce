@@ -933,8 +933,28 @@
       bar.addEventListener('click', function (e) { if (e.target.closest('.tab-i')) haptic(); });
     }
 
-    var np = $('#navProgress');
-    function busy() { if (np) { np.classList.remove('on'); void np.offsetWidth; np.classList.add('on'); } }
+    var np = $('#navProgress'), sk = null, skT = 0;
+    function card() { return '<div class="skel-card"><span class="skel skel-img"></span><div class="skel-body"><span class="skel skel-t"></span><span class="skel skel-s"></span><span class="skel skel-p"></span></div></div>'; }
+    function lines(n) { var h = ''; while (n--) h += '<span class="skel ' + (n % 2 ? 'skel-t' : 'skel-m') + '"></span>'; return h; }
+    function skeleton(path) {
+      if (!isApp) return;
+      var h;
+      if (/^\/product\//.test(path)) h = '<span class="skel pskel-hero" style="aspect-ratio:1/1"></span>' + lines(3) + '<span class="skel skel-p"></span><span class="skel skel-b"></span>';
+      else if (/^\/(shop|saved|search|brands?)(\/|$)/.test(path)) h = '<span class="skel skel-t"></span><div class="pskel-grid">' + card() + card() + card() + card() + '</div>';
+      else if (/^\/(cart|account|track|order)(\/|$)/.test(path)) h = '<span class="skel skel-t"></span><span class="skel pskel-row"></span><span class="skel pskel-row"></span><span class="skel pskel-row"></span>' + lines(2);
+      else h = '<span class="skel pskel-hero"></span>' + lines(2) + '<div class="pskel-grid">' + card() + card() + '</div>';
+      clearTimeout(skT);
+      skT = setTimeout(function () {
+        if (!sk) { sk = document.createElement('div'); sk.className = 'pskel'; sk.setAttribute('aria-hidden', 'true'); document.body.appendChild(sk); }
+        var hd = $('header');
+        sk.style.top = (hd ? Math.max(hd.getBoundingClientRect().bottom, 0) : 0) + 'px';
+        sk.innerHTML = '<div class="pskel-in">' + h + '</div>';
+        requestAnimationFrame(function () { sk.classList.add('on'); });
+        skT = setTimeout(unskeleton, 12000);
+      }, 90);
+    }
+    function unskeleton() { clearTimeout(skT); if (sk) sk.classList.remove('on'); }
+    function busy(path) { if (np) { np.classList.remove('on'); void np.offsetWidth; np.classList.add('on'); } if (path) skeleton(path); }
     document.addEventListener('click', function (e) {
       var a = e.target.closest && e.target.closest('a[href]');
       if (!a || e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
@@ -946,16 +966,32 @@
         var main = $('#mainImg img[data-main]'); if (main) main.style.viewTransitionName = 'none';
         img.style.viewTransitionName = 'pimg'; img.setAttribute('data-vt', '');
       }
-      busy();
+      busy(/\/(app\/download|signout)/.test(a.pathname) ? null : a.pathname);
     });
-    document.addEventListener('submit', function (e) { if (!e.defaultPrevented && (e.target.method || '').toLowerCase() === 'get') busy(); });
+    document.addEventListener('submit', function (e) {
+      if (e.defaultPrevented || (e.target.method || '').toLowerCase() !== 'get') return;
+      try { busy(new URL(e.target.action || location.href, location.href).pathname); } catch (x) { busy(); }
+    });
     window.addEventListener('pageshow', function () {
       if (np) np.classList.remove('on');
+      unskeleton();
       $$('[data-vt]').forEach(function (el) { el.style.viewTransitionName = ''; el.removeAttribute('data-vt'); });
       var main = $('#mainImg img[data-main]'); if (main) main.style.viewTransitionName = '';
     });
 
     if (!isApp) return;
+    var intro = $('#intro');
+    if (intro && root.classList.contains('intro')) {
+      var t0 = performance.now(), done = function () {
+        if (intro.classList.contains('out')) return;
+        intro.classList.add('out');
+        setTimeout(function () { root.classList.remove('intro'); intro.remove(); }, 420);
+      };
+      var ready = function () { setTimeout(done, Math.max(0, 1500 - (performance.now() - t0))); };
+      if (document.readyState === 'complete') ready(); else window.addEventListener('load', ready);
+      intro.addEventListener('click', done);
+      setTimeout(done, 4000);
+    } else if (intro) intro.remove();
     document.addEventListener('contextmenu', function (e) { if (!e.target.closest('input, textarea, [contenteditable], .selectable')) e.preventDefault(); });
     var ptr = $('#ptr'), y0 = null, pull = 0;
     if (ptr) {

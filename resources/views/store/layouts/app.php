@@ -25,6 +25,8 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover<?= $inApp ? ', maximum-scale=1, user-scalable=no' : '' ?>">
 <?php if ($inApp): ?><meta name="format-detection" content="telephone=no">
+<script>try{if(!sessionStorage.getItem('ms.intro')&&!matchMedia('(prefers-reduced-motion: reduce)').matches){sessionStorage.setItem('ms.intro','1');document.documentElement.classList.add('intro')}}catch(e){}</script>
+<script>addEventListener('pagereveal',function(e){var a=window.navigation&&navigation.activation;if(e.viewTransition&&a&&a.navigationType==='traverse'&&a.from&&a.entry&&a.entry.index<a.from.index){var r=document.documentElement;r.classList.add('vt-back');e.viewTransition.finished.finally(function(){r.classList.remove('vt-back')})}});</script>
 <?php if (Context::customer() !== null && \App\Services\Push\Fcm::configured()): ?><meta name="ms-push" content="<?= e(store_url('/app/devices')) ?>" data-reg="<?= e(\App\Services\Push\Devices::sessionTag()) ?>"><?php endif; ?>
 <?php endif; ?>
 <title><?= e($title) ?></title>
@@ -51,6 +53,7 @@ foreach (['success', 'error', 'warning', 'info'] as $k) {
 <?= $page['head'] ?>
 </head>
 <body class="font-sans text-[15px]<?= $tabbar ? ' has-tabbar' : ($minimal ? '' : ' pb-20 lg:pb-0') ?>"<?= !empty($page['body_attrs']) ? ' ' . $page['body_attrs'] : '' ?>>
+<?php if ($inApp): ?><div id="intro" class="intro-scr" aria-hidden="true"><img src="<?= e(store_asset('image/logo.webp')) ?>" alt="" width="96" height="96" class="intro-logo"><p class="intro-name font-display">Maa Sarada</p><p class="intro-tag">Marble &amp; Stone · <?= e(business('address.city', 'Bankura')) ?></p><span class="intro-line"></span></div><?php endif; ?>
 <a href="#main" class="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 bg-ink text-cream px-3 py-2 rounded">Skip to content</a>
 <?php if (Context::previewing()): ?>
 <div class="bg-copper text-white text-[12.5px]"><div class="wrap py-2 flex flex-wrap items-center justify-between gap-2">
