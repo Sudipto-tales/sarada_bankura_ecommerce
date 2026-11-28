@@ -46,7 +46,7 @@ try {
     <button type="button" id="menuBtn" class="lg:hidden -ml-1 p-2 rounded-lg hover:bg-ink/5" aria-label="Open menu" aria-controls="drawer" aria-expanded="false"><?= store_icon('menu', '!w-6 !h-6') ?></button>
     <a href="<?= e(store_url('/')) ?>" class="flex items-center gap-2.5 shrink-0" aria-label="<?= e(business('name')) ?> home">
       <img src="<?= e(store_asset('image/logo-mark.webp')) ?>" alt="" class="h-11 w-auto" width="44" height="44">
-      <span class="hidden sm:block leading-tight"><span class="block font-display text-[19px] tracking-tight">Maa Sarada</span><span class="block text-[10.5px] uppercase tracking-[.18em] text-ink-500">Marble &amp; Stone · <?= e(business('address.city', 'Bankura')) ?></span></span>
+      <span class="hidden sm:block leading-tight"><span class="block font-display text-[19px] tracking-tight">Maa Sarada</span><span class="block text-[10.5px] uppercase tracking-[.18em] text-ink-500">Marble &amp; Sanitation · <?= e(business('address.city', 'Bankura')) ?></span></span>
     </a>
 
     <nav class="hidden lg:flex items-center gap-1 text-[14px] font-medium" aria-label="Main">

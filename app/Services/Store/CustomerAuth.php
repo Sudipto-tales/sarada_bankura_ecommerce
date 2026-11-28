@@ -388,7 +388,7 @@ final class CustomerAuth
             'code_hash' => password_hash($code, PASSWORD_DEFAULT), 'attempts' => 0,
             'expires_at' => date('Y-m-d H:i:s', time() + self::CODE_MINUTES * 60), 'ip' => $ip !== null ? mb_substr($ip, 0, 45) : null, 'created_at' => $now,
         ]);
-        $shop = (string) business('name', 'Maa Sarada Marble & Stone');
+        $shop = (string) business('name', 'Maa Sarada Marble & Sanitation');
         try {
             Mail::send($email, $shop . ': your password reset code', "Namaskar {$u['name']},\n\nYour code to reset your password is: {$code}\n\n"
                 . 'It works for ' . self::CODE_MINUTES . " minutes. If you didn’t ask for it, you can ignore this email — your password stays the same.\n\n— {$shop}");

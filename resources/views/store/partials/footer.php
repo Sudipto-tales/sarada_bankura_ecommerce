@@ -15,7 +15,7 @@ if (\App\Services\Store\AppMode::active()):
   <div class="grid gap-5 text-[13.5px]">
     <div class="flex items-center gap-3">
       <img src="<?= e(store_asset('image/logo-mark.webp')) ?>" alt="" class="h-11 w-11 rounded-xl bg-cream p-1.5" width="44" height="44" loading="lazy">
-      <div><p class="font-display text-[19px] text-cream leading-tight">Maa Sarada</p><p class="text-[10.5px] uppercase tracking-[.18em]">Marble &amp; Stone · <?= e(business('address.city', 'Bankura')) ?></p></div>
+      <div><p class="font-display text-[19px] text-cream leading-tight">Maa Sarada</p><p class="text-[10.5px] uppercase tracking-[.18em]">Marble &amp; Sanitation · <?= e(business('address.city', 'Bankura')) ?></p></div>
     </div>
     <div class="grid grid-cols-2 gap-2">
       <a href="<?= e(store_url('/track')) ?>" class="app-row"><?= store_icon('package-search') ?> Track order</a>
@@ -32,7 +32,7 @@ if (\App\Services\Store\AppMode::active()):
     <div class="col-span-2 lg:col-span-4">
       <div class="flex items-center gap-3">
         <img src="<?= e(store_asset('image/logo-mark.webp')) ?>" alt="" class="h-14 w-14 rounded-2xl bg-cream p-2" width="56" height="56" loading="lazy">
-        <div><p class="font-display text-[22px] text-cream">Maa Sarada</p><p class="text-[11px] uppercase tracking-[.18em]">Marble &amp; Stone · <?= e(business('address.city', 'Bankura')) ?></p></div>
+        <div><p class="font-display text-[22px] text-cream">Maa Sarada</p><p class="text-[11px] uppercase tracking-[.18em]">Marble &amp; Sanitation · <?= e(business('address.city', 'Bankura')) ?></p></div>
       </div>
       <p class="mt-5 max-w-xs text-[14px] leading-relaxed">Natural stone for homes across Bankura, Bishnupur, Durgapur and beyond. Chosen slab by slab.</p>
       <p class="mt-4 text-[13px]"><?= $address !== '' ? e($address) . '<br>' : '' ?><?= e((string) config('store.hours')) ?></p>

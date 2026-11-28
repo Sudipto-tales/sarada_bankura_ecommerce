@@ -6,7 +6,7 @@
 use App\Services\Store\AppMode;
 use App\Services\Store\Context;
 
-$siteName = (string) business('name', 'Maa Sarada Marble & Stone');
+$siteName = (string) business('name', 'Maa Sarada Marble & Sanitation');
 $title = $page['title'] ? $page['title'] . ' · ' . $siteName : $siteName . ' — ' . business('address.city', 'Bankura');
 $description = $page['description'] ?: 'Italian and Indian marble, granite and onyx for floors, walls and countertops. Showroom in '
     . business('address.city', 'Bankura') . ', ' . business('address.state', 'West Bengal') . '. Delivery included, UPI payments.';
